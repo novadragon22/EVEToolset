@@ -638,7 +638,14 @@ function currentFuel(s){ // live blocks remaining, depleting from the last readi
 function fuelHoursLeft(s){
   // Prefer ESI's authoritative fuel_expires (accounts for rigs, exact service config, bonuses);
   // fall back to the local depletion model only for manually-entered structures.
-  if(s.fuelExpires) return (new Date(s.fuelExpires).getTime()-now())/3600000;
+  // Exception: if fuel_expires says "already expired" but the assets endpoint shows real fuel blocks
+  // physically in the bay, CCP's server hasn't recalculated fuel_expires since a recent refuel yet —
+  // trust the actual held count instead of reporting a false "depleted" state.
+  if(s.fuelExpires){
+    const esiHours=(new Date(s.fuelExpires).getTime()-now())/3600000;
+    const contradicted=esiHours<=0 && s.fuelFromEsi && (+s.fuel||0)>0;
+    if(!contradicted) return esiHours;
+  }
   if(s.fuelAsOf && combinedRate(s)>0) return hoursLeft(currentFuel(s),combinedRate(s));
   return hoursLeft(s.fuel,combinedRate(s)); }
 // effective blocks/hr: derive the real rate from ESI fuel_expires + held blocks when both are known,
@@ -1279,7 +1286,12 @@ async function importAllCorps(silent){
   for(const cid of visibleCharIds()){ const c=chars[cid]; if(c.corpId && !(c.corpId in byCorp)) byCorp[c.corpId]=c.charId; }
   // honor a locked/preferred character for corps with multiple signed-in alts (must itself be visible)
   for(const corpId in byCorp){ const pref=preferredChar[corpId]; if(pref && chars[pref] && chars[pref].corpId==corpId && sectionEnabled(pref)) byCorp[corpId]=pref; }
-  for(const [corpIdStr,charId] of Object.entries(byCorp)){
+  // oldest data first: if the sync run gets interrupted, rate-limited, or the tab closes partway
+  // through, whatever's staleest gets corrected before anything that's already reasonably fresh
+  const oldestSyncFor=corpId=>{ const own=structures.filter(s=>s.corpId==corpId); if(!own.length) return -1; // never-seen corp — sync it first
+    return own.reduce((m,s)=>{ const t=s.lastSynced?new Date(s.lastSynced).getTime():0; return m===null||t<m?t:m; },null); };
+  const order=Object.keys(byCorp).sort((a,b)=>oldestSyncFor(a)-oldestSyncFor(b));
+  for(const corpIdStr of order){ const charId=byCorp[corpIdStr];
     const c=chars[charId];
     try{ const v=await getValidToken(charId); if(!v) throw new Error('token expired — re-add this character from the menu');
       await importFromEsi(v.access,silent,charId);
@@ -1398,7 +1410,7 @@ window.alertScan=alertScan;
 let toastT; function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('show'),5000); }
 
 /* ---------- init ---------- */
-setInterval(()=>{ if(structures.some(s=>s.extractionEnd||s.unanchorsAt||s.stateTimerEnd||s.fuelExpires||s.type==='metenox')){ renderAll(); alertScan({toastOnChange:true}); } }, 30000);
+setInterval(()=>{ if(structures.length){ renderAll(); alertScan({toastOnChange:true}); } }, 30000);
 let _syncing=false;
 async function backgroundSync(){ if(_syncing) return; if(document.visibilityState&&document.visibilityState!=='visible') return; if(!visibleCharIds().length) return;
   _syncing=true; try{ await importAllCorps(true); }catch(e){} finally{ _syncing=false; } }
