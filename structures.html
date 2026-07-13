@@ -82,6 +82,9 @@
   .char-av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#3a4a5a,#1a2530);object-fit:cover}
   .char-name{font-family:var(--mono);font-size:11px;color:var(--gold-bright);letter-spacing:.02em;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .char-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px rgba(140,200,106,.6)}
+  .char-lock{cursor:pointer;font-size:10px;opacity:.55;transition:opacity .12s}
+  .char-lock:hover{opacity:1}
+  .char-lock.on{opacity:1}
   .char-dot.busy{background:var(--gold);animation:dotp 1.2s ease-in-out infinite;box-shadow:none}
   @keyframes dotp{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
   .char-x{margin-left:2px;color:#6c8592;font-family:var(--mono);font-size:11px;padding:0 4px;opacity:.5;transition:all .15s}
@@ -1057,15 +1060,30 @@ document.getElementById('saveBtn').onclick=async()=>{
 };
 
 /* ---------- topbar ---------- */
+const PREF_KEY='eve_structures_preferred_char';
+let preferredChar=(function(){ try{ return JSON.parse(localStorage.getItem(PREF_KEY)||'{}'); }catch(e){ return {}; } })();  // corpId -> charId
+function toggleCharLock(corpId,charId){
+  if(!corpId) return;
+  if(String(preferredChar[corpId])===String(charId)) delete preferredChar[corpId]; // click again to unlock
+  else preferredChar[corpId]=charId;
+  try{ localStorage.setItem(PREF_KEY,JSON.stringify(preferredChar)); }catch(e){}
+  renderTopbar();
+}
+window.toggleCharLock=toggleCharLock;
 function renderTopbar(){
   const r=document.getElementById('tbRight');
   let html='';
   const ids=Object.keys(chars);
   if(ids.length){
+    // count how many signed-in characters share each corp, to know when locking is meaningful
+    const corpCounts={}; ids.forEach(id=>{ const c=chars[id]; if(c.corpId) corpCounts[c.corpId]=(corpCounts[c.corpId]||0)+1; });
     html+=ids.map(id=>{ const c=chars[id];
       const av=`<img class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">`;
       const corp=c.corpName?` · ${esc(c.corpName)}`:'';
-      return `<span class="char-chip">${av}<span class="char-name">${esc(c.charName||'capsuleer')}${corp}</span><span class="char-dot" id="syncDot-${id}"></span></span>`;
+      const multi=c.corpId&&corpCounts[c.corpId]>1;
+      const locked=c.corpId&&String(preferredChar[c.corpId])===String(id);
+      const lockBtn=multi?`<span class="char-lock ${locked?'on':''}" title="${locked?'Locked — click to unlock':'Multiple characters share this corp — click to use this one for structure reads'}" onclick="toggleCharLock(${c.corpId},'${id}')">${locked?'🔒':'🔓'}</span>`:'';
+      return `<span class="char-chip">${av}<span class="char-name">${esc(c.charName||'capsuleer')}${corp}</span>${lockBtn}<span class="char-dot" id="syncDot-${id}"></span></span>`;
     }).join('');
     html+=`<button class="sync-btn" id="syncBtn" onclick="syncNow()">Sync</button>`;
     html+=`<a class="tb-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center">Manage in Menu ▸</a>`;
@@ -1170,6 +1188,8 @@ let corpAccess={};   // corpId -> {ok, corpName, charName, error}
 async function importAllCorps(silent){
   const byCorp={};
   for(const c of Object.values(chars)){ if(c.corpId && !(c.corpId in byCorp)) byCorp[c.corpId]=c.charId; }
+  // honor a locked/preferred character for corps with multiple signed-in alts
+  for(const corpId in byCorp){ const pref=preferredChar[corpId]; if(pref && chars[pref] && chars[pref].corpId==corpId) byCorp[corpId]=pref; }
   for(const [corpIdStr,charId] of Object.entries(byCorp)){
     const c=chars[charId];
     try{ const v=await getValidToken(charId); if(!v) throw new Error('token expired — re-add this character from the menu');
