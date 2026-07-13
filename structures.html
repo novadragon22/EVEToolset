@@ -79,11 +79,12 @@
   .cab{flex-direction:column;gap:4px;padding:8px 14px;background:rgba(216,162,74,.08);border-bottom:1px solid var(--line)}
   .cab-row{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.02em}
   .cab-row b{color:var(--gold-bright)}
-  .cf-bar{align-items:center;gap:8px;padding:8px 14px;background:rgba(122,184,200,.05);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .cf-bar{align-items:center;gap:10px;padding:8px 14px;background:rgba(122,184,200,.05);border-bottom:1px solid var(--line);flex-wrap:wrap}
   .cf-label{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em}
-  .cf-chip{font-family:var(--mono);font-size:11px;color:var(--cyan);border:1px solid var(--line2);padding:4px 10px;cursor:pointer;background:#05080b;transition:.12s}
-  .cf-chip:hover{border-color:var(--cyan)}
-  .cf-chip.on{background:rgba(122,184,200,.15);border-color:var(--cyan);color:var(--cyan-bright);box-shadow:0 0 10px rgba(122,184,200,.25),0 2px 6px rgba(0,0,0,.3);transform:translateY(-1px)}
+  .cf-select{font-family:var(--mono);font-size:11.5px;color:var(--cyan-bright);border:1px solid var(--line2);padding:6px 10px;
+    cursor:pointer;background:#05080b;border-radius:2px;transition:.15s}
+  .cf-select:hover{border-color:var(--cyan)}
+  .cf-select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 8px rgba(122,184,200,.25)}
   .tb-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-dim)}
   .tb-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .tb-btn{padding:4px 10px;background:#0a0f13;border:1px solid var(--line2);color:#8ba4b3;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .12s}
@@ -93,6 +94,12 @@
   .char-name{font-family:var(--mono);font-size:11px;color:var(--gold-bright);letter-spacing:.02em;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .char-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px rgba(140,200,106,.6)}
   .char-lock{cursor:pointer;font-size:10px;opacity:.55;transition:opacity .12s}
+  .char-picker{position:relative}
+  .char-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:260px;background:var(--panel);border:1px solid var(--gold-dim);
+    padding:8px;z-index:9600;box-shadow:0 14px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:2px}
+  .char-menu-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:2px}
+  .char-menu-row:hover{background:rgba(122,184,200,.06)}
+  .char-menu-row .char-name{flex:1}
   .char-lock:hover{opacity:1}
   .char-lock.on{opacity:1}
   .char-dot.busy{background:var(--gold);animation:dotp 1.2s ease-in-out infinite;box-shadow:none}
@@ -833,10 +840,11 @@ function renderCorpFilterBar(){
   const corps=[...new Map(structures.filter(s=>s.corpId).map(s=>[s.corpId,s.corpName])).entries()];
   if(corps.length<2){ el.style.display='none'; el.innerHTML=''; if(corpFilter){ corpFilter=''; try{localStorage.removeItem('eve_structures_corpfilter');}catch(e){} } return; }
   el.style.display='flex';
-  el.innerHTML=`<span class="cf-label">Multiple corps synced — showing:</span>`+
-    `<span class="cf-chip ${!corpFilter?'on':''}" onclick="setCorpFilter('')">All (${structures.length})</span>`+
-    corps.map(([id,name])=>{ const ct=structures.filter(s=>s.corpId==id).length;
-      return `<span class="cf-chip ${String(corpFilter)===String(id)?'on':''}" onclick="setCorpFilter('${id}')">${esc(name)} (${ct})</span>`; }).join('');
+  const opts=[`<option value="" ${!corpFilter?'selected':''}>All corporations (${structures.length})</option>`]
+    .concat(corps.map(([id,name])=>{ const ct=structures.filter(s=>s.corpId==id).length;
+      return `<option value="${id}" ${String(corpFilter)===String(id)?'selected':''}>${esc(name)} (${ct})</option>`; }));
+  el.innerHTML=`<span class="cf-label">Filter by corporation:</span>
+    <select class="cf-select" onchange="setCorpFilter(this.value)">${opts.join('')}</select>`;
 }
 function renderAll(){
   renderCorpFilterBar();
@@ -1199,17 +1207,26 @@ function renderTopbar(){
   const r=document.getElementById('tbRight');
   let html='';
   const ids=visibleCharIds();
-  if(ids.length){
-    // count how many signed-in characters share each corp, to know when locking is meaningful
+  if(ids.length===1){
+    const id=ids[0], c=chars[id];
+    const av=`<img class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">`;
+    const corp=c.corpName?` · ${esc(c.corpName)}`:'';
+    html+=`<span class="char-chip">${av}<span class="char-name">${esc(c.charName||'capsuleer')}${corp}</span><span class="char-dot" id="syncDot-${id}"></span></span>`;
+  } else if(ids.length>1){
+    // multiple characters: collapse into one dropdown rather than a row of individual chips —
+    // corp is the meaningful grouping here, individual character detail (and the lock control) lives inside
     const corpCounts={}; ids.forEach(id=>{ const c=chars[id]; if(c.corpId) corpCounts[c.corpId]=(corpCounts[c.corpId]||0)+1; });
-    html+=ids.map(id=>{ const c=chars[id];
-      const av=`<img class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">`;
-      const corp=c.corpName?` · ${esc(c.corpName)}`:'';
-      const multi=c.corpId&&corpCounts[c.corpId]>1;
-      const locked=c.corpId&&String(preferredChar[c.corpId])===String(id);
-      const lockBtn=multi?`<span class="char-lock ${locked?'on':''}" title="${locked?'Locked — click to unlock':'Multiple characters share this corp — click to use this one for structure reads'}" onclick="toggleCharLock(${c.corpId},'${id}')">${locked?'🔒':'🔓'}</span>`:'';
-      return `<span class="char-chip">${av}<span class="char-name">${esc(c.charName||'capsuleer')}${corp}</span>${lockBtn}<span class="char-dot" id="syncDot-${id}"></span></span>`;
-    }).join('');
+    const corpSet=new Set(ids.map(id=>chars[id].corpId).filter(Boolean));
+    html+=`<div class="char-picker"><button class="tb-btn" id="charPickBtn">▾ ${ids.length} characters · ${corpSet.size} corp${corpSet.size!==1?'s':''}</button>
+      <div class="char-menu" id="charMenu" hidden>${ids.map(id=>{ const c=chars[id];
+        const multi=c.corpId&&corpCounts[c.corpId]>1;
+        const locked=c.corpId&&String(preferredChar[c.corpId])===String(id);
+        const lockBtn=multi?`<span class="char-lock ${locked?'on':''}" title="${locked?'Locked — click to unlock':'Multiple characters share this corp — click to use this one for structure reads'}" onclick="event.stopPropagation();toggleCharLock(${c.corpId},'${id}')">${locked?'🔒':'🔓'}</span>`:'';
+        return `<div class="char-menu-row"><img class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">
+          <span class="char-name">${esc(c.charName||'capsuleer')}${c.corpName?' · '+esc(c.corpName):''}</span>${lockBtn}<span class="char-dot" id="syncDot-${id}"></span></div>`; }).join('')}
+      </div></div>`;
+  }
+  if(ids.length){
     html+=`<button class="sync-btn" id="syncBtn" onclick="syncNow()">Sync</button>`;
     html+=`<a class="tb-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center">Manage in Menu ▸</a>`;
   } else {
@@ -1218,7 +1235,13 @@ function renderTopbar(){
   if('documentPictureInPicture' in window) html+=`<button class="tb-btn" id="pipBtn" onclick="togglePip()">⧉ Pop out</button>`;
   html+=`<button class="tb-btn" onclick="openModal('help')">? Help</button>`;
   r.innerHTML=html;
+  const cpb=document.getElementById('charPickBtn');
+  if(cpb) cpb.onclick=()=>{ const m=document.getElementById('charMenu'); m.hidden=!m.hidden; };
 }
+document.addEventListener('click',(e)=>{
+  const menu=document.getElementById('charMenu');
+  if(menu && !menu.hidden && !menu.contains(e.target) && e.target.id!=='charPickBtn'){ menu.hidden=true; }
+});
 function setSyncDot(state,id){
   if(id){ const d=document.getElementById('syncDot-'+id); if(d) d.className='char-dot'+(state==='busy'?' busy':''); return; }
   Object.keys(chars).forEach(cid=>{ const d=document.getElementById('syncDot-'+cid); if(d) d.className='char-dot'+(state==='busy'?' busy':''); });
