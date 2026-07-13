@@ -803,11 +803,15 @@ const BP_PRODUCT={}; for(const b in MFG) BP_PRODUCT[b]=MFG[b][0]; for(const b in
 
 const CHARS_KEY=SHARED_KEY;
 let chars=lget(CHARS_KEY)||{};            // {charId:{access,refresh,expires,charId,charName,corpId,corpName}}
+// section-visibility: which signed-in characters the launcher's carousel has enabled for THIS tool
+const SECTION_KEY='eve_suite_char_sections', MY_SECTION='industry';
+function sectionEnabled(charId){ try{ const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[charId]; return !p||p[MY_SECTION]!==false; }catch(e){ return true; } }
+function visibleCharIds(){ return Object.keys(chars).filter(sectionEnabled); }
 (function migrate(){ const old=lget(SESS_KEY); if(old&&old.charId&&!chars[old.charId]){ chars[old.charId]=old; lset(CHARS_KEY,chars); localStorage.removeItem(SESS_KEY); } })();
 let charData={}, corpData={};             // charData[cid]={skills,bps,assetQty,jobs}; corpData[corpId]={name,bps,assetQty,jobs,access}
 let selChars=new Set(), selCorps=new Set();
 let skillsMap={}, bpOwned={}, assetQty={}, jobs=[];
-function loggedIn(){ return Object.keys(chars).length>0; }
+function loggedIn(){ return visibleCharIds().length>0; }
 
 // --- PKCE helpers ---
 function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
@@ -888,8 +892,8 @@ function firstChar(){ return +Object.keys(chars)[0]; }
 
 async function loadAll(){
   if(!loggedIn()) return;
-  // per character
-  for(const cid in chars){ const s=chars[cid]; const d=charData[cid]||(charData[cid]={skills:{},bps:[],assetQty:{},jobs:[]});
+  // per character (only those enabled for Industry Console via the launcher's carousel)
+  for(const cid of visibleCharIds()){ const s=chars[cid]; const d=charData[cid]||(charData[cid]={skills:{},bps:[],assetQty:{},jobs:[]});
     try{ const ch=await(await authGet('/characters/'+cid+'/',cid)).json(); s.corpId=ch.corporation_id;
          try{ const co=await(await fetch(esiUrl('/corporations/'+s.corpId+'/'))).json(); s.corpName=co.name||''; }catch(e){} lset(CHARS_KEY,chars);
     }catch(e){}
@@ -899,8 +903,8 @@ async function loadAll(){
     try{ d.jobs=(await(await authGet('/characters/'+cid+'/industry/jobs/?include_completed=false',cid)).json()).map(j=>({...j,owner:s.charName})); }catch(e){ d.jobs=[]; }
     selChars.add(+cid);
   }
-  // per unique corp (fetch once using any member char that has access)
-  const corpMembers={}; for(const cid in chars){ const c=chars[cid].corpId; if(c){ (corpMembers[c]=corpMembers[c]||[]).push(+cid); } }
+  // per unique corp (fetch once using any member char that has access) — only corps reached via a visible character
+  const corpMembers={}; for(const cid of visibleCharIds()){ const c=chars[cid].corpId; if(c){ (corpMembers[c]=corpMembers[c]||[]).push(+cid); } }
   for(const corpId in corpMembers){ const cd=corpData[corpId]||(corpData[corpId]={name:'',bps:[],assetQty:{},jobs:[],access:false});
     cd.name=(chars[corpMembers[corpId][0]]||{}).corpName||('Corp '+corpId);
     let ok=false;
@@ -939,7 +943,7 @@ function recompute(){
 function renderAuth(){
   const a=document.getElementById('authArea');
   if(!loggedIn()){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; return; }
-  const charIds=Object.keys(chars).map(Number);
+  const charIds=visibleCharIds().map(Number);
   const corpIds=[...new Set(charIds.map(c=>chars[c].corpId).filter(Boolean))];
   const nc=selChars.size, ncc=selCorps.size;
   const syncTxt=lastSync?(' · synced '+new Date(lastSync).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})):'';

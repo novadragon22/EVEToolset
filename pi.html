@@ -338,7 +338,7 @@ function colonyPlan(target,sysId){
     return `<br><span style="color:var(--muted)" title="Planetology + Advanced Planetology raise extraction survey accuracy, letting heads sit on richer deposits. Rough yield estimate vs untrained — calibrate to your in-game survey scan.">≈ ×${mult.toFixed(2)} yield est · Planetology ${pl} / Adv ${ap}</span>`; };
   const [cpuB0,pgB0]=CCU_BUDGET[ccuOverride];   // fallback budget (single-char / overflow)
   // crew: role-based assignment kicks in with 2+ logged-in characters
-  const ids=Object.keys(chars);
+  const ids=visibleCharIds();
   const roleMode=ids.length>=2;
   const crew=ids.map(id=>({ id, name:(chars[id]&&chars[id].charName)||('Char '+id), role:(charRole[id]||'extract'),
     cap: charSkills[id]?1+charSkills[id].ic:1+icOverride, bud: charSkills[id]?CCU_BUDGET[charSkills[id].ccu]:[cpuB0,pgB0],
@@ -592,6 +592,10 @@ const SHARED_KEY='eve_suite_chars';
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
 let toastT; function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('show'),5000); }
 let chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); let colonies={}; let charLoc={}; let closestSys=null; let baseSuggest=[];
+// section-visibility: which signed-in characters the launcher's carousel has enabled for THIS tool
+const SECTION_KEY='eve_suite_char_sections', MY_SECTION='pi';
+function sectionEnabled(charId){ try{ const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[charId]; return !p||p[MY_SECTION]!==false; }catch(e){ return true; } }
+function visibleCharIds(){ return Object.keys(chars).filter(sectionEnabled); }
 (function(){ let n=0, changed=false; Object.keys(chars).forEach(k=>{ if(chars[k] && chars[k].order==null){ chars[k].order=n; changed=true; } n=Math.max(n+1,((chars[k]&&chars[k].order)||0)+1); }); if(changed) try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){} })();
 let charSkills={}; // id -> {ic,ccu} per character (from ESI)
 let charRole=JSON.parse(localStorage.getItem('pi_roles')||'{}'); // id -> 'extract' | 'factory' | 'full'
@@ -933,14 +937,14 @@ function selectSystem(id){ chosen=id; viewing='colony'; drawMap(); renderColony(
 const PNAME2={T:'Temperate',I:'Ice',G:'Gas',O:'Oceanic',L:'Lava',B:'Barren',S:'Storm',P:'Plasma',H:'Shattered'};
 function renderColony(){ if(!chosen||!target){ viewing='list'; renderResults(); return; }
   // default roles for a fresh multi-character setup: first = extractor, rest = factory
-  const cids=Object.keys(chars);
+  const cids=visibleCharIds();
   if(cids.length>=2 && !cids.some(id=>charRole[id])){ cids.forEach((id,i)=>charRole[id]= i===0?'extract':'factory'); saveRoles(); }
   const s=SYS[chosen]; let plan=colonyPlan(target,chosen);
   if(autoFit && !_autofitting){ _autofitting=true; const ch=autoFitCrew(plan); _autofitting=false; if(ch) plan=colonyPlan(target,chosen); }
   feederMark = plan.feederInfo ? plan.feederInfo.id : null; drawMap();
   $('resHd').innerHTML=`<span style="cursor:pointer;color:var(--cyan)" id="backList">← candidates</span> &nbsp; Colony plan · <b>${s[0]}</b> (${REG[s[2]]})`;
   $('closest').innerHTML='';
-  const loggedIn=Object.keys(chars).length>0;
+  const loggedIn=visibleCharIds().length>0;
   $('resHead').innerHTML='';
   const card=(title,sub,facs,cpu,pg,cpuB,pgB,who)=>`<div style="border:1px solid var(--line);margin:8px 14px;padding:10px 12px">
     <div style="display:flex;justify-content:space-between;align-items:center"><b class="mono" style="color:var(--gold-bright)">${title}</b>
@@ -1483,7 +1487,7 @@ async function loadColonyDetail(id, pid){ if(colDetail[pid]) return colDetail[pi
     colDetail[pid]={extractors:ex, factoryPins, ecuPins}; }catch(e){ colDetail[pid]={extractors:[],factoryPins:0,ecuPins:0,err:1}; }
   return colDetail[pid]; }
 async function renderMine(){ renderNav(); $('resHd').innerHTML='My colonies <span class="hint" style="font-weight:400">· live from ESI</span>'; $('closest').innerHTML=''; $('resHead').innerHTML='';
-  const ids=Object.keys(chars); if(!ids.length){ $('resBody').innerHTML=`<tr><td><div class="hint" style="padding:10px 14px">Log in with EVE (top-right) to read your live colonies, extractor rates, and outputs.</div></td></tr>`; return; }
+  const ids=visibleCharIds(); if(!ids.length){ $('resBody').innerHTML=`<tr><td><div class="hint" style="padding:10px 14px">Log in with EVE (top-right) to read your live colonies, extractor rates, and outputs.</div></td></tr>`; return; }
   // gather all colonies
   const rows=[]; ids.forEach(id=>(colonies[id]||[]).forEach(c=>rows.push({id,c})));
   if(!rows.length){ $('resBody').innerHTML=`<tr><td><div class="hint" style="padding:10px 14px">No planetary colonies found on your characters.</div></td></tr>`; return; }
@@ -1747,7 +1751,7 @@ function updateLocNow(){ const id=Object.keys(charLoc)[0]; const sys=id?charLoc[
   $('locNow').textContent = sys&&SYS[sys]? ('in '+SYS[sys][0]) : ''; }
 $('locBtn').onclick=()=>{ const sys=Object.values(charLoc).find(s=>SYS[s]); if(!sys){ toast('Sign in from the menu first so I can read your current system.'); return; } $('home').value=SYS[sys][0]; compute(); };
 function logout(id){ delete chars[id]; delete colonies[id]; saveChars(); renderAuth(); drawMap(); }
-function renderAuth(){ const a=$('auth'); const ids=Object.keys(chars).map(Number).sort((x,y)=>(((chars[x]&&chars[x].order)??1e9)-((chars[y]&&chars[y].order)??1e9))||(x-y));
+function renderAuth(){ const a=$('auth'); const ids=visibleCharIds().map(Number).sort((x,y)=>(((chars[x]&&chars[x].order)??1e9)-((chars[y]&&chars[y].order)??1e9))||(x-y));
   if(!ids.length){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; const rb=$('resyncBtn'); if(rb) rb.hidden=true; return; }
   { const rb=$('resyncBtn'); if(rb) rb.hidden=false; }
   const totalCol=Object.values(colonies).flat().length;
@@ -1764,7 +1768,7 @@ function applyUi(pct){ const v=Math.max(50,Math.min(500,+pct||150))/100; documen
 applyUi(cfg.ui||UI_DEFAULT);
 // ---------- resync all ESI scopes for every pilot ----------
 let _resyncing=false;
-async function resyncAll(){ const ids=Object.keys(chars); if(!ids.length||_resyncing) return; _resyncing=true;
+async function resyncAll(){ const ids=visibleCharIds(); if(!ids.length||_resyncing) return; _resyncing=true;
   const b=$('resyncBtn'); const orig=b?b.textContent:''; if(b){ b.disabled=true; b.textContent='⟳ Syncing…'; }
   try{ if(typeof colDetail!=='undefined') for(const k in colDetail) delete colDetail[k]; }catch(e){}   // drop cached colony detail so it refetches
   try{ loadSov(); }catch(e){}
@@ -1805,7 +1809,7 @@ buildTiers(); buildProducts(); renderResults(); renderAuth();
 (function(){ const k=Object.keys(sel); if(k.length){ target=k[0]; if(PI.tier[target]) { tier=PI.tier[target]; buildTiers(); } buildProducts(); renderReq(); compute(); loadHubPrices(); } else { renderProcure(); } })();
 (async()=>{ await handleRedirect(); renderAuth();
   loadSov();
-  for(const id of Object.keys(chars)){ await loadColonies(+id); await loadLocation(+id); await loadSkills(+id); await loadStandings(+id); await loadMyAlliance(+id); }
+  for(const id of visibleCharIds()){ await loadColonies(+id); await loadLocation(+id); await loadSkills(+id); await loadStandings(+id); await loadMyAlliance(+id); }
   if(!$('home').value){ const sys=Object.values(charLoc).find(s=>SYS[s]); if(sys){ $('home').value=SYS[sys][0]; if(target) compute(); } }
   renderAuth(); })();
 </script>

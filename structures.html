@@ -19,7 +19,10 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow:hidden;zoom:var(--ui);width:calc(100vw / var(--ui));height:calc(100vh / var(--ui))}
+  body{font-family:var(--sans);background:
+    radial-gradient(1000px 600px at 15% -8%, rgba(122,184,200,.05), transparent 60%),
+    radial-gradient(900px 550px at 100% 105%, rgba(201,168,104,.045), transparent 55%),
+    var(--bg);color:var(--text);overflow:hidden;zoom:var(--ui);width:calc(100vw / var(--ui));height:calc(100vh / var(--ui))}
   input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   input[type=number]{-moz-appearance:textfield}
   ::-webkit-scrollbar{width:8px;height:8px}
@@ -68,12 +71,17 @@
   /* ===== app frame ===== */
   .app{display:none;flex-direction:column;height:100%}
   .app.on{display:flex}
-  .topbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:var(--bg);border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+  .topbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:var(--bg);border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap;box-shadow:0 4px 16px rgba(0,0,0,.4);position:relative;z-index:10}
   .tb-left{display:flex;align-items:center;gap:10px}
   .tb-diamond{width:12px;height:12px}
   .cab{flex-direction:column;gap:4px;padding:8px 14px;background:rgba(216,162,74,.08);border-bottom:1px solid var(--line)}
   .cab-row{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.02em}
   .cab-row b{color:var(--gold-bright)}
+  .cf-bar{align-items:center;gap:8px;padding:8px 14px;background:rgba(122,184,200,.05);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .cf-label{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em}
+  .cf-chip{font-family:var(--mono);font-size:11px;color:var(--cyan);border:1px solid var(--line2);padding:4px 10px;cursor:pointer;background:#05080b;transition:.12s}
+  .cf-chip:hover{border-color:var(--cyan)}
+  .cf-chip.on{background:rgba(122,184,200,.15);border-color:var(--cyan);color:var(--cyan-bright)}
   .tb-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-dim)}
   .tb-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .tb-btn{padding:4px 10px;background:#0a0f13;border:1px solid var(--line2);color:#8ba4b3;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .12s}
@@ -146,9 +154,11 @@
   .panel-title::after{content:'';height:1px;flex:1;background:linear-gradient(90deg,var(--line),transparent)}
 
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
-  .card{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);padding:15px 16px 14px 19px;transition:border-color .12s}
-  .card:hover{border-color:var(--line2)}
-  .card::before,.card::after{content:'';position:absolute;width:10px;height:10px;border:1px solid rgba(201,168,104,.35)}
+  .card{position:relative;background:linear-gradient(165deg,#0d1218,var(--panel2));border:1px solid var(--line);padding:15px 16px 14px 19px;
+    transition:border-color .18s,transform .18s,box-shadow .18s;
+    box-shadow:0 10px 28px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.025) inset,0 -1px 0 rgba(0,0,0,.3) inset}
+  .card:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:0 18px 40px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.04) inset,0 0 0 1px rgba(122,184,200,.08)}
+  .card::before,.card::after{content:'';position:absolute;width:10px;height:10px;border:1px solid rgba(201,168,104,.35);filter:drop-shadow(0 0 3px rgba(201,168,104,.2))}
   .card::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
   .card::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
   .rail{position:absolute;left:0;top:0;bottom:0;width:3px}
@@ -159,6 +169,12 @@
   .rail.anchoring{background:var(--cyan);box-shadow:0 0 10px rgba(122,184,200,.45)}
   .rail.support{background:var(--muted2)}
   .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .struct-render{width:52px;height:52px;flex-shrink:0;border-radius:4px;object-fit:cover;
+    background:radial-gradient(120% 120% at 30% 20%,#1a2530,#05080b);
+    border:1px solid rgba(122,184,200,.25);box-shadow:0 4px 12px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.3) inset;}
+  .nm-row{display:flex;align-items:center;gap:8px}
+  .struct-thumb{width:26px;height:26px;flex-shrink:0;border-radius:3px;object-fit:cover;
+    background:radial-gradient(120% 120% at 30% 20%,#1a2530,#05080b);border:1px solid rgba(122,184,200,.2)}
   .card-name{font-family:var(--mono);font-weight:500;font-size:15px;letter-spacing:.02em;line-height:1.2;color:#dfe7ee}
   .card-loc{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px}
   .esi-tag{color:var(--cyan);margin-left:6px;font-size:9px;letter-spacing:.1em}
@@ -178,8 +194,9 @@
   .meter-label .ic{color:var(--cyan)}
   .meter-block.gas .meter-label .ic{color:var(--gold)}
   .meter-val{font-family:var(--mono);font-size:12px;font-weight:600}
-  .segs{display:flex;gap:2px;height:8px}
-  .seg{flex:1;background:#10161d;transition:.2s}
+  .segs{display:flex;gap:2px;height:9px;padding:1px;background:rgba(0,0,0,.35);border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.5) inset}
+  .seg{flex:1;background:linear-gradient(180deg,#171e26,#0d1218);border-radius:1px;transition:.2s}
+  .seg.on{box-shadow:0 0 5px var(--seg-glow,transparent),0 1px 0 rgba(255,255,255,.15) inset}
   .runway{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between}
   .runway b{font-weight:600}
   .lvl-nominal b{color:var(--cyan)} .lvl-caution b{color:var(--gold)} .lvl-critical b{color:var(--red)}
@@ -306,6 +323,7 @@
     </div>
   </div>
   <div class="cab" id="corpAccessBanner" style="display:none"></div>
+  <div class="cf-bar" id="corpFilterBar" style="display:none"></div>
   <nav class="tabs">
     <button class="tab on" data-sec="extractions"><span>Extractions</span><span class="cnt" id="cExtract">0</span></button>
     <button class="tab" data-sec="metcalc"><span>Metenox Calculator</span></button>
@@ -517,6 +535,8 @@ const TYPES={
   other:{label:'Other structure',short:'OTHER',cls:'other',cat:'other',mining:false,fb:5,gas:0},
 };
 const ESI_TYPE={35825:'raitaru',35826:'azbel',35827:'sotiyo',35832:'astrahus',35833:'fortizar',35834:'keepstar',35835:'athanor',35836:'tatara',81826:'metenox'};
+const TYPE_ID_BY_KEY=Object.fromEntries(Object.entries(ESI_TYPE).map(([id,key])=>[key,+id]));
+function renderTypeId(s){ return s.typeId||TYPE_ID_BY_KEY[s.type]||null; }
 
 /* ===== FUEL MODEL (Dogma attr 2109 base rates + hull role multipliers) ===== */
 // Base service consumption in fuel blocks/hour, grouped by the hull role that discounts them.
@@ -569,6 +589,10 @@ const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.ht
 const APP_CONFIG={ clientId:SUITE_CLIENT_ID, redirectUri: location.origin + location.pathname.replace(/[^/]*$/,'') + 'auth-callback.html' };
 const STORE_KEY='eve_structures_v3', TOKEN_KEY=SHARED_KEY, COLLAPSE_KEY='eve_fuel_collapse_v3';
 let structures=[], chars={}, editingId=null, bypass=false;   // chars: charId -> {access,refresh,expires,charId,charName,corpId,corpName}
+// section-visibility: which signed-in characters the launcher's carousel has enabled for THIS tool
+const SECTION_KEY='eve_suite_char_sections', MY_SECTION='structures';
+function sectionEnabled(charId){ try{ const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[charId]; return !p||p[MY_SECTION]!==false; }catch(e){ return true; } }
+function visibleCharIds(){ return Object.keys(chars).filter(sectionEnabled); }
 let fuelFilter={q:'',constellation:'all',system:'all'}, fuelCollapse={metenox:false,moon:false,all:false};
 
 /* ---------- storage ---------- */
@@ -615,7 +639,9 @@ function level(h){ if(h===Infinity) return 'nominal'; if(h<=48) return 'critical
 function levelColor(l){ return l==='critical'?'var(--red)':l==='caution'?'var(--gold)':'var(--cyan)'; }
 function countdown(ts){ const d=ts-now(); return d<=0?null:runwayText(d/3600000); }
 function segBar(h,color){ const fill=h===Infinity?100:Math.max(0,Math.min(100,(h/HR_MONTH)*100)); const n=16,f=Math.round(fill/100*n); let s='';
-  for(let i=0;i<n;i++) s+=`<div class="seg" style="background:${i<f?color:'#10161d'}"></div>`; return `<div class="segs">${s}</div>`; }
+  for(let i=0;i<n;i++){ const on=i<f;
+    s+=`<div class="seg${on?' on':''}" style="${on?`background:${color};--seg-glow:${color}`:''}"></div>`; }
+  return `<div class="segs">${s}</div>`; }
 function fuelMeter(s){ const h=fuelHoursLeft(s),lvl=level(h),col=levelColor(lvl);
   const val=s.fuelExpires?shortDate(s.fuelExpires):(fmt(s.fuel)+' blk');
   return `<div class="meter-block"><div class="meter-row"><span class="meter-label"><span class="ic">▮</span> Fuel blocks${s.fuelExpires?' · ESI':''}</span><span class="meter-val" style="color:${col}">${val}</span></div>
@@ -647,8 +673,10 @@ function card(s,opts){
   if(st==='decommissioning'){ const cd=s.unanchorsAt?countdown(new Date(s.unanchorsAt).getTime()):null;
     body+=`<div class="hint red">${cd?'Unanchors in <b>'+cd+'</b>':'Unanchoring — no timer reported by ESI.'}</div>`; }
   const actions=showEdit?`<div class="card-actions"><button class="btn sm" onclick="openEdit('${s.id}')">Edit</button></div>`:'';
+  const tid=renderTypeId(s);
+  const img=tid?`<img class="struct-render" src="https://images.evetech.net/types/${tid}/render?size=128" onerror="this.style.display='none'" alt="">`:'';
   return `<div class="card"><div class="rail ${st}"></div>
-    <div class="card-head"><div><div class="card-name">${esc(s.name)||'Unnamed'}</div>
+    <div class="card-head">${img}<div><div class="card-name">${esc(s.name)||'Unnamed'}</div>
       <div class="card-loc">${esc(s.loc)||'— no location —'}${s.esiId?'<span class="esi-tag">ESI</span>':''}</div></div>
       <span class="badge ${t.cls}">${t.short}</span></div>
     <div class="status-line ${st}"><span class="sdot ${pulse}"></span>${stLabel}</div>
@@ -670,7 +698,9 @@ function metenoxTable(list){
     let gasQty,gLeft,gCol;
     if(s.gasUnknown){ gasQty='<span class="dim">— set →</span>'; gLeft='<span class="dim">—</span>'; gCol='dim'; }
     else { gasQty=fmt(g)+(s.gasFromEsi?'':' <i class="estt">est</i>'); gLeft=gh===Infinity?'—':runwayText(gh); gCol=gh<=48?'rd':gh<=HR_WEEK?'am':'gas'; }
-    return `<tr><td class="l"><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${esc(s.system||s.loc)||'—'} · ${esc(s.constellation||'—')}</div></td>
+    const tid=renderTypeId(s);
+    const thumb=tid?`<img class="struct-thumb" src="https://images.evetech.net/types/${tid}/render?size=32" onerror="this.style.display='none'" alt="">`:'';
+    return `<tr><td class="l"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${esc(s.system||s.loc)||'—'} · ${esc(s.constellation||'—')}</div></div></div></td>
       <td class="fb">${fuelQty}</td><td class="${fCol}">${fLeft}</td>
       <td class="gas">${gasQty}</td><td class="${gCol}">${gLeft}</td><td class="gas">${fmt(gr)}/hr</td>
       <td style="text-align:right"><button class="btn sm" onclick="openEdit('${s.id}')">Set gas</button></td></tr>`;
@@ -698,7 +728,9 @@ function fuelTable(list,withGas){
         const gCol=s.gasUnknown?'dim':(gh<=48?'rd':gh<=HR_WEEK?'am':'gas'); gl=`<td class="${gCol}">${gLeft}</td>`;
         gc=`<td class="gas">${fmt(g)}</td><td class="gas">${fmt(g*HR_WEEK)}</td><td class="gas">${fmt(g*HR_MONTH)}</td>`; }
       else { gl=`<td class="dim">—</td>`; gc=`<td class="dim">—</td><td class="dim">—</td><td class="dim">—</td>`; } }
-    return `<tr><td class="l"><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${TYPES[s.type].short} · ${esc(s.system||s.loc)||'—'}</div></td>
+    const tid=renderTypeId(s);
+    const thumb=tid?`<img class="struct-thumb" src="https://images.evetech.net/types/${tid}/render?size=32" onerror="this.style.display='none'" alt="">`:'';
+    return `<tr><td class="l"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${TYPES[s.type].short} · ${esc(s.system||s.loc)||'—'}</div></div></div></td>
       <td class="fb">${held}</td><td class="${fCol}">${fLeft}</td><td class="fb">${fmtRate(fb)}</td><td class="fb">${fmt(fb*HR_WEEK)}</td><td class="fb">${fmt(fb*HR_MONTH)}</td>${gl}${gc}</tr>`;
   }).join('');
   const gh=withGas?`<th>Gas left</th><th>Gas/hr</th><th>Gas/wk</th><th>Gas/mo</th>`:'';
@@ -732,10 +764,25 @@ function renderFuelSummary(metenox,moon,all){ const a=[...metenox,...moon,...all
 
 /* ---------- render ---------- */
 function emptyBox(h,p){ return `<div class="empty"><h3>${h}</h3><p>${p}</p></div>`; }
+let corpFilter=(function(){ try{ return localStorage.getItem('eve_structures_corpfilter')||''; }catch(e){ return ''; } })();
+function setCorpFilter(v){ corpFilter=v; try{ localStorage.setItem('eve_structures_corpfilter',v); }catch(e){} renderAll(); }
+window.setCorpFilter=setCorpFilter;
+function renderCorpFilterBar(){
+  const el=document.getElementById('corpFilterBar'); if(!el) return;
+  const corps=[...new Map(structures.filter(s=>s.corpId).map(s=>[s.corpId,s.corpName])).entries()];
+  if(corps.length<2){ el.style.display='none'; el.innerHTML=''; if(corpFilter){ corpFilter=''; try{localStorage.removeItem('eve_structures_corpfilter');}catch(e){} } return; }
+  el.style.display='flex';
+  el.innerHTML=`<span class="cf-label">Multiple corps synced — showing:</span>`+
+    `<span class="cf-chip ${!corpFilter?'on':''}" onclick="setCorpFilter('')">All (${structures.length})</span>`+
+    corps.map(([id,name])=>{ const ct=structures.filter(s=>s.corpId==id).length;
+      return `<span class="cf-chip ${String(corpFilter)===String(id)?'on':''}" onclick="setCorpFilter('${id}')">${esc(name)} (${ct})</span>`; }).join('');
+}
 function renderAll(){
-  const decom=structures.filter(s=>{const st=statusOf(s);return st==='decommissioning'||st==='anchoring';})
+  renderCorpFilterBar();
+  const source=corpFilter?structures.filter(s=>String(s.corpId)===String(corpFilter)):structures;
+  const decom=source.filter(s=>{const st=statusOf(s);return st==='decommissioning'||st==='anchoring';})
     .sort((a,b)=>{const ta=a.stateTimerEnd?new Date(a.stateTimerEnd).getTime():(a.unanchorsAt?new Date(a.unanchorsAt).getTime():Infinity);const tb=b.stateTimerEnd?new Date(b.stateTimerEnd).getTime():(b.unanchorsAt?new Date(b.unanchorsAt).getTime():Infinity);return ta-tb;});
-  const active=structures.filter(s=>{const st=statusOf(s);return st!=='decommissioning'&&st!=='anchoring';});
+  const active=source.filter(s=>{const st=statusOf(s);return st!=='decommissioning'&&st!=='anchoring';});
   const mining=active.filter(s=>TYPES[s.type].mining && s.type!=='metenox'); // Metenox handled in their own section
   const extracting=mining.filter(s=>statusOf(s)==='extracting') // only a refinery actively counting down is "extracting"
     .sort((a,b)=>(a.extractionEnd?new Date(a.extractionEnd).getTime()-now():Infinity)-(b.extractionEnd?new Date(b.extractionEnd).getTime()-now():Infinity));
@@ -1073,7 +1120,7 @@ window.toggleCharLock=toggleCharLock;
 function renderTopbar(){
   const r=document.getElementById('tbRight');
   let html='';
-  const ids=Object.keys(chars);
+  const ids=visibleCharIds();
   if(ids.length){
     // count how many signed-in characters share each corp, to know when locking is meaningful
     const corpCounts={}; ids.forEach(id=>{ const c=chars[id]; if(c.corpId) corpCounts[c.corpId]=(corpCounts[c.corpId]||0)+1; });
@@ -1134,7 +1181,7 @@ setInterval(()=>{ if(pipWin && !pipWin.closed) renderPip(); }, 1000); // smooth 
 
 /* ---------- gate / auth view ---------- */
 function updateAuthView(){
-  const connected=Object.keys(chars).length>0;
+  const connected=visibleCharIds().length>0;
   const showApp = connected || bypass || structures.length>0;
   document.getElementById('app').classList.toggle('on',showApp);
   document.getElementById('gate').style.display = showApp ? 'none' : 'flex';
@@ -1187,9 +1234,9 @@ async function resumeEsi(){ /* no-op: sign-in only completes on index.html now *
 let corpAccess={};   // corpId -> {ok, corpName, charName, error}
 async function importAllCorps(silent){
   const byCorp={};
-  for(const c of Object.values(chars)){ if(c.corpId && !(c.corpId in byCorp)) byCorp[c.corpId]=c.charId; }
-  // honor a locked/preferred character for corps with multiple signed-in alts
-  for(const corpId in byCorp){ const pref=preferredChar[corpId]; if(pref && chars[pref] && chars[pref].corpId==corpId) byCorp[corpId]=pref; }
+  for(const cid of visibleCharIds()){ const c=chars[cid]; if(c.corpId && !(c.corpId in byCorp)) byCorp[c.corpId]=c.charId; }
+  // honor a locked/preferred character for corps with multiple signed-in alts (must itself be visible)
+  for(const corpId in byCorp){ const pref=preferredChar[corpId]; if(pref && chars[pref] && chars[pref].corpId==corpId && sectionEnabled(pref)) byCorp[corpId]=pref; }
   for(const [corpIdStr,charId] of Object.entries(byCorp)){
     const c=chars[charId];
     try{ const v=await getValidToken(charId); if(!v) throw new Error('token expired — re-add this character from the menu');
@@ -1233,7 +1280,8 @@ async function importFromEsi(token,silent,charIdForDot){
       sysName=sysCache[st.system_id]; constName=sysCache['c'+st.system_id]||''; }catch(e){}
     let nm=st.name||''; if(!nm){ try{ nm=(await esiGet('/universe/structures/'+st.structure_id+'/',token)).name; }catch(e){ nm='Structure '+st.structure_id; } }
     const ex=structures.find(s=>s.esiId===st.structure_id); const o=ex||{id:'s'+Date.now()+Math.random().toString(36).slice(2,6)};
-    o.esiId=st.structure_id; seen.add(st.structure_id); o.type=typeKey; o.name=nm||('Structure '+st.structure_id);
+    o.esiId=st.structure_id; seen.add(st.structure_id); o.type=typeKey; o.typeId=st.type_id; o.name=nm||('Structure '+st.structure_id);
+    o.corpId=corpId; o.corpName=(Object.values(chars).find(c=>c.corpId==corpId)||{}).corpName||('Corp '+corpId);
     o.system=sysName||('System '+st.system_id); o.constellation=constName||'Unknown'; o.loc=o.system;
     o.fuelExpires=st.fuel_expires||null; o.unanchorsAt=st.unanchors_at||null; o.state=st.state||null;
     o.stateTimerStart=st.state_timer_start||null; o.stateTimerEnd=st.state_timer_end||null;
@@ -1263,7 +1311,7 @@ async function importFromEsi(token,silent,charIdForDot){
   toast((al.summary?'⚠ '+al.summary+'  —  ':'')+'Synced '+added+' new, updated '+updated+(removed?', removed '+removed:'')+'. '+tail);
 }
 async function syncNow(){ const b=document.getElementById('syncBtn'); if(b){b.disabled=true;b.textContent='Syncing…';}
-  try{ if(!Object.keys(chars).length){ toast('No characters signed in — reconnect.'); showGate(); } else await importAllCorps(); }
+  try{ if(!visibleCharIds().length){ toast('No characters signed in for Structure Browser — reconnect or enable one from the menu.'); showGate(); } else await importAllCorps(); }
   catch(e){ toast('Sync failed: '+e.message); } finally{ if(b){b.disabled=false;b.textContent='Sync';} } }
 window.syncNow=syncNow; window.showGate=showGate; window.openModal=openModal;
 
@@ -1297,7 +1345,7 @@ let toastT; function toast(m){ const e=document.getElementById('toast'); e.textC
 /* ---------- init ---------- */
 setInterval(()=>{ if(structures.some(s=>s.extractionEnd||s.unanchorsAt||s.stateTimerEnd||s.fuelExpires||s.type==='metenox')){ renderAll(); alertScan({toastOnChange:true}); } }, 30000);
 let _syncing=false;
-async function backgroundSync(){ if(_syncing) return; if(document.visibilityState&&document.visibilityState!=='visible') return; if(!Object.keys(chars).length) return;
+async function backgroundSync(){ if(_syncing) return; if(document.visibilityState&&document.visibilityState!=='visible') return; if(!visibleCharIds().length) return;
   _syncing=true; try{ await importAllCorps(true); }catch(e){} finally{ _syncing=false; } }
 setInterval(backgroundSync,30000); // live ESI update every 30 seconds
 
@@ -1318,7 +1366,7 @@ setInterval(backgroundSync,30000); // live ESI update every 30 seconds
       for(const c of Object.values(chars)){ if(!c.corpId){ await resolveCorp(c); changed=true; } }
       if(changed) await sSet(TOKEN_KEY,chars);
       await importAllCorps();
-      toast('Synced '+Object.keys(chars).length+' character'+(Object.keys(chars).length>1?'s':'')+' across '+new Set(Object.values(chars).map(c=>c.corpId)).size+' corp(s).');
+      const vis=visibleCharIds(); toast('Synced '+vis.length+' character'+(vis.length!==1?'s':'')+' across '+new Set(vis.map(id=>chars[id].corpId)).size+' corp(s).');
     }catch(e){}
   }
 })();

@@ -327,8 +327,12 @@ const APP_CONFIG={ clientId:SUITE_CLIENT_ID, redirectUri:location.origin+locatio
 const SSO_AUTH='https://login.eveonline.com/v2/oauth/authorize/', SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
 const SCOPES=['publicData','esi-location.read_location.v1'];
 let chars={};            // charId -> {access,refresh,expires,charName}
+// section-visibility: which signed-in characters the launcher's carousel has enabled for THIS tool
+const SECTION_KEY='eve_suite_char_sections', MY_SECTION='jump';
+function sectionEnabled(charId){ try{ const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[charId]; return !p||p[MY_SECTION]!==false; }catch(e){ return true; } }
+function visibleCharIds(){ return Object.keys(chars).filter(sectionEnabled); }
 let pilotByChar={};      // charId -> system index (live location)
-function anyChar(){ return Object.keys(chars).length>0; }
+function anyChar(){ return visibleCharIds().length>0; }
 function redirectUri(){ return APP_CONFIG.redirectUri; }
 function b64url(b){return btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 async function sha256(s){return await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));}
@@ -358,24 +362,24 @@ function logoutChar(cid){ delete chars[cid]; delete pilotByChar[cid];
   saveChars(); renderAuth(); renderWps(); draw(); }
 window.logoutChar=logoutChar;
 function renderAuth(){ const a=document.getElementById('authArea');
-  const chips=Object.entries(chars).map(([cid,c])=>`<span class="pilot-chip"><img src="https://images.evetech.net/characters/${cid}/portrait?size=32" onerror="this.style.display='none'"><span class="pn">${c.charName||'pilot'}${c.corpName?' · '+c.corpName:''}</span></span>`).join('');
+  const chips=Object.entries(chars).filter(([cid])=>sectionEnabled(cid)).map(([cid,c])=>`<span class="pilot-chip"><img src="https://images.evetech.net/characters/${cid}/portrait?size=32" onerror="this.style.display='none'"><span class="pn">${c.charName||'pilot'}${c.corpName?' · '+c.corpName:''}</span></span>`).join('');
   a.innerHTML=chips+(anyChar()?'<a class="auth-btn" href="index.html" style="text-decoration:none">Manage in Menu ▸</a>':'<a class="auth-btn" href="index.html" style="text-decoration:none">Sign in from the menu ▸</a>');
   if(jumpChar&&!chars[jumpChar]) jumpChar=null;
-  if(!jumpChar&&anyChar()) jumpChar=Object.keys(chars)[0];
+  if(!jumpChar&&anyChar()) jumpChar=visibleCharIds()[0];
   renderJumpChar();
 }
 function renderJumpChar(){ const el=document.getElementById('jumpPilotBar'); if(!el)return;
   if(!anyChar()){ el.innerHTML=''; return; }
-  if(!jumpChar||!chars[jumpChar]) jumpChar=Object.keys(chars)[0];
+  if(!jumpChar||!chars[jumpChar]) jumpChar=visibleCharIds()[0];
   el.innerHTML=`<label class="lbl" style="margin-top:2px">Jumping pilot — watches whole constellation</label>
-    <select class="jumpsel" id="jumpSel" onchange="setJumpChar(this.value)">${Object.entries(chars).map(([cid,c])=>`<option value="${cid}" ${cid===jumpChar?'selected':''}>${c.charName||'pilot'}${c.corpName?' · '+c.corpName:''}</option>`).join('')}</select>`;
+    <select class="jumpsel" id="jumpSel" onchange="setJumpChar(this.value)">${Object.entries(chars).filter(([cid])=>sectionEnabled(cid)).map(([cid,c])=>`<option value="${cid}" ${cid===jumpChar?'selected':''}>${c.charName||'pilot'}${c.corpName?' · '+c.corpName:''}</option>`).join('')}</select>`;
 }
 function setJumpChar(cid){ jumpChar=cid||null; renderWps(); renderRoute(); if(routeConfirmed) confirmRoute(); }
 window.setJumpChar=setJumpChar;
-async function loadPilots(){ for(const cid of Object.keys(chars)){ const t=await tokenFor(cid); if(!t)continue;
+async function loadPilots(){ for(const cid of visibleCharIds()){ const t=await tokenFor(cid); if(!t)continue;
   try{ const r=await fetch(esiUrl('/characters/'+cid+'/location/'),{headers:{Authorization:'Bearer '+t.access}}); if(!r.ok)continue; const d=await r.json();
     pilotByChar[cid]=byId[d.solar_system_id]!=null?byId[d.solar_system_id]:null; }catch(e){} }
-  const pp=document.getElementById('pilotPill'); if(pp&&Object.keys(chars).length){ pp.style.display='';
+  const pp=document.getElementById('pilotPill'); if(pp&&visibleCharIds().length){ pp.style.display='';
     document.getElementById('pilotDot').className='dot ok';
     document.getElementById('pilotTxt').textContent='pilots synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
   draw();
@@ -466,7 +470,7 @@ window.assignChar=assignChar;
 function renderWps(){
   const el=document.getElementById('wps');
   if(!waypoints.length){ el.innerHTML='<div class="wp-empty">No waypoints. Search a system, or click one on the map.<br>First waypoint is your origin (any sec); the rest must be low/null-sec.</div>'; return; }
-  const charOpts=(sel)=>`<option value="">— assign pilot —</option>`+Object.entries(chars).map(([cid,c])=>`<option value="${cid}" ${sel===cid?'selected':''}>${(c.charName||'pilot')}</option>`).join('');
+  const charOpts=(sel)=>`<option value="">— assign pilot —</option>`+Object.entries(chars).filter(([cid])=>sectionEnabled(cid)).map(([cid,c])=>`<option value="${cid}" ${sel===cid?'selected':''}>${(c.charName||'pilot')}</option>`).join('');
   el.innerHTML=waypoints.map((w,n)=>{ const i=w.i, hs=n>0&&secClass(SYS[i][2])==='hi';
     return `<div class="wp${hs?' hs':''}"><span class="ord">${n===0?'◎':n}</span>
       <span class="nm">${SYS[i][0]} <span style="color:${secColor(SYS[i][2])}">${roundSec(SYS[i][2]).toFixed(1)}</span><div class="rg">${n===0?'jump start':regionOf(i)}</div></span>

@@ -176,9 +176,13 @@ const SHARED_KEY='eve_suite_chars';
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
 let toastT; function toast(m){ const e=document.getElementById("toast"); e.textContent=m; e.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove("show"),5000); }
 let chars=JSON.parse(localStorage.getItem(SHARED_KEY)||"{}");   // {charId:{access,refresh,expires,charId,charName,corpId,corpName}}
+// section-visibility: which signed-in characters the launcher's carousel has enabled for THIS tool
+const SECTION_KEY='eve_suite_char_sections', MY_SECTION='fits';
+function sectionEnabled(charId){ try{ const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[charId]; return !p||p[MY_SECTION]!==false; }catch(e){ return true; } }
+function visibleCharIds(){ return Object.keys(chars).filter(sectionEnabled); }
 let activeChar=+(localStorage.getItem("efm_active")||0)||null;
 const saveChars=()=>localStorage.setItem(SHARED_KEY,JSON.stringify(chars));
-function eveLoggedIn(){ return Object.keys(chars).length>0; }
+function eveLoggedIn(){ return visibleCharIds().length>0; }
 function b64url(b){ return btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
 async function sha256(s){ return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)); }
 function rnd(n){ const a=new Uint8Array(n);crypto.getRandomValues(a);return b64url(a.buffer); }
@@ -196,7 +200,7 @@ async function eveTok(id){ const s=chars[id]; if(!s)throw new Error("no char"); 
   s.access=t.access_token;s.refresh=t.refresh_token||s.refresh;s.expires=Date.now()+(t.expires_in||1200)*1000;saveChars();return s.access; }
 async function eveGet(id,path){ const tok=await eveTok(id); const r=await fetch(ESI+path,{headers:{Authorization:"Bearer "+tok}}); if(!r.ok)throw Object.assign(new Error(path+" "+r.status),{status:r.status}); return r.json(); }
 async function evePost(id,path,body){ const tok=await eveTok(id); const r=await fetch(ESI+path,{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify(body)}); if(!r.ok)throw new Error(path+" "+r.status+" "+await r.text()); return r.json(); }
-function eveLogout(id){ delete chars[id]; if(activeChar===id){ activeChar=+Object.keys(chars)[0]||null; localStorage.setItem("efm_active",activeChar||""); } saveChars(); renderEve(); }
+function eveLogout(id){ delete chars[id]; if(activeChar===id){ activeChar=+visibleCharIds()[0]||null; localStorage.setItem("efm_active",activeChar||""); } saveChars(); renderEve(); }
 
 async function loadChar(id){ const s=chars[id];
   try{ const ch=await(await fetch(`${ESI}/characters/${id}/`)).json(); s.corpId=ch.corporation_id;
@@ -210,7 +214,7 @@ let lastSync=null;
 
 function renderEve(){ const a=$("eveAuth");
   if(!eveLoggedIn()){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; refreshSendButtons(); return; }
-  const ids=Object.keys(chars).map(Number); const act=chars[activeChar]||chars[ids[0]];
+  const ids=visibleCharIds().map(Number); const act=chars[activeChar]||chars[ids[0]];
   const syncTxt=lastSync?(' · synced '+new Date(lastSync).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})):'';
   a.innerHTML=`<div class="epick"><button class="btn" id="ePickBtn">▾ ${act?act.charName:ids.length+" pilots"}${syncTxt}</button>
     <div class="emenu" id="eMenu" hidden><div class="esec">Active pilot (skills &amp; sends)</div>
@@ -455,7 +459,7 @@ async function connect(){ if(!gh()){ setStatus("not connected"); return; }
   await eveHandleRedirect();      // complete EVE SSO if returning from login
   renderEve();
   connect();
-  for(const id of Object.keys(chars)) loadChar(+id);   // refresh corp + push skills to repo
+  for(const id of visibleCharIds()) loadChar(+id);   // refresh corp + push skills to repo
 })();
 
 // ---------- UI scale ----------
