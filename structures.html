@@ -550,6 +550,13 @@ function typeAccent(s){ const cls=(TYPES[s.type]||{}).cls;
   return cls==='metenox'?'var(--gold)':cls==='refinery'?'var(--cyan)':cls==='citadel'?'var(--steel)':cls==='ec'?'var(--violet)':'var(--muted2)'; }
 function secColor(sec){ if(sec==null) return 'var(--muted2)'; return sec>=0.5?'var(--green)':sec>0?'var(--gold)':'var(--red)'; }
 function secWash(sec){ if(sec==null) return 'transparent'; const c=sec>=0.5?'140,200,106':sec>0?'201,168,104':'214,106,90'; return `rgba(${c},.05)`; }
+function syncAge(s){
+  if(!s.lastSynced) return {label:'never synced',color:'var(--red)',h:Infinity};
+  const h=(Date.now()-new Date(s.lastSynced).getTime())/3600000;
+  const label=h<1?'synced <1h ago':h<24?`synced ${Math.round(h)}h ago`:`synced ${Math.round(h/24)}d ago`;
+  const color=h<2?'var(--green)':h<12?'var(--gold)':'var(--red)';
+  return {label,color,h};
+}
 
 /* ===== FUEL MODEL (Dogma attr 2109 base rates + hull role multipliers) ===== */
 // Base service consumption in fuel blocks/hour, grouped by the hull role that discounts them.
@@ -700,9 +707,11 @@ function card(s,opts){
   const accent=typeAccent(s);
   const img=tid?`<img class="struct-render${compact?' sm':''}" style="border-color:color-mix(in srgb, ${accent} 55%, transparent)" src="https://images.evetech.net/types/${tid}/render?size=${imgSize}" onerror="this.style.display='none'" alt="">`:'';
   const secTag=(s.sec!=null)?`<span class="sec-tag" style="color:${secColor(s.sec)}">${s.sec.toFixed(1)}</span>`:'';
+  const age=syncAge(s);
+  const ageTag=s.esiId?`<span class="esi-tag" style="color:${age.color}" title="Last confirmed by ESI">${age.label}</span>`:'';
   return `<div class="card${compact?' compact':''}" style="background:linear-gradient(165deg,#0d1218,var(--panel2)),radial-gradient(160% 140% at 100% 0%,${secWash(s.sec)},transparent 60%);border-top:2px solid color-mix(in srgb, ${accent} 65%, transparent)"><div class="rail ${st}"></div>
     <div class="card-head">${img}<div><div class="card-name">${esc(s.name)||'Unnamed'}</div>
-      <div class="card-loc">${secTag}${esc(s.loc)||'— no location —'}${s.esiId?'<span class="esi-tag">ESI</span>':''}</div></div>
+      <div class="card-loc">${secTag}${esc(s.loc)||'— no location —'}${ageTag}</div></div>
       <span class="badge ${t.cls}">${t.short}</span></div>
     <div class="status-line ${st}"><span class="sdot ${pulse}" style="${pulse?`animation-duration:${pulseDur}s`:''}"></span>${stLabel}</div>
     ${body}${actions}</div>`;
@@ -725,7 +734,8 @@ function metenoxTable(list){
     else { gasQty=fmt(g)+(s.gasFromEsi?'':' <i class="estt">est</i>'); gLeft=gh===Infinity?'—':runwayText(gh); gCol=gh<=48?'rd':gh<=HR_WEEK?'am':'gas'; }
     const tid=renderTypeId(s);
     const thumb=tid?`<img class="struct-thumb" src="https://images.evetech.net/types/${tid}/render?size=32" onerror="this.style.display='none'" alt="">`:'';
-    return `<tr><td class="l" style="border-left:2px solid color-mix(in srgb, ${typeAccent(s)} 45%, transparent)"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${esc(s.system||s.loc)||'—'} · ${esc(s.constellation||'—')}</div></div></div></td>
+    const age=syncAge(s); const ageTxt=s.esiId?` <span style="color:${age.color}">· ${age.label}</span>`:'';
+    return `<tr><td class="l" style="border-left:2px solid color-mix(in srgb, ${typeAccent(s)} 45%, transparent)"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${esc(s.system||s.loc)||'—'} · ${esc(s.constellation||'—')}${ageTxt}</div></div></div></td>
       <td class="fb">${fuelQty}</td><td class="${fCol}">${fLeft}</td>
       <td class="gas">${gasQty}</td><td class="${gCol}">${gLeft}</td><td class="gas">${fmt(gr)}/hr</td>
       <td style="text-align:right"><button class="btn sm" onclick="openEdit('${s.id}')">Set gas</button></td></tr>`;
@@ -755,7 +765,8 @@ function fuelTable(list,withGas){
       else { gl=`<td class="dim">—</td>`; gc=`<td class="dim">—</td><td class="dim">—</td><td class="dim">—</td>`; } }
     const tid=renderTypeId(s);
     const thumb=tid?`<img class="struct-thumb" src="https://images.evetech.net/types/${tid}/render?size=32" onerror="this.style.display='none'" alt="">`:'';
-    return `<tr><td class="l" style="border-left:2px solid color-mix(in srgb, ${typeAccent(s)} 45%, transparent)"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${TYPES[s.type].short} · ${esc(s.system||s.loc)||'—'}</div></div></div></td>
+    const age=syncAge(s); const ageTxt=s.esiId?` <span style="color:${age.color}">· ${age.label}</span>`:'';
+    return `<tr><td class="l" style="border-left:2px solid color-mix(in srgb, ${typeAccent(s)} 45%, transparent)"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${TYPES[s.type].short} · ${esc(s.system||s.loc)||'—'}${ageTxt}</div></div></div></td>
       <td class="fb">${held}</td><td class="${fCol}">${fLeft}</td><td class="fb">${fmtRate(fb)}</td><td class="fb">${fmt(fb*HR_WEEK)}</td><td class="fb">${fmt(fb*HR_MONTH)}</td>${gl}${gc}</tr>`;
   }).join('');
   const gh=withGas?`<th>Gas left</th><th>Gas/hr</th><th>Gas/wk</th><th>Gas/mo</th>`:'';
@@ -1279,14 +1290,24 @@ async function importAllCorps(silent){
         error:missingRole?'no signed-in character here has the Director role needed to read structures':e.message};
     }
   }
+  // corps with structures already on screen that weren't even attempted this pass — their data is
+  // frozen at whatever it was last time someone covered them, however long ago that was
+  orphanCorps=[...new Map(structures.filter(s=>s.corpId&&!(s.corpId in byCorp)).map(s=>[s.corpId,s.corpName])).entries()];
   renderCorpAccessBanner();
 }
+let orphanCorps=[];
 function renderCorpAccessBanner(){
   const el=document.getElementById('corpAccessBanner'); if(!el) return;
   const bad=Object.values(corpAccess).filter(c=>!c.ok);
-  if(!bad.length){ el.style.display='none'; el.innerHTML=''; return; }
+  const rows=bad.map(c=>`<span class="cab-row">⚠ <b>${esc(c.corpName)}</b> — ${esc(c.error)} (tried as ${esc(c.charName)})</span>`)
+    .concat(orphanCorps.map(([id,name])=>{
+      const stale=structures.filter(s=>s.corpId==id); const oldest=stale.reduce((m,s)=>s.lastSynced&&(!m||s.lastSynced<m)?s.lastSynced:m,null);
+      const age=oldest?syncAge({lastSynced:oldest,esiId:1}).label:'unknown';
+      return `<span class="cab-row">⏸ <b>${esc(name)}</b> — not currently syncing (no visible/signed-in character covers it) — showing data from ${age}</span>`;
+    }));
+  if(!rows.length){ el.style.display='none'; el.innerHTML=''; return; }
   el.style.display='flex';
-  el.innerHTML=bad.map(c=>`<span class="cab-row">⚠ <b>${esc(c.corpName)}</b> — ${esc(c.error)} (tried as ${esc(c.charName)})</span>`).join('');
+  el.innerHTML=rows.join('');
 }
 
 async function importFromEsi(token,silent,charIdForDot){
@@ -1318,6 +1339,7 @@ async function importFromEsi(token,silent,charIdForDot){
     if(secStatus!=null) o.sec=secStatus;
     o.fuelExpires=st.fuel_expires||null; o.unanchorsAt=st.unanchors_at||null; o.state=st.state||null;
     o.stateTimerStart=st.state_timer_start||null; o.stateTimerEnd=st.state_timer_end||null;
+    o.lastSynced=new Date().toISOString();
     o.fuelRate=combinedRate(o); // Dogma base × hull multiplier, summed over online services (float)
     if(o.fuel==null) o.fuel=0;
     // fuel-bay block count from corp assets. Re-anchor the depletion clock ONLY when the count changes
