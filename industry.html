@@ -23,7 +23,7 @@
   /* UI scale: zoom the whole app; width/height pre-divided by --ui so the scaled app still fills the viewport */
   body{zoom:var(--ui);width:calc(100vw / var(--ui));height:calc(100vh / var(--ui))}
   .app{display:flex;flex-direction:column;height:100%;width:100%}
-  .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dim)}
+  .lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dim);font-weight:600}
   .diamond{width:7px;height:7px;background:var(--gold);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);display:inline-block;margin-right:8px;vertical-align:middle}
   ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:#05080b}::-webkit-scrollbar-thumb{background:#1c2731;border:1px solid #243441}
 
@@ -215,6 +215,12 @@
   .job .own2{color:var(--gold-dim)}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
   .toast.show{opacity:1}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .skeleton{background:linear-gradient(90deg,var(--panel) 25%,var(--panel2) 45%,var(--panel) 65%);background-size:250% 100%;animation:shimmer 1.6s ease-in-out infinite}
+  .skel-row{height:52px;margin-bottom:6px;border-radius:2px;border:1px solid var(--line)}
+  .skel-line{height:11px;border-radius:2px;margin-bottom:8px}
+  @keyframes dotshimmer{0%,100%{opacity:.4;box-shadow:0 0 3px currentColor}50%{opacity:1;box-shadow:0 0 8px currentColor}}
+  .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -248,7 +254,7 @@
 </div>
 
 <div class="jobs" id="jobsPanel">
-  <div class="jh"><b>Industry jobs</b><span class="jx" id="jobsClose">✕</span></div>
+  <div class="jh"><b>Industry jobs</b><span class="jx" id="jobsClose"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></div>
   <div class="jlist" id="jobsList"></div>
 </div>
 
@@ -558,7 +564,7 @@ function renderPlanList(){
       <div style="flex:1"><div class="nm">${nm(it.pid)}</div>
         <div class="pl-ctl">×<input class="pin" data-f="runs" data-i="${i}" type="number" min="1" value="${it.runs}">
         ${isR?'<span class="mt">reaction</span>':`ME<input class="pin" data-f="me" data-i="${i}" type="number" min="0" max="10" value="${it.me}">`}</div></div>
-      <span class="plusplan" data-del="${i}" title="Remove">✕</span></div>`; }).join('');
+      <span class="plusplan" data-del="${i}" title="Remove"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></div>`; }).join('');
   el.querySelectorAll('.pin').forEach(inp=>inp.onchange=()=>{ const i=+inp.dataset.i,f=inp.dataset.f; plan[i][f]=Math.max(0,+inp.value||0); savePlan(); renderPlannerDetail(); });
   el.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ plan.splice(+b.dataset.del,1); savePlan(); updateCounts(); renderPlanList(); });
   document.getElementById('listfoot').textContent=`${plan.length} job${plan.length!==1?'s':''} planned`;
@@ -943,6 +949,23 @@ function recompute(){
   updateJobsBadge();
   renderAuth(); renderList(); if(sel) renderDetail();
   resolveLocations();
+  reportDashboard();
+}
+const DASHBOARD_KEY='eve_suite_dashboard';
+function reportDashboard(){
+  try{
+    const now=Date.now();
+    const readyCt=jobs.filter(j=>new Date(j.end_date)-now<=0).length;
+    const soonCt=jobs.filter(j=>{const l=new Date(j.end_date)-now;return l>0&&l<2*3600*1000;}).length;
+    let text,level;
+    if(!visibleCharIds().length){ text='no characters signed in'; level='muted'; }
+    else if(readyCt){ text=readyCt+' job'+(readyCt!==1?'s':'')+' ready to collect'; level='ok'; }
+    else if(soonCt){ text=soonCt+' job'+(soonCt!==1?'s':'')+' finishing soon'; level='warn'; }
+    else { text=visibleCharIds().length+' character'+(visibleCharIds().length!==1?'s':'')+' · '+jobs.length+' job'+(jobs.length!==1?'s':''); level='ok'; }
+    const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');
+    all.industry={text,level,ts:Date.now()};
+    localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));
+  }catch(e){}
 }
 
 function renderAuth(){
@@ -1034,14 +1057,14 @@ document.getElementById('jobsBtn').onclick=()=>{ renderJobs(); document.getEleme
 document.getElementById('jobsClose').onclick=()=>document.getElementById('jobsPanel').classList.remove('open');
 
 // ---------- boot ----------
-function setStatus(txt,cls){ document.getElementById('stTxt').textContent=txt; const d=document.getElementById('stDot'); d.className='dot'+(cls?' '+cls:''); }
+function setStatus(txt,cls){ document.getElementById('stTxt').textContent=txt; const d=document.getElementById('stDot'); d.className='dot'+(cls?' '+cls:'')+(cls==='loading'?' loading':''); }
 (async function(){
   updateCounts(); renderList(); renderAuth();
   setStatus('ready · '+PRODUCTS.length+' blueprints offline','ok');
   document.getElementById('overlay').classList.add('hide');
   // OAuth redirect (adds a character) or resumed sessions
   await handleRedirect();
-  if(loggedIn()){ setStatus('loading characters…'); renderAuth();
+  if(loggedIn()){ setStatus('loading characters…','loading'); renderAuth();
     try{ await loadAll(); const n=Object.keys(chars).length; setStatus('ready · '+n+' character'+(n!==1?'s':''),'ok'); }
     catch(e){ setStatus('character load failed','err'); } }
 })();

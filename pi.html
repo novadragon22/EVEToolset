@@ -51,7 +51,7 @@
   .btn.ghost{border-color:var(--line2);color:var(--muted)} .btn.ghost:hover{color:var(--gold-bright)}
   .main{flex:1;display:flex;min-height:0}
   .side{width:320px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;box-shadow:4px 0 16px rgba(0,0,0,.35);position:relative;z-index:5}
-  .side h3{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0;padding:13px 14px 8px}
+  .side h3{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:0;padding:13px 14px 8px;font-weight:600}
   .scroll{overflow-y:auto;min-height:0}
   .tiers{display:flex;gap:4px;padding:0 14px 8px}
   .tier{font-family:var(--mono);font-size:10px;padding:5px 10px;border:1px solid var(--line2);color:var(--muted);cursor:pointer}
@@ -124,6 +124,12 @@
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
   .toast.show{opacity:1}
 #resBody tr:hover{background:rgba(122,184,200,.05)}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .skeleton{background:linear-gradient(90deg,var(--panel) 25%,var(--panel2) 45%,var(--panel) 65%);background-size:250% 100%;animation:shimmer 1.6s ease-in-out infinite}
+  .skel-row{height:52px;margin-bottom:6px;border-radius:2px;border:1px solid var(--line)}
+  .skel-line{height:11px;border-radius:2px;margin-bottom:8px}
+  @keyframes dotshimmer{0%,100%{opacity:.4;box-shadow:0 0 3px currentColor}50%{opacity:1;box-shadow:0 0 8px currentColor}}
+  .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -1120,7 +1126,7 @@ function open3D(){ if(!_l3dData) return; let ov=document.getElementById('l3dOver
         <span id="l3dZout" class="navbtn" style="cursor:pointer;padding:3px 9px;border:1px solid var(--line2);color:var(--cyan);font-family:var(--mono)">－</span>
         <span id="l3dZin" class="navbtn" style="cursor:pointer;padding:3px 9px;border:1px solid var(--line2);color:var(--cyan);font-family:var(--mono)">＋</span>
         <span id="l3dZrst" class="navbtn" style="cursor:pointer;padding:3px 9px;border:1px solid var(--line2);color:var(--cyan);font-family:var(--mono)">⟲</span>
-        <span id="l3dClose" style="cursor:pointer;padding:3px 10px;border:1px solid var(--line2);color:var(--cyan)">✕ close</span></div>
+        <span id="l3dClose" style="cursor:pointer;padding:3px 10px;border:1px solid var(--line2);color:var(--cyan)"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> close</span></div>
       <canvas id="l3dCanvas" style="flex:1;width:100%;touch-action:none"></canvas>
       <div class="hint" style="padding:8px 16px;border-top:1px solid var(--line);display:flex;gap:16px;flex-wrap:wrap">
         <span style="color:#c9a868">● Command Center</span><span style="color:#7ab8c8">● Launchpad</span><span style="color:#7a8fa0">● Storage</span>
@@ -1577,7 +1583,7 @@ async function renderMake(){ renderNav(); $('resHd').innerHTML='What should I ma
   const chipRow=`<div style="padding:2px 14px 8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <span class="hint" style="color:var(--muted2)">Planet filter:</span>
     ${Object.keys(UNIVERSE.planetTypes).map(c=>`<span class="ptchip ${mkPTFilter.has(c)?'on':''}" data-pt="${c}" title="${UNIVERSE.planetTypes[c]} — filter to products sourceable from selected planets"><i class="ptdot" style="background:${PT_COLOR[c]||'#888'}"></i>${c}</span>`).join('')}
-    ${mkPTFilter.size?`<span class="ptchip" id="mkPTclear" style="color:var(--cyan)">✕ clear</span>`:''}
+    ${mkPTFilter.size?`<span class="ptchip" id="mkPTclear" style="color:var(--cyan)"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> clear</span>`:''}
     <label style="cursor:pointer;margin-left:auto" class="hint" title="Switch profit/loss colors to a color-blind-safe blue/orange palette"><input type="checkbox" id="mkCB" ${cbPalette?'checked':''}> Color-blind palette</label>
   </div>`;
   $('mkBody').insertAdjacentHTML('beforebegin', chipRow);
@@ -1755,13 +1761,15 @@ function updateLocNow(){ const id=Object.keys(charLoc)[0]; const sys=id?charLoc[
   $('locNow').textContent = sys&&SYS[sys]? ('in '+SYS[sys][0]) : ''; }
 $('locBtn').onclick=()=>{ const sys=Object.values(charLoc).find(s=>SYS[s]); if(!sys){ toast('Sign in from the menu first so I can read your current system.'); return; } $('home').value=SYS[sys][0]; compute(); };
 function logout(id){ delete chars[id]; delete colonies[id]; saveChars(); renderAuth(); drawMap(); }
+let piSyncPending=true;
 function renderAuth(){ const a=$('auth'); const ids=visibleCharIds().map(Number).sort((x,y)=>(((chars[x]&&chars[x].order)??1e9)-((chars[y]&&chars[y].order)??1e9))||(x-y));
   if(!ids.length){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; const rb=$('resyncBtn'); if(rb) rb.hidden=true; return; }
   { const rb=$('resyncBtn'); if(rb) rb.hidden=false; }
   const totalCol=Object.values(colonies).flat().length;
-  a.innerHTML=`<div class="picker"><button class="btn" id="pk">▾ ${ids.length} pilot${ids.length>1?'s':''}${totalCol?` · ${totalCol} colonies`:''}</button>
+  const colTxt=piSyncPending?' · <span class="skeleton" style="display:inline-block;width:70px;height:10px;border-radius:2px;vertical-align:middle">&nbsp;</span>':(totalCol?` · ${totalCol} colonies`:'');
+  a.innerHTML=`<div class="picker"><button class="btn" id="pk">▾ ${ids.length} pilot${ids.length>1?'s':''}${colTxt}</button>
     <div class="emenu" id="em" hidden>${ids.map(id=>`<div class="erow"><img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
-      <span class="en">${chars[id].charName}<i>${chars[id].corpName?chars[id].corpName+' · ':''}${(colonies[id]||[]).length} colonies</i></span></div>`).join('')}
+      <span class="en">${chars[id].charName}<i>${chars[id].corpName?chars[id].corpName+' · ':''}${piSyncPending?'loading…':(colonies[id]||[]).length+' colonies'}</i></span></div>`).join('')}
       <div class="efoot"><a href="index.html" style="color:inherit;text-decoration:none;opacity:.7">Manage in Menu ▸</a></div></div></div>`;
   $('pk').onclick=()=>{ const m=$('em'); m.hidden=!m.hidden; };
 }
@@ -1787,6 +1795,20 @@ async function resyncAll(){ const ids=visibleCharIds(); if(!ids.length||_resynci
   try{ if(viewing==='colony'&&chosen&&target) renderColony(); else if(viewing==='make') renderMake(); else if(typeof renderProcure==='function') renderProcure(); }catch(e){}
   if(b){ b.disabled=false; b.textContent='✓ Synced'; setTimeout(()=>{ if($('resyncBtn')) $('resyncBtn').textContent=orig||'⟳ Resync'; },1600); }
   _resyncing=false;
+  reportDashboard();
+}
+const DASHBOARD_KEY='eve_suite_dashboard';
+function reportDashboard(){
+  try{
+    const ids=visibleCharIds();
+    const colCount=Object.values(colonies).reduce((n,arr)=>n+(arr?arr.length:0),0);
+    let text,level;
+    if(!ids.length){ text='no characters signed in'; level='muted'; }
+    else { text=ids.length+' pilot'+(ids.length!==1?'s':'')+' · '+colCount+' colon'+(colCount!==1?'ies':'y'); level='ok'; }
+    const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');
+    all.pi={text,level,ts:Date.now()};
+    localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));
+  }catch(e){}
 }
 { const b=$('resyncBtn'); if(b) b.onclick=resyncAll; }
 // ---------- scale modal (scale only; credentials are embedded and never shown) ----------
@@ -1814,6 +1836,7 @@ buildTiers(); buildProducts(); renderResults(); renderAuth();
 (async()=>{ await handleRedirect(); renderAuth();
   loadSov();
   for(const id of visibleCharIds()){ await loadColonies(+id); await loadLocation(+id); await loadSkills(+id); await loadStandings(+id); await loadMyAlliance(+id); }
+  piSyncPending=false;
   if(!$('home').value){ const sys=Object.values(charLoc).find(s=>SYS[s]); if(sys){ $('home').value=SYS[sys][0]; if(target) compute(); } }
   renderAuth(); })();
 </script>

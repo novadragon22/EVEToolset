@@ -52,6 +52,15 @@
   .card p{font-size:17px;line-height:1.7;color:var(--muted);margin:0 0 24px;flex:1}
   .feat{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
   .feat span{font-family:var(--mono);font-size:12.5px;color:var(--cyan);border:1px solid var(--line);padding:5px 12px}
+  .dash-row{margin-bottom:14px}
+  .dash-badge{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;
+    padding:6px 12px;border-radius:2px;border:1px solid var(--line2);background:rgba(255,255,255,.02)}
+  .dash-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .dash-badge.ok{color:var(--green)} .dash-badge.ok .dash-dot{background:var(--green);box-shadow:0 0 5px var(--green)}
+  .dash-badge.warn{color:var(--amber)} .dash-badge.warn .dash-dot{background:var(--amber);box-shadow:0 0 5px var(--amber)}
+  .dash-badge.bad{color:var(--red)} .dash-badge.bad .dash-dot{background:var(--red);box-shadow:0 0 5px var(--red);animation:dashpulse 1s ease-in-out infinite}
+  .dash-badge.muted{color:var(--muted2)} .dash-badge.muted .dash-dot{background:var(--muted2)}
+  @keyframes dashpulse{0%,100%{opacity:.5}50%{opacity:1}}
   .go{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:20px;padding-bottom:24px}
   .go .lnk{font-family:var(--mono);font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-bright)}
   .go .url{font-family:var(--mono);font-size:12px;color:var(--muted2);max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -283,7 +292,7 @@ function renderRoster(){
   const r=document.getElementById('roster'); const ids=Object.keys(suiteChars);
   if(!ids.length){ r.innerHTML='<span class="sub" style="margin:0">No characters signed in yet — every tool below will prompt you to add one here.</span>'; return; }
   r.innerHTML=ids.map(id=>{ const c=suiteChars[id];
-    return `<span class="rchip"><img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">${c.charName}<span class="corp">${c.corpName?(' · '+c.corpName):''}</span><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')">✕</span></span>`;
+    return `<span class="rchip"><img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">${c.charName}<span class="corp">${c.corpName?(' · '+c.corpName):''}</span><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`;
   }).join('');
 }
 // =====================================================================
@@ -413,6 +422,14 @@ const n=APPS.length, theta=360/n;
 let R=410, current=0;
 const ring=document.getElementById('ring'), stage=document.getElementById('stage');
 
+function loadDashboard(){ try{ return JSON.parse(localStorage.getItem('eve_suite_dashboard')||'{}'); }catch(e){ return {}; } }
+function dashBadge(key){
+  const d=loadDashboard()[key];
+  if(!d) return '<span class="dash-badge muted">not synced yet</span>';
+  const ageMin=(Date.now()-d.ts)/60000;
+  const ageTxt=ageMin<1?'just now':ageMin<60?Math.round(ageMin)+'m ago':Math.round(ageMin/60)+'h ago';
+  return `<span class="dash-badge ${d.level}"><span class="dash-dot"></span>${d.text} · ${ageTxt}</span>`;
+}
 function buildCards(){
   ring.innerHTML=APPS.map((a,i)=>`<div class="card" data-i="${i}">
       <div class="launch-hint"><span>Click to launch ▸</span></div>
@@ -420,6 +437,7 @@ function buildCards(){
       <div class="body">
         <p>${a.desc}</p>
         <div class="feat">${a.feats.map(f=>`<span>${f}</span>`).join('')}</div>
+        <div class="dash-row">${dashBadge(a.key)}</div>
         <div class="go"><span class="lnk">Launch ▸</span><span class="url">${a.url}</span></div>
       </div></div>`).join('');
   ring.querySelectorAll('.card').forEach(c=>{ const i=+c.dataset.i;

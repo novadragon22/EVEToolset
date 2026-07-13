@@ -90,6 +90,12 @@
   select{background:#05080b;border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 9px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
   .toast.show{opacity:1}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .skeleton{background:linear-gradient(90deg,var(--panel) 25%,var(--panel2) 45%,var(--panel) 65%);background-size:250% 100%;animation:shimmer 1.6s ease-in-out infinite}
+  .skel-row{height:52px;margin-bottom:6px;border-radius:2px;border:1px solid var(--line)}
+  .skel-line{height:11px;border-radius:2px;margin-bottom:8px}
+  @keyframes dotshimmer{0%,100%{opacity:.4;box-shadow:0 0 3px currentColor}50%{opacity:1;box-shadow:0 0 8px currentColor}}
+  .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -371,6 +377,7 @@ let suggestionsIdx={};
 async function loadLibrary(){
   if(!gh()){ $("libnote").textContent="Connect in Settings to load your repo."; $("fitlist").innerHTML=""; return; }
   $("libnote").textContent="loading…";
+  $("fitlist").innerHTML=[0,1,2].map(()=>'<div class="skel-row skeleton" style="height:64px;margin-bottom:8px;border-radius:2px;border:1px solid var(--line)"></div>').join('');
   try{
     const idx=await ghGet("fits/index.json"); const fits=idx?idx.json.fits||[]:[];
     let sug={fits:[]}; try{ const s=await ghGet("suggestions/index.json"); if(s)sug=s.json; }catch(_){}
@@ -387,7 +394,20 @@ async function loadLibrary(){
     // ship icons
     fits.forEach(async f=>{ const id=(await resolveNames([f.hull]))[f.hull]; const slug=(f.hull+"__"+f.name).replace(/[^a-zA-Z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
       const el=$("ic-"+slug); if(el&&id) el.src=`https://images.evetech.net/types/${id}/render?size=128`; });
-  }catch(e){ $("libnote").textContent="error: "+e.message; } }
+    reportDashboard(fits.length, (sug.fits||[]).filter(f=>!f.valid).length);
+  }catch(e){ $("libnote").textContent="error: "+e.message; $("fitlist").innerHTML=""; } }
+const DASHBOARD_KEY='eve_suite_dashboard';
+function reportDashboard(fitCount,issueCount){
+  try{
+    let text,level;
+    if(!fitCount){ text='no fits yet'; level='muted'; }
+    else if(issueCount){ text=issueCount+' fit'+(issueCount!==1?'s':'')+' with issues'; level='warn'; }
+    else { text=fitCount+' fit'+(fitCount!==1?'s':'')+' saved'; level='ok'; }
+    const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');
+    all.fits={text,level,ts:Date.now()};
+    localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));
+  }catch(e){}
+}
 $("reload").onclick=loadLibrary;
 
 async function openFit(path,hull,name){

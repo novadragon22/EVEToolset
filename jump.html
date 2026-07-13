@@ -54,7 +54,7 @@
   .sec{border-bottom:1px solid var(--line);padding:13px 14px}
   .sec h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:11px;display:flex;align-items:center;gap:8px}
   .sec h3 .d{width:7px;height:7px}
-  .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px}
+  .lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;font-weight:600}
   .ships{display:grid;grid-template-columns:1fr 1fr;gap:7px}
   .ship{border:1px solid var(--line2);padding:8px 9px;cursor:pointer;transition:.15s;background:linear-gradient(165deg,#0d1218,rgba(10,14,20,.5));
     display:flex;align-items:center;gap:8px;box-shadow:0 6px 16px rgba(0,0,0,.35)}
@@ -173,6 +173,23 @@
   .lm-hint b{color:var(--gold)}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
   .toast.show{opacity:1}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .skeleton{background:linear-gradient(90deg,var(--panel) 25%,var(--panel2) 45%,var(--panel) 65%);background-size:250% 100%;animation:shimmer 1.6s ease-in-out infinite}
+  .skel-row{height:52px;margin-bottom:6px;border-radius:2px;border:1px solid var(--line)}
+  .skel-line{height:11px;border-radius:2px;margin-bottom:8px}
+  @keyframes dotshimmer{0%,100%{opacity:.4;box-shadow:0 0 3px currentColor}50%{opacity:1;box-shadow:0 0 8px currentColor}}
+  .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
+  .route-profile{display:flex;gap:2px;height:10px;margin-bottom:10px;border-radius:2px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.4) inset}
+  .rp-seg{flex:1;min-width:4px;transition:.15s;cursor:default}
+  .rp-seg:hover{filter:brightness(1.3)}
+  .risk-gauge{display:flex;gap:1px;height:8px;border-radius:2px;overflow:hidden;margin-top:6px;background:rgba(0,0,0,.35);box-shadow:0 1px 2px rgba(0,0,0,.5) inset}
+  .risk-seg{flex:1}
+  .leg-threat-bar{display:flex;align-items:center;gap:6px;margin-top:4px}
+  .leg-threat-bar .rb{flex:1;height:5px;border-radius:2px;background:rgba(0,0,0,.35);overflow:hidden}
+  .leg-threat-bar .rb-fill{height:100%;border-radius:2px}
+  .risk-gradient{position:relative;height:8px;border-radius:4px;margin-top:6px;
+    background:linear-gradient(90deg,var(--green),var(--amber) 50%,var(--rederr));box-shadow:0 1px 3px rgba(0,0,0,.4) inset}
+  .risk-marker{position:absolute;top:-3px;width:3px;height:14px;background:#fff;border-radius:1px;box-shadow:0 0 4px rgba(0,0,0,.6);transform:translateX(-1.5px)}
 </style>
 </head>
 <body>
@@ -215,6 +232,7 @@
       <div class="sec">
         <h3><span class="d diamond"></span>Route</h3>
         <div id="confirmBar"></div>
+        <div class="route-profile" id="routeProfile"></div>
         <div class="legs" id="legs"></div>
         <div class="tot" id="tot" style="margin-top:10px"></div>
       </div>
@@ -273,6 +291,7 @@ const consMembers=Array.from({length:UNIVERSE.nCons||0},()=>[]); // constellatio
 for(let i=0;i<N;i++){ const c=SYS[i][10]; if(c!=null&&consMembers[c]) consMembers[c].push(i); }
 function constellationSet(idx){ const c=SYS[idx][10]; return new Set(consMembers[c]||[idx]); }
 function roundSec(s){ if(s>0&&s<0.05) return 0.1; return Math.round(s*10)/10; }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function secClass(s){ const r=roundSec(s); return r>=0.5?'hi':r>=0.1?'lo':'null'; }
 function secColor(s){ const c=secClass(s); return c==='hi'?'#8cc86a':c==='lo'?'#d8a24a':'#d66a5a'; }
 function regionOf(i){ return REGIONS[SYS[i][3]]; }
@@ -385,7 +404,10 @@ function renderJumpChar(){ const el=document.getElementById('jumpPilotBar'); if(
 }
 function setJumpChar(cid){ jumpChar=cid||null; renderWps(); renderRoute(); if(routeConfirmed) confirmRoute(); }
 window.setJumpChar=setJumpChar;
-async function loadPilots(){ for(const cid of visibleCharIds()){ const t=await tokenFor(cid); if(!t)continue;
+async function loadPilots(){
+  const pp0=document.getElementById('pilotPill');
+  if(pp0&&visibleCharIds().length){ pp0.style.display=''; document.getElementById('pilotDot').className='dot loading'; document.getElementById('pilotTxt').textContent='syncing pilot locations…'; }
+  for(const cid of visibleCharIds()){ const t=await tokenFor(cid); if(!t)continue;
   try{ const r=await fetch(esiUrl('/characters/'+cid+'/location/'),{headers:{Authorization:'Bearer '+t.access}}); if(!r.ok)continue; const d=await r.json();
     pilotByChar[cid]=byId[d.solar_system_id]!=null?byId[d.solar_system_id]:null; }catch(e){} }
   const pp=document.getElementById('pilotPill'); if(pp&&visibleCharIds().length){ pp.style.display='';
@@ -484,11 +506,15 @@ function renderWps(){
     return `<div class="wp${hs?' hs':''}"><span class="ord">${n===0?'◎':n}</span>
       <span class="nm">${SYS[i][0]} <span style="color:${secColor(SYS[i][2])}">${roundSec(SYS[i][2]).toFixed(1)}</span><div class="rg">${n===0?'jump start':regionOf(i)}</div></span>
       ${(anyChar()&&n>0)?`<select class="wpchar" onchange="assignChar(${n},this.value)">${charOpts(w.char)}</select>`:''}
-      <span class="x" onclick="removeWp(${n})">✕</span></div>`; }).join('');
+      <span class="x" onclick="removeWp(${n})"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></div>`; }).join('');
   renderJumpChar();
 }
 
 // ---- route computation ----
+function routeProfileBar(){
+  if(waypoints.length<2) return '';
+  return waypoints.map(w=>{ const sy=SYS[w.i]; const c=secColor(sy[2]); return `<div class="rp-seg" style="background:${c}" title="${sy[0]} · ${roundSec(sy[2]).toFixed(1)}"></div>`; }).join('');
+}
 function renderRoute(){
   // reachable systems from the last waypoint (exact ly), for the map highlight
   reachable=null;
@@ -497,9 +523,10 @@ function renderRoute(){
     reachable=out;
   }
   const legsEl=document.getElementById('legs'), totEl=document.getElementById('tot');
-  if(waypoints.length<2){ legsEl.innerHTML=''; totEl.innerHTML=''; renderNote(); return; }
+  const profEl=document.getElementById('routeProfile'); if(profEl) profEl.innerHTML=routeProfileBar();
+  if(waypoints.length<2){ legsEl.innerHTML=''; totEl.innerHTML=''; renderNote(); reportDashboard(0); return; }
   const fpl=fuelPerLy(), mr=maxRange(), iso=SHIPS[ship].iso, mod=fatRed?0.1:1.0;
-  let totFuel=0, totLy=0, fatigue=0, totTime=0, anyBad=false; let rows='';
+  let totFuel=0, totLy=0, fatigue=0, totTime=0, anyBad=false, totKills=0; let rows='';
   for(let n=1;n<waypoints.length;n++){
     const a=waypoints[n-1].i, b=waypoints[n].i;
     const ly=lyBetween(a,b);
@@ -524,21 +551,45 @@ function renderRoute(){
                           : (jumpChar&&chars[jumpChar]?chars[jumpChar].charName:'jumping pilot');
     const wtype = scout ? '3 jumps' : 'constellation';
     const thr=routeConfirmed?threatNear(b):null;
+    if(thr) totKills+=thr.kills;
+    const threatColor={t0:'var(--muted)',t1:'var(--amber)',t2:'var(--rederr)',t3:'#ff7a6a'};
+    const threatBar=thr?`<div class="leg-threat-bar"><div class="rb"><div class="rb-fill" style="width:${Math.min(100,thr.kills/10*100)}%;background:${threatColor[thr.cls]}"></div></div></div>`:'';
     rows+=`<div class="leg ${bad?'bad':'ok'}">
       <div class="leg-top"><span>${SYS[a][0]} → ${SYS[b][0]}</span><span class="ly${over?' over':''}">${ly==null?'—':fmt1(ly)+' ly'}</span></div>
       <div class="leg-meta"><span class="fuel">${fuel==null?'—':fmt(fuel)+' '+iso.replace(' Isotopes','')}</span><span>cooldown ${mins(cd)} · fatigue ${mins(fatigue)}</span></div>
       ${cn?`<div class="leg-char">assigned: ${cn}</div>`:''}
-      ${thr!=null?`<div class="leg-threat ${thr.cls}">threat: ${thr.kills} kill${thr.kills!==1?'s':''} · ${thr.label} · ${esc(watcher)} watching ${wtype}</div>`:''}
+      ${thr!=null?`<div class="leg-threat ${thr.cls}">threat: ${thr.kills} kill${thr.kills!==1?'s':''} · ${thr.label} · ${esc(watcher)} watching ${wtype}</div>${threatBar}`:''}
       ${warn?`<div class="warn">⚠ ${warn}</div>`:''}</div>`;
   }
   legsEl.innerHTML=rows;
+  const riskPct=Math.min(100,totKills/20*100);
+  const riskLabel=totKills===0?(routeConfirmed?'clear':'unknown'):totKills<=5?'low':totKills<=15?'elevated':'HOT';
+  const riskTile=routeConfirmed?`<div class="tile"><div class="l">Route risk</div><div class="v" style="color:${totKills===0?'var(--green)':totKills<=5?'var(--amber)':'var(--rederr)'}">${riskLabel}</div>
+    <div class="risk-gradient"><div class="risk-marker" style="left:${riskPct}%"></div></div>
+    <div class="sub">${totKills} kill${totKills!==1?'s':''} tracked along route</div></div>`:'';
   totEl.innerHTML=`
     <div class="tile"><div class="l">Total fuel</div><div class="v">${calibrated?fmt(totFuel):'—'}</div><div class="sub">${SHIPS[ship].iso}</div></div>
     <div class="tile"><div class="l">Total distance</div><div class="v cy">${calibrated?fmt1(totLy)+' ly':'—'}</div><div class="sub">${waypoints.length-1} jump${waypoints.length-1!==1?'s':''}</div></div>
     <div class="tile"><div class="l">Min route time</div><div class="v cy">${calibrated?mins(totTime):'—'}</div><div class="sub">cooldowns, jump-on-cd</div></div>
-    <div class="tile"><div class="l">Fuel / ly · range</div><div class="v">${fmt(fpl)}</div><div class="sub">max ${fmt1(mr)} ly @ JDC ${roman(JDC)}</div></div>`;
+    <div class="tile"><div class="l">Fuel / ly · range</div><div class="v">${fmt(fpl)}</div><div class="sub">max ${fmt1(mr)} ly @ JDC ${roman(JDC)}</div></div>
+    ${riskTile}`;
   renderConfirm();
   renderNote(anyBad);
+  reportDashboard(totKills);
+}
+const DASHBOARD_KEY='eve_suite_dashboard';
+function reportDashboard(totKills){
+  try{
+    const pilotCt=Object.keys(chars).length;
+    let text,level;
+    if(!pilotCt){ text='no characters signed in'; level='muted'; }
+    else if(routeConfirmed && totKills>15){ text='route HOT · '+totKills+' kills tracked'; level='bad'; }
+    else if(routeConfirmed && totKills>0){ text=totKills+' kill'+(totKills!==1?'s':'')+' tracked on route'; level='warn'; }
+    else { text=pilotCt+' pilot'+(pilotCt!==1?'s':'')+(waypoints.length>1?' · route planned':''); level='ok'; }
+    const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');
+    all.jump={text,level,ts:Date.now()};
+    localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));
+  }catch(e){}
 }
 function renderNote(anyBad){
   const el=document.getElementById('note');
@@ -669,7 +720,7 @@ function showTip(i,cx,cy,pin){
   const r=cv.getBoundingClientRect();
   const holder=sovHolder(i);
   if(pin) tipSysId=id;
-  tip.innerHTML=`<div class="nm">${s[0]} <span style="color:${secColor(s[2])}">${roundSec(s[2]).toFixed(1)}</span>${pin?'<span class="tipx" onclick="hideTip()">✕</span>':''}</div>
+  tip.innerHTML=`<div class="nm">${s[0]} <span style="color:${secColor(s[2])}">${roundSec(s[2]).toFixed(1)}</span>${pin?'<span class="tipx" onclick="hideTip()"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>':''}</div>
     <div class="rg">${regionOf(i)} · ${secClass(s[2])==='hi'?'High-sec':secClass(s[2])==='lo'?'Low-sec':'Null-sec'}${jumpable(i)?'':' · no-jump'}</div>
     ${holder?`<div class="kv"><span>Sovereignty</span><b>${holder}</b></div>`:''}
     <div class="kv"><span>Ship kills (1h)</span><b>${k.s}</b></div>

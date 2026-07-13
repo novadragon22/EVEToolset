@@ -222,6 +222,7 @@
 
   .empty{border:1px dashed var(--line2);padding:30px 24px 36px;text-align:center;color:var(--muted);grid-column:1/-1}
   .empty-art{display:block;margin:0 auto 10px;opacity:.8}
+  .skel-wrap{grid-column:1/-1;display:flex;flex-direction:column;gap:8px}
   .empty h3{font-family:var(--mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);margin-bottom:8px}
   .empty p{font-size:12.5px;max-width:440px;margin:0 auto;line-height:1.6}
 
@@ -303,6 +304,12 @@
   .pip-mirror .grid{grid-template-columns:1fr}
   .pip-mirror .subtabs,.pip-mirror .fuel-controls,.pip-mirror .plan-form,.pip-mirror .btn-gold,.pip-mirror datalist{display:none}
   .pip-mirror .card-actions,.pip-mirror .btn{display:none}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .skeleton{background:linear-gradient(90deg,var(--panel) 25%,var(--panel2) 45%,var(--panel) 65%);background-size:250% 100%;animation:shimmer 1.6s ease-in-out infinite}
+  .skel-row{height:52px;margin-bottom:6px;border-radius:2px;border:1px solid var(--line)}
+  .skel-line{height:11px;border-radius:2px;margin-bottom:8px}
+  @keyframes dotshimmer{0%,100%{opacity:.4;box-shadow:0 0 3px currentColor}50%{opacity:1;box-shadow:0 0 8px currentColor}}
+  .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -478,7 +485,7 @@
 <!-- ===== EDIT MODAL ===== -->
 <div class="overlay" id="overlay">
   <div class="modal" id="modalStructure">
-    <button class="modal-close" onclick="closeModal()">✕</button>
+    <button class="modal-close" onclick="closeModal()"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     <h2 id="mTitle">Add structure</h2><div class="msub" id="mSub">Manual entry</div>
     <div class="field"><label for="fName">Name / tag</label><input id="fName" placeholder="e.g. P-DR Athanor 1" autocomplete="off"></div>
     <div class="row2">
@@ -499,7 +506,7 @@
   </div>
 
   <div class="modal hide" id="modalHelp">
-    <button class="modal-close" onclick="closeModal()">✕</button>
+    <button class="modal-close" onclick="closeModal()"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     <h2>Setup &amp; notes</h2><div class="msub">EVE SSO · structure scopes only</div>
     <div class="help-body">
       <h3>Connecting</h3>
@@ -609,6 +616,7 @@ const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.ht
 const APP_CONFIG={ clientId:SUITE_CLIENT_ID, redirectUri: location.origin + location.pathname.replace(/[^/]*$/,'') + 'auth-callback.html' };
 const STORE_KEY='eve_structures_v3', TOKEN_KEY=SHARED_KEY, COLLAPSE_KEY='eve_fuel_collapse_v3';
 let structures=[], chars={}, editingId=null, bypass=false;   // chars: charId -> {access,refresh,expires,charId,charName,corpId,corpName}
+let initialSyncPending=true;  // true until the first sync attempt (success or failure) completes — lets empty states distinguish "still loading" from "confirmed empty"
 // section-visibility: which signed-in characters the launcher's carousel has enabled for THIS tool
 const SECTION_KEY='eve_suite_char_sections', MY_SECTION='structures';
 function sectionEnabled(charId){ try{ const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[charId]; return !p||p[MY_SECTION]!==false; }catch(e){ return true; } }
@@ -806,7 +814,11 @@ function renderFuelSummary(metenox,moon,all){ const a=[...metenox,...moon,...all
     <div class="ftile"><div class="l">Structures shown</div><div class="v">${a.length}</div><div class="sub">${metenox.length} metenox · ${moon.length} refinery · ${all.length} support</div></div>`; }
 
 /* ---------- render ---------- */
-function emptyBox(h,p){ return `<div class="empty">
+function emptyBox(h,p){
+  if(initialSyncPending && visibleCharIds().length){
+    return `<div class="skel-wrap">${[0,1,2].map(()=>'<div class="skel-row skeleton"></div>').join('')}</div>`;
+  }
+  return `<div class="empty">
   <svg class="empty-art" viewBox="0 0 120 80" width="120" height="80" fill="none">
     <g opacity=".5"><path d="M60 14l16 10v20l-16 10-16-10V24z" stroke="var(--gold-dim)" stroke-width="1.4"/>
     <path d="M60 14v-6M60 66v6M44 24l-6-3M76 24l6-3M44 44l-6 3M76 44l6 3" stroke="var(--gold-dim)" stroke-width="1"/></g>
@@ -857,6 +869,23 @@ function renderAll(){
   document.getElementById('decomGrid').innerHTML=decom.length?decom.map(s=>card(s,{compact:true})).join(''):emptyBox('No anchoring or unanchoring','Structures your corp is anchoring or decommissioning appear here automatically from ESI, each with its state-timer countdown.');
   refreshOptFilters(active); renderCalendar(); renderPlanList();
   renderPip();
+  reportDashboard();
+}
+const DASHBOARD_KEY='eve_suite_dashboard';
+function reportDashboard(){
+  try{
+    const corpIds=new Set(structures.map(s=>s.corpId).filter(Boolean));
+    const depleted=structures.filter(s=>fuelHoursLeft(s)<=0).length;
+    const critical=structures.filter(s=>{const h=fuelHoursLeft(s);return h>0&&h<=48;}).length;
+    let text,level;
+    if(!structures.length){ text='no structures synced yet'; level='muted'; }
+    else if(depleted){ text=depleted+' fuel DEPLETED'; level='bad'; }
+    else if(critical){ text=critical+' fuel <48h'; level='warn'; }
+    else { text=structures.length+' structure'+(structures.length!==1?'s':'')+' · '+corpIds.size+' corp'+(corpIds.size!==1?'s':''); level='ok'; }
+    const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');
+    all.structures={text,level,ts:Date.now()};
+    localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));
+  }catch(e){}
 }
 
 /* ---------- subtabs (Extractions: Active / Optimised) ---------- */
@@ -904,7 +933,7 @@ function renderPlanList(){
   const wrap=document.getElementById('planList'); if(!wrap) return;
   const list=extractionPlans.filter(p=>(optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation));
   wrap.innerHTML=list.length?list.map(p=>{ const ex=isExcluded(p.system,p.system);
-    return `<div class="plan-row" style="${ex?'opacity:.45':''}"><span>${esc(p.system)}${ex?' <i style="color:var(--red);font-style:normal">excluded</i>':''}</span><span class="dim">${esc(p.constellation||'Unspecified')}</span><button class="char-x" onclick="removePlan('${p.id}')">✕</button></div>`; }).join('')
+    return `<div class="plan-row" style="${ex?'opacity:.45':''}"><span>${esc(p.system)}${ex?' <i style="color:var(--red);font-style:normal">excluded</i>':''}</span><span class="dim">${esc(p.constellation||'Unspecified')}</span><button class="char-x" onclick="removePlan('${p.id}')"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div>`; }).join('')
     :`<div class="empty" style="padding:18px"><p>No systems queued for scheduling yet.</p></div>`;
 }
 window.removePlan=async(id)=>{ extractionPlans=extractionPlans.filter(p=>p.id!==id); await savePlans(); };
@@ -1436,6 +1465,7 @@ setInterval(backgroundSync,30000); // live ESI update every 30 seconds
       const vis=visibleCharIds(); toast('Synced '+vis.length+' character'+(vis.length!==1?'s':'')+' across '+new Set(vis.map(id=>chars[id].corpId)).size+' corp(s).');
     }catch(e){}
   }
+  initialSyncPending=false; renderAll();
 })();
 
 /* ---------- UI scale ---------- */
