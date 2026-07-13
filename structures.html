@@ -168,6 +168,9 @@
     transition:border-color .18s,transform .18s,box-shadow .18s;
     box-shadow:0 10px 28px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.025) inset,0 -1px 0 rgba(0,0,0,.3) inset}
   .card:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:0 18px 40px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.04) inset,0 0 0 1px rgba(122,184,200,.08)}
+  .card-sync-overlay{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .15s;z-index:6;border-radius:inherit;overflow:hidden}
+  .card.syncing{pointer-events:none}
+  .card.syncing .card-sync-overlay{opacity:.9}
   .card::before,.card::after{content:'';position:absolute;width:10px;height:10px;border:1px solid rgba(201,168,104,.35);filter:drop-shadow(0 0 3px rgba(201,168,104,.2))}
   .card::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
   .card::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
@@ -758,7 +761,7 @@ function fuelOnlyCard(s,opts){
     const gasQty=s.gasUnknown?'—':fmt(g)+(s.gasFromEsi?'':' est');
     const gasBar=s.gasUnknown?'':segBar(gh===Infinity?HR_MONTH:gh,gCol,HR_MONTH);
     gasBlock=`<div class="meter-block" style="margin-top:8px"><div class="meter-row"><span class="meter-label">Magmatic gas · ${gasQty}</span><span class="meter-val" style="color:${gCol}">${gLeft}</span></div>${gasBar}
-      <div class="runway" style="margin-top:4px"><span>draw ${fmtRate(s.gasRate||0)}/hr</span><button class="btn sm" onclick="openEdit('${s.id}')">Set gas</button></div></div>`;
+      <div class="runway" style="margin-top:4px"><span>draw ${fmtRate(s.gasRate||0)}/hr</span><button class="btn sm" onclick="event.stopPropagation();openEdit('${s.id}')">Set gas</button></div></div>`;
   }
   const tid=renderTypeId(s);
   const accent=typeAccent(s);
@@ -766,13 +769,35 @@ function fuelOnlyCard(s,opts){
   const secTag=(s.sec!=null)?`<span class="sec-tag" style="color:${secColor(s.sec)}">${s.sec.toFixed(1)}</span>`:'';
   const age=syncAge(s);
   const ageTag=s.esiId?`<span class="esi-tag" style="color:${age.color}" title="Last confirmed by ESI">${age.label}</span>`:'';
-  return `<div class="card${compact?' compact':''}" style="background:linear-gradient(165deg,#0d1218,var(--panel2)),radial-gradient(160% 140% at 100% 0%,${secWash(s.sec)},transparent 60%);border-top:2px solid color-mix(in srgb, ${accent} 65%, transparent)">
+  return `<div class="card${compact?' compact':''}" data-sid="${s.id}" onclick="syncOneStructure('${s.id}',event)" title="Click to refresh this structure's data from ESI" style="cursor:pointer;background:linear-gradient(165deg,#0d1218,var(--panel2)),radial-gradient(160% 140% at 100% 0%,${secWash(s.sec)},transparent 60%);border-top:2px solid color-mix(in srgb, ${accent} 65%, transparent)">
+    <div class="card-sync-overlay"><span class="skeleton" style="display:inline-block;width:100%;height:100%"></span></div>
     <div class="card-head">${img}<div><div class="card-name">${esc(s.name)||'Unnamed'}</div>
       <div class="card-loc">${secTag}${esc(s.system||s.loc)||'— no location —'}${ageTag}</div></div>
       <span class="badge ${t.cls}">${t.short}</span></div>
     <div class="meter-block"><div class="meter-row"><span class="meter-label">Fuel blocks · ${held}</span><span class="meter-val" style="color:${fCol}">${fLeft}</span></div>${fuelBar}
       <div class="runway" style="margin-top:4px"><span>burn ${fmtRate(fb)}/hr</span><span>${fmt(fb*HR_WEEK)}/wk · ${fmt(fb*HR_MONTH)}/mo</span></div></div>
     ${gasBlock}</div>`;
+}
+async function syncOneStructure(sid,event){
+  if(event) event.stopPropagation();
+  const s=structures.find(x=>String(x.id)===String(sid)); if(!s) return;
+  const card=document.querySelector(`.card[data-sid="${CSS.escape(String(sid))}"]`);
+  // ESI's corp structures/assets endpoints are corp-wide (no per-structure fetch exists) — so a "focused"
+  // sync here means: refresh that structure's corp, but scope the visual feedback to just this card.
+  const corpId=s.corpId; if(!corpId){ toast('This structure has no corp linked yet — try Sync instead.'); return; }
+  let charId=preferredChar[corpId];
+  if(!charId || !chars[charId] || chars[charId].corpId!=corpId || !sectionEnabled(charId)){
+    charId=Object.keys(chars).find(id=>chars[id].corpId==corpId && sectionEnabled(id));
+  }
+  if(!charId){ toast('No signed-in character covers '+(s.corpName||'this corp')+' — add one from the menu.'); return; }
+  if(card) card.classList.add('syncing');
+  try{
+    const v=await getValidToken(charId); if(!v) throw new Error('token unavailable');
+    await importFromEsi(v.access,true,charId);
+    const fresh=structures.find(x=>String(x.id)===String(sid));
+    toast('Refreshed '+(fresh?fresh.name:s.name)+' · '+(s.corpName||'corp')+' data updated');
+  }catch(e){ toast('Refresh failed: '+e.message); }
+  finally{ const c2=document.querySelector(`.card[data-sid="${CSS.escape(String(sid))}"]`); if(c2) c2.classList.remove('syncing'); }
 }
 function fuelCardGrid(list){
   if(!list.length) return emptyBox('No structures match','Structures with fuel data appear here once synced.');
