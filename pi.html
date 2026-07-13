@@ -9,11 +9,15 @@
   :root{--bg:#030507;--panel:#0a0d10;--line:#1a2028;--line2:#2a4050;
     --gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;
     --green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;
+    --violet:#a48ad6;--violet-soft:#8f78bd;--steel:#6a92c8;--steel-soft:#7a9cd0;
     --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--ui:1.5;}
   *{box-sizing:border-box}
   html{height:100%}
   /* zoom scales the whole UI 3x; width/height are pre-divided by --ui so the scaled app still fills the viewport */
-  body{margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;
+  body{margin:0;overflow:hidden;background:
+    radial-gradient(1000px 600px at 15% -8%, rgba(122,184,200,.045), transparent 60%),
+    radial-gradient(900px 550px at 100% 105%, rgba(201,168,104,.04), transparent 55%),
+    var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;
     zoom:var(--ui);width:calc(100vw / var(--ui));height:calc(100vh / var(--ui))}
   ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:#05080b}::-webkit-scrollbar-thumb{background:#1c2731;border:1px solid #243441}
   .diamond{width:7px;height:7px;background:var(--gold);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);display:inline-block;margin-right:8px;vertical-align:middle}
@@ -46,7 +50,7 @@
   .btn:hover{background:rgba(201,168,104,.18)}
   .btn.ghost{border-color:var(--line2);color:var(--muted)} .btn.ghost:hover{color:var(--gold-bright)}
   .main{flex:1;display:flex;min-height:0}
-  .side{width:320px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .side{width:320px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;box-shadow:4px 0 16px rgba(0,0,0,.35);position:relative;z-index:5}
   .side h3{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0;padding:13px 14px 8px}
   .scroll{overflow-y:auto;min-height:0}
   .tiers{display:flex;gap:4px;padding:0 14px 8px}

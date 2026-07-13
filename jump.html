@@ -13,12 +13,15 @@
     --gold:#c9a868; --gold-bright:#e8d296; --gold-dim:#8a7048; --gold-deep:#6a4828; --gold-soft:#c9b676;
     --cyan:#7ab8c8; --cyan-edge:#2a4050; --cyan-bright:#a0d0e0;
     --green:#8cc86a; --red:#d66a5a; --rederr:#e89b8d; --amber:#d8a24a;
+    --violet:#a48ad6; --violet-soft:#8f78bd; --steel:#6a92c8; --steel-soft:#7a9cd0;
     --text:#c9d4db; --text2:#a8bac8; --muted:#7a8fa0; --muted2:#5a6b78;
     --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow:hidden}
+  body{font-family:var(--sans);background:
+    radial-gradient(1000px 600px at 15% -8%, rgba(122,184,200,.04), transparent 60%),
+    var(--bg);color:var(--text);overflow:hidden}
   ::-webkit-scrollbar{width:8px;height:8px}
   ::-webkit-scrollbar-track{background:#050709}
   ::-webkit-scrollbar-thumb{background:#1a2430;border:1px solid #050709}
@@ -53,9 +56,12 @@
   .sec h3 .d{width:7px;height:7px}
   .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px}
   .ships{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-  .ship{border:1px solid var(--line2);padding:8px 9px;cursor:pointer;transition:.12s;background:rgba(10,14,20,.5)}
-  .ship:hover{border-color:var(--gold-dim)}
-  .ship.on{border-color:var(--gold);background:rgba(201,168,104,.1)}
+  .ship{border:1px solid var(--line2);padding:8px 9px;cursor:pointer;transition:.15s;background:linear-gradient(165deg,#0d1218,rgba(10,14,20,.5));
+    display:flex;align-items:center;gap:8px;box-shadow:0 6px 16px rgba(0,0,0,.35)}
+  .ship:hover{border-color:var(--gold-dim);transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+  .ship.on{border-color:var(--gold);background:linear-gradient(165deg,rgba(201,168,104,.12),rgba(201,168,104,.06));box-shadow:0 10px 24px rgba(0,0,0,.4),0 0 0 1px rgba(201,168,104,.15)}
+  .ship-render{width:36px;height:36px;flex-shrink:0;border-radius:3px;object-fit:cover;
+    background:radial-gradient(120% 120% at 30% 20%,#1a2530,#05080b);border:1px solid rgba(122,184,200,.2)}
   .ship .nm{font-family:var(--mono);font-size:12px;color:var(--gold-bright);font-weight:500}
   .ship .iso{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px}
   .skills{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
@@ -73,7 +79,8 @@
   .opt .rg{color:var(--muted);font-size:9.5px}
   .ss{font-family:var(--mono);font-weight:600;font-size:11px}
 
-  .wp{display:flex;align-items:center;gap:9px;padding:8px 9px;border:1px solid var(--line);border-left:2px solid var(--cyan);background:var(--panel2);margin-bottom:5px;transition:background .12s}
+  .wp{display:flex;align-items:center;gap:9px;padding:8px 9px;border:1px solid var(--line);border-left:2px solid var(--cyan);background:linear-gradient(165deg,#0d1218,var(--panel2));margin-bottom:5px;
+    transition:background .12s,box-shadow .18s;box-shadow:0 4px 12px rgba(0,0,0,.3)}
   .wp:hover{background:rgba(122,184,200,.08)}
   .wp .ord{font-family:var(--mono);font-size:10px;color:var(--muted2);width:16px}
   .wp .nm{font-family:var(--mono);font-size:12px;color:#dfe7ee;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -243,10 +250,10 @@ const ESI='https://esi.evetech.net/latest';
 const COMPAT=new Date(Date.now()-90*86400000).toISOString().slice(0,10);
 function esiUrl(p){ return ESI+p+(p.includes('?')?'&':'?')+'compatibility_date='+COMPAT; }
 const SHIPS={
-  ark:{name:'Ark',race:'Amarr',iso:'Helium Isotopes',isoId:16274,baseRange:5.0,baseFuel:3100},
-  rhea:{name:'Rhea',race:'Caldari',iso:'Nitrogen Isotopes',isoId:17888,baseRange:5.0,baseFuel:3100},
-  anshar:{name:'Anshar',race:'Gallente',iso:'Oxygen Isotopes',isoId:17887,baseRange:5.0,baseFuel:3100},
-  nomad:{name:'Nomad',race:'Minmatar',iso:'Hydrogen Isotopes',isoId:17889,baseRange:5.0,baseFuel:3100},
+  ark:{name:'Ark',race:'Amarr',iso:'Helium Isotopes',isoId:16274,baseRange:5.0,baseFuel:3100,typeId:28850},
+  rhea:{name:'Rhea',race:'Caldari',iso:'Nitrogen Isotopes',isoId:17888,baseRange:5.0,baseFuel:3100,typeId:28844},
+  anshar:{name:'Anshar',race:'Gallente',iso:'Oxygen Isotopes',isoId:17887,baseRange:5.0,baseFuel:3100,typeId:28848},
+  nomad:{name:'Nomad',race:'Minmatar',iso:'Hydrogen Isotopes',isoId:17889,baseRange:5.0,baseFuel:3100,typeId:28846},
 };
 const JOVE_REGIONS=new Set(['A821-A','J7HZ-F','UUA-F4','PR-01','J7HZ-F']);
 
@@ -282,7 +289,9 @@ let tipSysId=null;  // system whose pinned tooltip is open (for zKill auto-refre
 
 // ---- ship/skill UI ----
 const shipsEl=document.getElementById('ships');
-shipsEl.innerHTML=Object.entries(SHIPS).map(([k,v])=>`<div class="ship${k===ship?' on':''}" data-s="${k}"><div class="nm">${v.name}</div><div class="iso">${v.iso.replace(' Isotopes','')} · ${v.race}</div></div>`).join('');
+shipsEl.innerHTML=Object.entries(SHIPS).map(([k,v])=>`<div class="ship${k===ship?' on':''}" data-s="${k}">
+  <img class="ship-render" loading="lazy" src="https://images.evetech.net/types/${v.typeId}/render?size=64" onerror="this.style.display='none'">
+  <div><div class="nm">${v.name}</div><div class="iso">${v.iso.replace(' Isotopes','')} · ${v.race}</div></div></div>`).join('');
 shipsEl.querySelectorAll('.ship').forEach(el=>el.onclick=()=>{ ship=el.dataset.s; shipsEl.querySelectorAll('.ship').forEach(x=>x.classList.toggle('on',x===el)); renderRoute(); draw(); });
 function fillSel(id,min,max,val){ const s=document.getElementById(id); s.innerHTML=''; for(let i=min;i<=max;i++){const o=document.createElement('option');o.value=i;o.textContent=(id==='skJDC'||id==='skJFC'||id==='skJF')?roman(i):i;if(i===val)o.selected=true;s.appendChild(o);} }
 function roman(n){return ['0','I','II','III','IV','V'][n]||n;}

@@ -9,9 +9,13 @@
   :root{--bg:#030507;--panel:#0a0d10;--panel2:#0a0f13;--line:#1a2028;--line2:#2a4050;
     --gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;
     --green:#8cc86a;--red:#d66a5a;--rederr:#e89b8d;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;
+    --violet:#a48ad6;--violet-soft:#8f78bd;--steel:#6a92c8;--steel-soft:#7a9cd0;
     --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--ui:1;}
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+  html,body{margin:0;height:100%;background:
+    radial-gradient(1000px 600px at 15% -8%, rgba(122,184,200,.045), transparent 60%),
+    radial-gradient(900px 550px at 100% 105%, rgba(201,168,104,.04), transparent 55%),
+    var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
   body{zoom:var(--ui)}
   .modal{position:fixed;inset:0;background:rgba(3,5,7,.8);display:none;align-items:center;justify-content:center;z-index:9999}
   .modal.show{display:flex}
@@ -46,10 +50,14 @@
   .muted{color:var(--muted)} .hint{font-family:var(--mono);font-size:10px;color:var(--muted2);line-height:1.6}
   .card{border:1px solid var(--line);background:var(--panel);padding:16px;margin-bottom:14px}
   .fitlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-  .fititem{border:1px solid var(--line);background:var(--panel);padding:13px 15px;cursor:pointer;transition:background .12s}
-  .fititem:hover{background:rgba(122,184,200,.06)}
-  .fititem:hover{border-color:var(--gold-dim);background:rgba(201,168,104,.05)}
+  .fititem{border:1px solid var(--line);background:linear-gradient(165deg,#0d1218,var(--panel2));padding:13px 15px;cursor:pointer;
+    transition:background .12s,transform .18s,box-shadow .18s,border-color .18s;
+    box-shadow:0 8px 22px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.02) inset}
+  .fititem:hover{border-color:var(--gold-dim);background:linear-gradient(165deg,#12181f,var(--panel2));transform:translateY(-2px);
+    box-shadow:0 14px 32px rgba(0,0,0,.5),0 0 0 1px rgba(201,168,104,.1)}
   .fititem .h{display:flex;align-items:center;gap:10px}
+  .fititem .h img{width:44px;height:44px;border-radius:4px;object-fit:cover;
+    background:radial-gradient(120% 120% at 30% 20%,#1a2530,#05080b);border:1px solid rgba(122,184,200,.25)}
   .fititem img{width:34px;height:34px;background:#05080b;border:1px solid var(--line)}
   .fititem .nm{font-size:13px;color:#e7eef3} .fititem .sub{font-family:var(--mono);font-size:9.5px;color:var(--muted2)}
   .pill{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border:1px solid currentColor;margin-left:6px}
@@ -378,7 +386,7 @@ async function loadLibrary(){
     document.querySelectorAll(".fititem").forEach(d=>d.onclick=()=>openFit(d.dataset.path,d.dataset.hull,d.dataset.name));
     // ship icons
     fits.forEach(async f=>{ const id=(await resolveNames([f.hull]))[f.hull]; const slug=(f.hull+"__"+f.name).replace(/[^a-zA-Z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
-      const el=$("ic-"+slug); if(el&&id) el.src=`https://images.evetech.net/types/${id}/icon?size=64`; });
+      const el=$("ic-"+slug); if(el&&id) el.src=`https://images.evetech.net/types/${id}/render?size=128`; });
   }catch(e){ $("libnote").textContent="error: "+e.message; } }
 $("reload").onclick=loadLibrary;
 
