@@ -102,7 +102,7 @@
     <h1 id="titleHome">EVE<span class="diamond"></span>Toolset</h1>
     <div class="sub">Spin the ring — the card up front launches inline.</div>
     <div class="roster" id="roster"></div>
-    <div class="bar"><button class="addchar" id="addCharBtn">+ Add Corp</button></div>
+    <div class="bar"><button class="addchar" id="addCharBtn">+ Add Character</button></div>
   </header>
   <div class="stage" id="stage">
     <div class="ring" id="ring"></div>
@@ -114,7 +114,7 @@
 <div class="scopeOverlay" id="scopeOverlay">
   <div class="scopeBox">
     <h3>Sign in with EVE Online</h3>
-    <p>Every tool in this suite shares one sign-in. This suite links <b>one character per corporation</b> — adding a character replaces any existing one from the same corp. You'll be prompted if that happens.</p>
+    <p>Every tool in this suite shares one sign-in. Add as many characters as you like — from the same corp or different ones — and each tool will use whichever applies.</p>
     <p>To add a character from a <i>different EVE account</i>, log out at login.eveonline.com first (or use a private/incognito window) — EVE's SSO doesn't offer a way for this page to force that switch for you.</p>
     <p>Adding a character grants the combined set of permissions below, used across whichever tools you open:</p>
     <ul id="scopeList"></ul>
@@ -209,16 +209,6 @@ async function handleSuiteRedirect(){
     const entry={access:t.access_token,refresh:t.refresh_token,expires:Date.now()+(t.expires_in||1200)*1000,charId,charName:pl.name||('Char '+charId),corpId:null,corpName:''};
     try{ const ch=await esiPub('/characters/'+charId+'/'); entry.corpId=ch.corporation_id;
       const co=await esiPub('/corporations/'+entry.corpId+'/'); entry.corpName=co.name||''; }catch(e){}
-    // one character per corp: this suite treats "add character" as "add a corp"
-    if(entry.corpId){
-      const dupeId=Object.keys(suiteChars).find(id=>+id!==charId && suiteChars[id].corpId===entry.corpId);
-      if(dupeId){
-        const dupeName=suiteChars[dupeId].charName;
-        const replace=confirm(`${entry.corpName||'This corporation'} is already linked via ${dupeName}.\n\nEach corp can only be signed in once — replace ${dupeName} with ${entry.charName}?`);
-        if(!replace){ renderRoster(); return; }
-        delete suiteChars[dupeId];
-      }
-    }
     suiteChars[charId]=entry; saveSuiteChars(suiteChars); renderRoster();
   }catch(e){ alert('Sign-in failed: '+e.message); }
 }
