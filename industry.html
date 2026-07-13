@@ -199,9 +199,12 @@
   .job .m{font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-top:3px;letter-spacing:.04em}
   .job .act{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:1px 5px;border:1px solid var(--line2);color:var(--cyan);margin-right:6px}
   .job .own2{color:var(--gold-dim)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
 <div class="app">
 <div id="flash" class="flash"></div>
   <div class="topbar">
@@ -631,7 +634,8 @@ function renderRegistry(){
       <tbody>${structures.map((s,i)=>{const hb=headlineBonus(s);const known=(s.rigs||[]).filter(r=>RIGS[r.toLowerCase()]).length;return `<tr><td>${s.name}</td><td>${s.type}</td><td>${s.sec}</td><td class="r mono">−${hb.mat}</td><td class="r mono">−${hb.time}</td><td class="hint">${(s.rigs||[]).length?(s.rigs||[]).map(r=>RIGS[r.toLowerCase()]?r:('<span style=\"color:var(--muted2)\">'+r+' (unknown)</span>')).join('<br>'):'—'}${known<(s.rigs||[]).length?'':''}</td><td><span class="mk buy" data-dels="${i}">remove</span></td></tr>`;}).join('')||'<tr><td colspan="7" class="hint">none yet</td></tr>'}</tbody></table>
       <p class="hint">Generic (all-category) rig bonuses shown; category-specific rigs (Ship/Component/Equipment/Ammo/Drone) apply only to matching jobs in the planner. Values are SDE base × security multiplier.</p></div>`;
   document.getElementById('structAdd').onclick=()=>{ const p=parseStructure(document.getElementById('structPaste').value);
-    if(!p){ alert('Could not parse — first line must be [StructureType, Name].'); return; }
+let toastT; function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('show'),5000); }
+    if(!p){ toast('Could not parse — first line must be [StructureType, Name].'); return; }
     p.sec=document.getElementById('structSec').value; p.id=document.getElementById('structLoc').value.trim()||null;
     structures.push(p); saveStructs(); activeStruct=structures.length-1; localStorage.setItem('eve_ind_struct',activeStruct);
     const hb=headlineBonus(p);
@@ -892,8 +896,10 @@ async function loadAll(){
     }
     cd.access=ok; if(ok) selCorps.add(+corpId);
   }
+  lastSync=Date.now();
   recompute();
 }
+let lastSync=null;
 
 // aggregate the SELECTED characters + corps into the active maps
 function recompute(){
@@ -917,8 +923,9 @@ function renderAuth(){
   const charIds=Object.keys(chars).map(Number);
   const corpIds=[...new Set(charIds.map(c=>chars[c].corpId).filter(Boolean))];
   const nc=selChars.size, ncc=selCorps.size;
+  const syncTxt=lastSync?(' · synced '+new Date(lastSync).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})):'';
   a.innerHTML=`<div class="picker">
-    <button class="btn" id="pickBtn">▾ ${nc} pilot${nc!==1?'s':''} · ${ncc} corp${ncc!==1?'s':''}</button>
+    <button class="btn" id="pickBtn">▾ ${nc} pilot${nc!==1?'s':''} · ${ncc} corp${ncc!==1?'s':''}${syncTxt}</button>
     <div class="pickmenu" id="pickMenu" hidden>
       <div class="pmsec">Characters</div>
       ${charIds.map(cid=>`<label class="pmrow"><input type="checkbox" data-char="${cid}" ${selChars.has(cid)?'checked':''}>

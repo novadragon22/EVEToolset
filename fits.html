@@ -79,9 +79,12 @@
   .efoot{display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:6px;padding:7px 12px}
   .efoot span{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--gold-bright);cursor:pointer}
   select{background:#05080b;border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 9px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
 <div class="app">
   <div class="topbar">
     <div class="brand"><span class="diamond"></span>Fit <b>Manager</b></div>
@@ -170,6 +173,7 @@ const EVE_SCOPES=["publicData","esi-skills.read_skills.v1","esi-fittings.read_fi
 const eveRedirect=()=>cfg.eveRedirect||(location.origin+location.pathname);
 const SHARED_KEY='eve_suite_chars';
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
+let toastT; function toast(m){ const e=document.getElementById("toast"); e.textContent=m; e.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove("show"),5000); }
 let chars=JSON.parse(localStorage.getItem(SHARED_KEY)||"{}");   // {charId:{access,refresh,expires,charId,charName,corpId,corpName}}
 let activeChar=+(localStorage.getItem("efm_active")||0)||null;
 const saveChars=()=>localStorage.setItem(SHARED_KEY,JSON.stringify(chars));
@@ -199,12 +203,15 @@ async function loadChar(id){ const s=chars[id];
   // skills -> commit to repo so the pyfa Action computes per-character accurate stats
   try{ const sk=await eveGet(id,`/characters/${id}/skills/`); const map={}; (sk.skills||[]).forEach(x=>map[x.skill_id]=x.trained_skill_level);
        if(gh()){ try{ await ghPut(`skills/${id}.json`,{charId:id,charName:s.charName,corpId:s.corpId,corpName:s.corpName,skills:map,updated:Date.now()},`skills: ${s.charName}`); }catch(e){} } }catch(e){}
+  lastSync=Date.now();
   renderEve(); }
+let lastSync=null;
 
 function renderEve(){ const a=$("eveAuth");
   if(!eveLoggedIn()){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; refreshSendButtons(); return; }
   const ids=Object.keys(chars).map(Number); const act=chars[activeChar]||chars[ids[0]];
-  a.innerHTML=`<div class="epick"><button class="btn" id="ePickBtn">▾ ${act?act.charName:ids.length+" pilots"}</button>
+  const syncTxt=lastSync?(' · synced '+new Date(lastSync).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})):'';
+  a.innerHTML=`<div class="epick"><button class="btn" id="ePickBtn">▾ ${act?act.charName:ids.length+" pilots"}${syncTxt}</button>
     <div class="emenu" id="eMenu" hidden><div class="esec">Active pilot (skills &amp; sends)</div>
     ${ids.map(id=>`<div class="erow ${id===activeChar?'on':''}" data-act="${id}">
       <img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
@@ -226,11 +233,11 @@ function fittingPayload(fit){
   (fit.drones||[]).forEach(d=>{ if(d.type_id) items.push({flag:87,quantity:d.qty||1,type_id:d.type_id}); });   // DroneBay
   (fit.cargo||[]).forEach(d=>{ if(d.type_id) items.push({flag:5,quantity:d.qty||1,type_id:d.type_id}); });      // Cargo
   return {name:fit.name.slice(0,50),description:"via EVE Fit Manager",ship_type_id:fit.hull_id,items}; }
-async function sendToIngame(fit){ if(!eveLoggedIn()||!activeChar){ alert("Log in with EVE first."); return; }
-  if(!fit.hull_id){ alert("Resolve the fit first (Analyze)."); return; }
+async function sendToIngame(fit){ if(!eveLoggedIn()||!activeChar){ toast("Sign in from the menu first."); return; }
+  if(!fit.hull_id){ toast("Resolve the fit first (Analyze)."); return; }
   try{ const r=await evePost(activeChar,`/characters/${activeChar}/fittings/`,fittingPayload(fit));
-    alert(`Sent “${fit.name}” to ${chars[activeChar].charName}'s personal fittings (id ${r.fitting_id}).`); }
-  catch(e){ alert("Send failed: "+e.message); } }
+    toast(`Sent “${fit.name}” to ${chars[activeChar].charName}'s personal fittings.`); }
+  catch(e){ toast("Send failed: "+e.message); } }
 
 const $=id=>document.getElementById(id);
 function setStatus(t,c){ $("st").textContent=t; $("dot").className="dot"+(c?" "+c:""); }
@@ -418,14 +425,14 @@ async function openFit(path,hull,name){
     <div class="c"><div class="l">Status</div><div class="v ${p.valid?'':'bad'}">${p.valid?'valid':'over budget'}</div></div></div>`; };
   const who=$("pyfaWho"); if(who){ const draw=()=>{ const vv=window.__pyfaVar[who.value]; $("pyfaStats").innerHTML=vv?pyfaStatsHTML(vv.stats):""; }; who.onchange=draw; draw(); }
   const sb=$("sendFit"); if(sb) sb.onclick=()=>sendToIngame(fit);
-  const acc=$("acceptSug"); if(acc) acc.onclick=async()=>{ const nf=parseEFT(sug.llm.improved_eft); if(!nf){alert("could not parse improved fit");return;}
+  const acc=$("acceptSug"); if(acc) acc.onclick=async()=>{ const nf=parseEFT(sug.llm.improved_eft); if(!nf){toast("Could not parse improved fit");return;}
     if(!nf.name||nf.name===name) nf.name=name+" (coach)";
     const sh=nf.hull.toLowerCase().replace(/[^a-z0-9]+/g,"-"); const sn=nf.name.toLowerCase().replace(/[^a-z0-9]+/g,"-");
     try{ await ghPut(`fits/${sh}/${sn}.json`,{eft:toEFT(nf)},`coach fit: ${nf.hull} ${nf.name}`);
       let idx; try{const e=await ghGet("fits/index.json");idx=e?e.json:{fits:[]};}catch(_){idx={fits:[]};}
       idx.fits.push({path:`${sh}/${sn}.json`,hull:nf.hull,name:nf.name}); idx.updated=Date.now();
-      await ghPut("fits/index.json",idx,`index: ${nf.name}`); alert("Saved as "+nf.name); loadLibrary(); showView("library");
-    }catch(e){ alert(e.message); } }; }
+      await ghPut("fits/index.json",idx,`index: ${nf.name}`); toast("Saved as "+nf.name); loadLibrary(); showView("library");
+    }catch(e){ toast(e.message); } }; }
 window.showView=showView;
 
 // ---------- settings ----------

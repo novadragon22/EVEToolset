@@ -163,9 +163,12 @@
   .lm-act{display:flex;gap:10px;margin-top:16px}
   .lm-hint{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:14px;line-height:1.5}
   .lm-hint b{color:var(--gold)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
 <div class="app">
   <div class="topbar">
     <span class="tb-d diamond"></span>
@@ -173,6 +176,7 @@
     <div class="tb-stat">
       <span class="tb-pill" id="calPill"><span class="dot" id="calDot"></span> <span id="calTxt">calibrating…</span></span>
       <span class="tb-pill" id="killPill"><span class="dot" id="killDot"></span> <span id="killTxt">kill feed</span></span>
+      <span class="tb-pill" id="pilotPill" style="display:none"><span class="dot" id="pilotDot"></span> <span id="pilotTxt">pilots</span></span>
       <span id="authArea"></span>
     </div>
   </div>
@@ -316,6 +320,7 @@ function killHeat(id){ const k=killmap[id]; if(!k) return 0; return (k.s+k.p)/ma
 // ---- ESI auth (PKCE, multi-character) ----
 const SHARED_KEY='eve_suite_chars';
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
+let toastT; function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('show'),5000); }
 const AUTH_KEY='eve_jfp_token', CHARS_KEY=SHARED_KEY;
 const APP_CONFIG={ clientId:SUITE_CLIENT_ID, redirectUri:location.origin+location.pathname.replace(/[^/]*$/,'')+'auth-callback.html' };
 const SSO_AUTH='https://login.eveonline.com/v2/oauth/authorize/', SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
@@ -369,6 +374,9 @@ window.setJumpChar=setJumpChar;
 async function loadPilots(){ for(const cid of Object.keys(chars)){ const t=await tokenFor(cid); if(!t)continue;
   try{ const r=await fetch(esiUrl('/characters/'+cid+'/location/'),{headers:{Authorization:'Bearer '+t.access}}); if(!r.ok)continue; const d=await r.json();
     pilotByChar[cid]=byId[d.solar_system_id]!=null?byId[d.solar_system_id]:null; }catch(e){} }
+  const pp=document.getElementById('pilotPill'); if(pp&&Object.keys(chars).length){ pp.style.display='';
+    document.getElementById('pilotDot').className='dot ok';
+    document.getElementById('pilotTxt').textContent='pilots synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
   draw();
 }
 function authHeaders(){ return {}; } // public ESI layers need no auth (avoids stale-token 401s)

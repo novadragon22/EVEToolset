@@ -117,9 +117,12 @@
   .modal h2{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:0 0 14px}
   .hint{font-family:var(--mono);font-size:10px;color:var(--muted2);line-height:1.6}
   a{color:var(--cyan)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
 <div class="app">
   <div class="topbar">
     <div class="brand"><span class="diamond"></span>PI <b>Planner</b></div>
@@ -586,6 +589,7 @@ let tier=2, target=null, secFilter='all', whole=false, homeId=null, results=[], 
 let icOverride=5, ccuOverride=5, viewing='list';
 const SHARED_KEY='eve_suite_chars';
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
+let toastT; function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('show'),5000); }
 let chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); let colonies={}; let charLoc={}; let closestSys=null; let baseSuggest=[];
 (function(){ let n=0, changed=false; Object.keys(chars).forEach(k=>{ if(chars[k] && chars[k].order==null){ chars[k].order=n; changed=true; } n=Math.max(n+1,((chars[k]&&chars[k].order)||0)+1); }); if(changed) try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){} })();
 let charSkills={}; // id -> {ic,ccu} per character (from ESI)
@@ -1218,7 +1222,7 @@ function buildTemplatesData(){ const plan=_sheetPlan; if(!plan||!plan.planets) r
     return { idx:i+1, kind:p.kind, title, filename:('PI - '+(p._des||PNAME2[p.pcode]||'planet')+' - '+((leaves.length?leaves:made).map(nm)[0]||'')).replace(/[^A-Za-z0-9 _-]/g,'').trim()+'.json', json:JSON.stringify(piTemplate(p)).replace(/("Diam":)(\d+)([,}])/, '$1$2.0$3') };
   });
 }
-function openBuildSheet(){ const data=buildTemplatesData(); if(!data.length){ alert('Build a plan first — pick target product(s) and a colony system.'); return; }
+function openBuildSheet(){ const data=buildTemplatesData(); if(!data.length){ toast('Build a plan first — pick target product(s) and a colony system.'); return; }
   let ov=document.getElementById('bsOverlay'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='bsOverlay';
   ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(3,5,7,0.97);display:flex;flex-direction:column';
@@ -1446,10 +1450,10 @@ function wireImport(btnId){ const b=$(btnId); if(!b) return;
     _logiFile.onchange=()=>{ const f=_logiFile.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ importRoute(rd.result); _logiFile.value=''; }; rd.readAsText(f); }; }
   b.onclick=()=>_logiFile.click(); }
 function importRoute(text){ let data=null; const m=text.match(/<<<PIPLAN\s*([\s\S]*?)\s*PIPLAN>>>/);
-  try{ data=m?JSON.parse(m[1]):JSON.parse(text); }catch(e){ alert('Could not read this route file.'); return; }
-  if(!data||!Array.isArray(data.products)||!data.products.length){ alert('No products found in the file.'); return; }
+  try{ data=m?JSON.parse(m[1]):JSON.parse(text); }catch(e){ toast('Could not read this route file.'); return; }
+  if(!data||!Array.isArray(data.products)||!data.products.length){ toast('No products found in the file.'); return; }
   sel={}; data.products.forEach(p=>{ if(PI.recipe[p.id]) sel[+p.id]=Math.max(1,+p.qty||1); });
-  if(!Object.keys(sel).length){ alert('Products in the file are not recognised.'); return; }
+  if(!Object.keys(sel).length){ toast('Products in the file are not recognised.'); return; }
   target=+Object.keys(sel)[0]; tier=PI.tier[target]||tier;
   if(data.sellMode){ sellMode=data.sellMode; localStorage.setItem('pi_sellmode',sellMode); }
   if(typeof data.buyP0==='boolean'){ buyP0=data.buyP0; localStorage.setItem('pi_bp0',buyP0?'1':'0'); }
@@ -1740,7 +1744,7 @@ async function loadColonies(id){ try{ const list=await eGet(id,`/characters/${id
 async function loadLocation(id){ try{ const l=await eGet(id,`/characters/${id}/location/`); charLoc[id]=l.solar_system_id; updateLocNow(); }catch(e){} }
 function updateLocNow(){ const id=Object.keys(charLoc)[0]; const sys=id?charLoc[id]:null;
   $('locNow').textContent = sys&&SYS[sys]? ('in '+SYS[sys][0]) : ''; }
-$('locBtn').onclick=()=>{ const sys=Object.values(charLoc).find(s=>SYS[s]); if(!sys){ alert('Log in with EVE first so I can read your current system.'); return; } $('home').value=SYS[sys][0]; compute(); };
+$('locBtn').onclick=()=>{ const sys=Object.values(charLoc).find(s=>SYS[s]); if(!sys){ toast('Sign in from the menu first so I can read your current system.'); return; } $('home').value=SYS[sys][0]; compute(); };
 function logout(id){ delete chars[id]; delete colonies[id]; saveChars(); renderAuth(); drawMap(); }
 function renderAuth(){ const a=$('auth'); const ids=Object.keys(chars).map(Number).sort((x,y)=>(((chars[x]&&chars[x].order)??1e9)-((chars[y]&&chars[y].order)??1e9))||(x-y));
   if(!ids.length){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; const rb=$('resyncBtn'); if(rb) rb.hidden=true; return; }
