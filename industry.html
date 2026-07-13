@@ -46,7 +46,8 @@
   .tab.on{color:var(--gold-bright);border-bottom-color:var(--gold)}
   .tab .n{display:block;font-size:8.5px;color:var(--muted2);margin-top:2px}
   .plist{flex:1;overflow-y:auto;min-height:0}
-  .pitem{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #0e141a;cursor:pointer}
+  .pitem{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #0e141a;cursor:pointer;transition:background .12s}
+  .pitem:hover{background:rgba(122,184,200,.05)}
   .pitem:hover{background:rgba(201,168,104,.06)}
   .pitem.on{background:rgba(201,168,104,.13);box-shadow:inset 2px 0 0 var(--gold)}
   .pitem img{width:30px;height:30px;background:#05080b;border:1px solid var(--line)}
@@ -64,6 +65,7 @@
   .subbar .sp{flex:1}
   .subbar .summ{font-family:var(--mono);font-size:9.5px;color:var(--muted)}
   .toggle{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);cursor:pointer}
+  .readybadge{font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:.04em;text-transform:uppercase;margin-left:6px}
   .toggle .sw{width:26px;height:14px;border:1px solid var(--line2);background:#05080b;position:relative}
   .toggle .sw::after{content:'';position:absolute;top:1px;left:1px;width:10px;height:10px;background:var(--muted2);transition:.15s}
   .toggle.on .sw{border-color:var(--gold-dim)} .toggle.on .sw::after{left:13px;background:var(--gold-bright)}
@@ -194,9 +196,17 @@
   .jobs .jh b{font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;font-size:11px;color:var(--gold)}
   .jobs .jx{cursor:pointer;color:var(--muted);font-size:16px}
   .jobs .jlist{overflow-y:auto;padding:6px 0}
-  .job{padding:10px 16px;border-bottom:1px solid #0e141a}
+  .job{padding:10px 16px;border-bottom:1px solid #0e141a;border-left:3px solid transparent}
+  .job.ready{border-left-color:var(--green)}
+  .job.soon{border-left-color:var(--amber)}
   .job .t{font-size:12.5px;color:var(--text)}
   .job .m{font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-top:3px;letter-spacing:.04em}
+  .job.ready .m{color:var(--green)}
+  .job.soon .m{color:var(--amber)}
+  #jobsBtn{position:relative}
+  .jobsbadge{position:absolute;top:-6px;right:-6px;background:var(--amber);color:#1a1207;font-family:var(--mono);font-size:9px;font-weight:600;
+    min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+  .jobsbadge.ready{background:var(--green)}
   .job .act{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:1px 5px;border:1px solid var(--line2);color:var(--cyan);margin-right:6px}
   .job .own2{color:var(--gold-dim)}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
@@ -323,6 +333,11 @@ const RXN_PROD=new Set(PRODUCTS.filter(p=>p.kind==='rxn').map(p=>p.pid));
 // ---------- BPO / BPC / reaction classification + buildability ----------
 const INV_OUT=new Set(); for(const b in INV) INV[b][0].forEach(p=>INV_OUT.add(p[0]));  // invention output bp types = BPC-only
 function bpOf(pid){ const r=recipeByProduct[pid]; return r?r.bp:null; }
+function readyToBuild(pid){
+  if(!bpOwned[pid]) return false;
+  const rec=recipeByProduct[pid]; if(!rec) return false;
+  return rec.materials.every(([mid,bq])=>(assetQty[mid]||0)>=bq);
+}
 function kindOf(pid){ if(RXN_PROD.has(pid)) return 'rxn'; const b=bpOf(pid); return (b!=null&&INV_OUT.has(b))?'bpc':'bpo'; }
 function buildable(pid){ const b=bpOf(pid); return b!=null && PUB.has(pid) && PUB.has(b); }   // published & player-usable
 // category bucket for grouping (reactions get their own bucket)
@@ -343,7 +358,7 @@ const BPO_UNIVERSE=PRODUCTS.filter(p=>p.kind==='mfg'&&buildable(p.pid)&&kindOf(p
   .map(p=>({pid:p.pid,bid:p.bp,bucket:catBucket(p.pid)}));
 
 // ---------- state ----------
-let mode='browse', kindFilter='all', missingOnly=false, ownedOnly=false, sel=null, runs=1, me=10, te=20, fac=0, facT=0;
+let mode='browse', kindFilter='all', missingOnly=false, ownedOnly=false, readyOnly=false, sel=null, runs=1, me=10, te=20, fac=0, facT=0;
 let ownedBpoSet=new Set();        // blueprint type ids owned as BPOs (from ESI)
 const buySet=new Set();
 const collapsed=new Set();        // collapsed category buckets
@@ -376,9 +391,11 @@ function renderSubbar(){
   if(mode==='browse'){
     const chips=[['all','All'],['bpo','BPO'],['bpc','BPC'],['rxn','Reaction']];
     sb.innerHTML=chips.map(([k,l])=>`<span class="chipf ${kindFilter===k?'on':''}" data-k="${k}">${l}</span>`).join('')
-      +'<span class="sp"></span><span class="toggle '+(ownedOnly?'on':'')+'" id="ownTgl"><span class="sw"></span>Owned only</span>';
+      +'<span class="sp"></span><span class="toggle '+(ownedOnly?'on':'')+'" id="ownTgl"><span class="sw"></span>Owned only</span>'
+      +'<span class="toggle '+(readyOnly?'on':'')+'" id="readyTgl" title="Owned blueprint + all materials already in stock"><span class="sw"></span>Ready now</span>';
     sb.querySelectorAll('.chipf').forEach(c=>c.onclick=()=>{ kindFilter=c.dataset.k; renderSubbar(); renderList(); });
     const ot=document.getElementById('ownTgl'); if(ot) ot.onclick=()=>{ ownedOnly=!ownedOnly; renderSubbar(); renderList(); };
+    const rt=document.getElementById('readyTgl'); if(rt) rt.onclick=()=>{ readyOnly=!readyOnly; renderSubbar(); renderList(); };
   } else if(mode==='bp'){
     sb.innerHTML=`<span class="toggle ${missingOnly?'on':''}" id="missTgl"><span class="sw"></span>Missing only</span><span class="sp"></span><span class="summ" id="bpSumm"></span>`;
     document.getElementById('missTgl').onclick=()=>{ missingOnly=!missingOnly; renderSubbar(); renderList(); };
@@ -409,6 +426,7 @@ function renderBrowse(){
   let items=PRODUCTS.filter(p=>buildable(p.pid));
   if(kindFilter!=='all') items=items.filter(p=>kindOf(p.pid)===kindFilter);
   if(ownedOnly) items=items.filter(p=>!!bpOwned[p.pid]);
+  if(readyOnly) items=items.filter(p=>readyToBuild(p.pid));
   if(q) items=items.filter(p=>nm(p.pid).toLowerCase().includes(q));
   const total=items.length;
   const groups=groupItems(items, p=>catBucket(p.pid));
@@ -417,10 +435,10 @@ function renderBrowse(){
     const col=collapsed.has(bucket);
     html+=`<div class="ghead" data-g="${bucket}"><span class="gt">${bucket}</span><span class="gc">${arr.length} ${col?'▸':'▾'}</span></div>`;
     if(col) continue;
-    for(const p of arr){ if(shown>=900){ break; } shown++; const k=kindOf(p.pid);
+    for(const p of arr){ if(shown>=900){ break; } shown++; const k=kindOf(p.pid); const ready=readyToBuild(p.pid);
       html+=`<div class="pitem ${sel===p.pid?'on':''}" data-pid="${p.pid}">
         <img loading="lazy" src="${icon(p.pid)}" onerror="this.style.visibility='hidden'">
-        <div style="flex:1"><div class="nm">${nm(p.pid)}${KINDBADGE[k]||''}</div>
+        <div style="flex:1"><div class="nm">${nm(p.pid)}${KINDBADGE[k]||''}${ready?' <span class="readybadge" title="Owned + materials in stock">● ready</span>':''}</div>
         <div class="mt">out ×${recipeByProduct[p.pid].pq}</div></div>
         <span class="plusplan" data-plan="${p.pid}" title="Add to construction plan">＋</span></div>`; }
   }
@@ -428,7 +446,7 @@ function renderBrowse(){
   el.querySelectorAll('.ghead').forEach(h=>h.onclick=()=>{ const g=h.dataset.g; collapsed.has(g)?collapsed.delete(g):collapsed.add(g); renderBrowse(); });
   el.querySelectorAll('.plusplan').forEach(b=>b.onclick=e=>{ e.stopPropagation(); addToPlan(+b.dataset.plan,1); });
   el.querySelectorAll('.pitem').forEach(d=>d.onclick=()=>select(+d.dataset.pid));
-  document.getElementById('listfoot').textContent=`${total} buildable · BPO/BPC/reaction · grouped by category`;
+  document.getElementById('listfoot').textContent=`${total} buildable${readyOnly?' · ready now (owned + in stock)':''} · BPO/BPC/reaction · grouped by category`;
 }
 
 function copyText(text, ok){
@@ -913,6 +931,7 @@ function recompute(){
     for(const sk in d.skills) skillsMap[sk]=Math.max(skillsMap[sk]||0,d.skills[sk]); });   // best skill level across selected pilots
   selCorps.forEach(corpId=>{ const cd=corpData[corpId]; if(!cd) return; addBP(cd.bps,cd.name); mergeA(cd.assetQty); mergeLoc(cd.byLoc); jobs.push(...cd.jobs); });
   const jb=document.getElementById('jobsBtn'); if(jb){ jb.style.display=jobs.length?'':'none'; jb.textContent='Jobs ('+jobs.length+')'; }
+  updateJobsBadge();
   renderAuth(); renderList(); if(sel) renderDetail();
   resolveLocations();
 }
@@ -982,13 +1001,25 @@ function augmentDetail(rec){
 // jobs panel
 function renderJobs(){
   const list=document.getElementById('jobsList');
-  if(!jobs.length){ list.innerHTML='<div class="job"><div class="m">No active jobs.</div></div>'; return; }
+  if(!jobs.length){ list.innerHTML='<div class="job"><div class="m">No active jobs.</div></div>'; updateJobsBadge(); return; }
   list.innerHTML=jobs.slice().sort((a,b)=>new Date(a.end_date)-new Date(b.end_date)).map(j=>{
     const prod=j.product_type_id||BP_PRODUCT[j.blueprint_type_id]; const end=new Date(j.end_date);
     const left=end-Date.now(); const when=left>0?('ends in '+fmtTime(left/1000)):'ready';
-    return `<div class="job"><div class="t"><span class="act">${ACTIVITY[j.activity_id]||'job'}</span>${prod?nm(prod):'#'+j.blueprint_type_id}</div>
+    const urgency=left<=0?'ready':(left<2*3600*1000?'soon':'');
+    return `<div class="job ${urgency}"><div class="t"><span class="act">${ACTIVITY[j.activity_id]||'job'}</span>${prod?nm(prod):'#'+j.blueprint_type_id}</div>
       <div class="m">${j.runs} run${j.runs!==1?'s':''} · ${when} · <span class="own2">${j.owner}</span></div></div>`;
   }).join('');
+  updateJobsBadge();
+}
+function updateJobsBadge(){
+  const btn=document.getElementById('jobsBtn'); if(!btn) return;
+  const now=Date.now();
+  const readyCt=jobs.filter(j=>new Date(j.end_date)-now<=0).length;
+  const soonCt=jobs.filter(j=>{ const l=new Date(j.end_date)-now; return l>0&&l<2*3600*1000; }).length;
+  const old=btn.querySelector('.jobsbadge'); if(old) old.remove();
+  const n=readyCt+soonCt; if(!n) return;
+  const b=document.createElement('span'); b.className='jobsbadge'+(readyCt?' ready':''); b.textContent=n>9?'9+':n;
+  btn.appendChild(b);
 }
 document.getElementById('jobsBtn').onclick=()=>{ renderJobs(); document.getElementById('jobsPanel').classList.add('open'); };
 document.getElementById('jobsClose').onclick=()=>document.getElementById('jobsPanel').classList.remove('open');

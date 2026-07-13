@@ -46,7 +46,8 @@
   .muted{color:var(--muted)} .hint{font-family:var(--mono);font-size:10px;color:var(--muted2);line-height:1.6}
   .card{border:1px solid var(--line);background:var(--panel);padding:16px;margin-bottom:14px}
   .fitlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-  .fititem{border:1px solid var(--line);background:var(--panel);padding:13px 15px;cursor:pointer}
+  .fititem{border:1px solid var(--line);background:var(--panel);padding:13px 15px;cursor:pointer;transition:background .12s}
+  .fititem:hover{background:rgba(122,184,200,.06)}
   .fititem:hover{border-color:var(--gold-dim);background:rgba(201,168,104,.05)}
   .fititem .h{display:flex;align-items:center;gap:10px}
   .fititem img{width:34px;height:34px;background:#05080b;border:1px solid var(--line)}
