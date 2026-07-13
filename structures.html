@@ -522,7 +522,7 @@
       <ul><li><code>esi-corporations.read_structures.v1</code></li><li><code>esi-universe.read_structures.v1</code></li><li><code>esi-industry.read_corporation_mining.v1</code></li><li><code>esi-assets.read_corporation_assets.v1</code></li></ul>
       <p>The authorizing character needs the <strong style="color:var(--gold)">Director</strong> role.</p>
       <h3>What's tracked</h3>
-      <p>Fuel runway comes from ESI's fuel-expiry timestamp on each structure. The Structure fuel tab has a dedicated Metenox moon drills section that reads fuel blocks and the magmatic gas reagent from corp assets (<code>read_corporation_assets</code>). Auto-syncs every 30 seconds. Each refresh also scans for low fuel (depleted / under 48h / under a week) and idle extractors, colouring the Idle and Structure&nbsp;fuel tab badges and raising a warning toast when the problem set changes.</p>
+      <p>Fuel runway comes from ESI's fuel-expiry timestamp on each structure. The Structure fuel tab has a dedicated Metenox moon drills section that reads fuel blocks and the magmatic gas reagent from corp assets (<code>read_corporation_assets</code>). Auto-syncs every 2 minutes. Each refresh also scans for low fuel (depleted / under 48h / under a week) and idle extractors, colouring the Idle and Structure&nbsp;fuel tab badges and raising a warning toast when the problem set changes.</p>
     </div>
     <div class="modal-actions"><button class="btn gold" onclick="closeModal()">Close</button></div>
   </div>
@@ -739,62 +739,49 @@ function card(s,opts){
     ${body}${actions}</div>`;
 }
 
-function metenoxTable(list){
-  if(!list.length) return `<div class="empty"><p>No Metenox moon drills found. They appear here once your corp owns one and it's returned by ESI.</p></div>`;
-  let tfb=0,tg=0;
-  const rows=list.map(s=>{
-    const fbr=s.fuelRate||0; tfb+=fbr; const gr=s.gasRate||0; tg+=gr;
-    const fh=fuelHoursLeft(s); const fLeft=fh===Infinity?'—':runwayText(fh);
-    const fCol=fh===Infinity?'dim':(fh<=48?'rd':fh<=HR_WEEK?'am':'gr');
-    let fuelQty;
-    if(s.fuelFromEsi) fuelQty=fmt(currentFuel(s));
-    else if(s.fuelExpires&&fbr>0&&fh!==Infinity) fuelQty=fmt(fh*fbr)+' <i class="estt">est</i>';
-    else fuelQty='<span class="dim">—</span>';
+function fuelOnlyCard(s,opts){
+  const compact=opts&&opts.compact;
+  const t=TYPES[s.type];
+  const fh=fuelHoursLeft(s); const fCol=fh===Infinity?'var(--muted2)':(fh<=48?'var(--red)':fh<=HR_WEEK?'var(--gold)':'var(--green)');
+  const fLeft=fh===Infinity?'—':runwayText(fh);
+  const fb=s.fuelRate||0;
+  let held;
+  if(s.fuelFromEsi) held=fmt(currentFuel(s));
+  else if(s.fuelExpires&&fb>0&&fh!==Infinity) held=fmt(fh*fb)+' est';
+  else held='—';
+  const fuelBar=segBar(fh===Infinity?HR_MONTH:fh,fCol,HR_MONTH);
+  let gasBlock='';
+  if(s.type==='metenox'){
     const g=currentGas(s); const gh=gasHoursLeft(s);
-    let gasQty,gLeft,gCol;
-    if(s.gasUnknown){ gasQty='<span class="dim">— set →</span>'; gLeft='<span class="dim">—</span>'; gCol='dim'; }
-    else { gasQty=fmt(g)+(s.gasFromEsi?'':' <i class="estt">est</i>'); gLeft=gh===Infinity?'—':runwayText(gh); gCol=gh<=48?'rd':gh<=HR_WEEK?'am':'gas'; }
-    const tid=renderTypeId(s);
-    const thumb=tid?`<img class="struct-thumb" src="https://images.evetech.net/types/${tid}/render?size=32" onerror="this.style.display='none'" alt="">`:'';
-    const age=syncAge(s); const ageTxt=s.esiId?` <span style="color:${age.color}">· ${age.label}</span>`:'';
-    return `<tr><td class="l" style="border-left:2px solid color-mix(in srgb, ${typeAccent(s)} 45%, transparent)"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${esc(s.system||s.loc)||'—'} · ${esc(s.constellation||'—')}${ageTxt}</div></div></div></td>
-      <td class="fb">${fuelQty}</td><td class="${fCol}">${fLeft}</td>
-      <td class="gas">${gasQty}</td><td class="${gCol}">${gLeft}</td><td class="gas">${fmt(gr)}/hr</td>
-      <td style="text-align:right"><button class="btn sm" onclick="openEdit('${s.id}')">Set gas</button></td></tr>`;
-  }).join('');
-  return `<div class="hint gas" style="margin-bottom:10px">ESI only publishes a drill's fuel-bay contents when it isn't actively running, so block and gas counts can read blank. <b>Fuel left</b> is always accurate (from the structure's fuel timer); the block count is estimated from it. Use <b>Set gas</b> to enter magmatic gas — it then counts down live at the draw rate.</div>
-  <div class="tbl-wrap"><table>
-    <thead><tr><th class="l">Metenox</th><th>Fuel blocks</th><th>Fuel left</th><th>Magmatic gas</th><th>Gas left</th><th>Gas draw</th><th></th></tr></thead>
-    <tbody>${rows}</tbody>
-    <tfoot><tr><td class="l">Total — ${list.length} drill${list.length!==1?'s':''}</td><td class="fb">${fmtRate(tfb)}/hr</td><td></td><td></td><td></td><td class="gas">${fmtRate(tg)}/hr</td><td></td></tr></tfoot>
-  </table></div>`;
+    const gCol=s.gasUnknown?'var(--muted2)':(gh<=48?'var(--red)':gh<=HR_WEEK?'var(--gold)':'#c9a8e8');
+    const gLeft=s.gasUnknown?'set gas →':(gh===Infinity?'—':runwayText(gh));
+    const gasQty=s.gasUnknown?'—':fmt(g)+(s.gasFromEsi?'':' est');
+    const gasBar=s.gasUnknown?'':segBar(gh===Infinity?HR_MONTH:gh,gCol,HR_MONTH);
+    gasBlock=`<div class="meter-block" style="margin-top:8px"><div class="meter-row"><span class="meter-label">Magmatic gas · ${gasQty}</span><span class="meter-val" style="color:${gCol}">${gLeft}</span></div>${gasBar}
+      <div class="runway" style="margin-top:4px"><span>draw ${fmtRate(s.gasRate||0)}/hr</span><button class="btn sm" onclick="openEdit('${s.id}')">Set gas</button></div></div>`;
+  }
+  const tid=renderTypeId(s);
+  const accent=typeAccent(s);
+  const img=tid?`<img class="struct-render${compact?' sm':''}" style="border-color:color-mix(in srgb, ${accent} 55%, transparent)" src="https://images.evetech.net/types/${tid}/render?size=${compact?64:128}" onerror="this.style.display='none'" alt="">`:'';
+  const secTag=(s.sec!=null)?`<span class="sec-tag" style="color:${secColor(s.sec)}">${s.sec.toFixed(1)}</span>`:'';
+  const age=syncAge(s);
+  const ageTag=s.esiId?`<span class="esi-tag" style="color:${age.color}" title="Last confirmed by ESI">${age.label}</span>`:'';
+  return `<div class="card${compact?' compact':''}" style="background:linear-gradient(165deg,#0d1218,var(--panel2)),radial-gradient(160% 140% at 100% 0%,${secWash(s.sec)},transparent 60%);border-top:2px solid color-mix(in srgb, ${accent} 65%, transparent)">
+    <div class="card-head">${img}<div><div class="card-name">${esc(s.name)||'Unnamed'}</div>
+      <div class="card-loc">${secTag}${esc(s.system||s.loc)||'— no location —'}${ageTag}</div></div>
+      <span class="badge ${t.cls}">${t.short}</span></div>
+    <div class="meter-block"><div class="meter-row"><span class="meter-label">Fuel blocks · ${held}</span><span class="meter-val" style="color:${fCol}">${fLeft}</span></div>${fuelBar}
+      <div class="runway" style="margin-top:4px"><span>burn ${fmtRate(fb)}/hr</span><span>${fmt(fb*HR_WEEK)}/wk · ${fmt(fb*HR_MONTH)}/mo</span></div></div>
+    ${gasBlock}</div>`;
 }
-function fuelTable(list,withGas){
-  if(!list.length) return `<div class="empty"><p>No structures match.</p></div>`;
-  let tfb=0,tg=0,tHeld=0;
-  const rows=list.map(s=>{
-    const fb=s.fuelRate||0; tfb+=fb; const g=s.type==='metenox'?(s.gasRate||0):0; tg+=g;
-    const fh=fuelHoursLeft(s); const fLeft=fh===Infinity?'—':runwayText(fh);
-    const fCol=fh===Infinity?'dim':(fh<=48?'rd':fh<=HR_WEEK?'am':'gr');
-    let held;
-    if(s.fuelFromEsi){ const cf=currentFuel(s); held=fmt(cf); tHeld+=cf; }
-    else if(s.fuelExpires&&fb>0&&fh!==Infinity){ held=fmt(fh*fb)+' <i class="estt">est</i>'; tHeld+=fh*fb; }
-    else held='<span class="dim">—</span>';
-    let gl='',gc='';
-    if(withGas){ if(s.type==='metenox'){ const gh=gasHoursLeft(s); const gLeft=s.gasUnknown?'set':(gh===Infinity?'—':runwayText(gh));
-        const gCol=s.gasUnknown?'dim':(gh<=48?'rd':gh<=HR_WEEK?'am':'gas'); gl=`<td class="${gCol}">${gLeft}</td>`;
-        gc=`<td class="gas">${fmt(g)}</td><td class="gas">${fmt(g*HR_WEEK)}</td><td class="gas">${fmt(g*HR_MONTH)}</td>`; }
-      else { gl=`<td class="dim">—</td>`; gc=`<td class="dim">—</td><td class="dim">—</td><td class="dim">—</td>`; } }
-    const tid=renderTypeId(s);
-    const thumb=tid?`<img class="struct-thumb" src="https://images.evetech.net/types/${tid}/render?size=32" onerror="this.style.display='none'" alt="">`:'';
-    const age=syncAge(s); const ageTxt=s.esiId?` <span style="color:${age.color}">· ${age.label}</span>`:'';
-    return `<tr><td class="l" style="border-left:2px solid color-mix(in srgb, ${typeAccent(s)} 45%, transparent)"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${TYPES[s.type].short} · ${esc(s.system||s.loc)||'—'}${ageTxt}</div></div></div></td>
-      <td class="fb">${held}</td><td class="${fCol}">${fLeft}</td><td class="fb">${fmtRate(fb)}</td><td class="fb">${fmt(fb*HR_WEEK)}</td><td class="fb">${fmt(fb*HR_MONTH)}</td>${gl}${gc}</tr>`;
-  }).join('');
-  const gh=withGas?`<th>Gas left</th><th>Gas/hr</th><th>Gas/wk</th><th>Gas/mo</th>`:'';
-  const gf=withGas?`<td></td><td class="gas">${fmt(tg)}</td><td class="gas">${fmt(tg*HR_WEEK)}</td><td class="gas">${fmt(tg*HR_MONTH)}</td>`:'';
-  return `<div class="tbl-wrap"><table><thead><tr><th class="l">Structure</th><th>Fuel blocks</th><th>Fuel left</th><th>Fuel/hr</th><th>Fuel/wk</th><th>Fuel/mo</th>${gh}</tr></thead>
-    <tbody>${rows}</tbody><tfoot><tr><td class="l">Total — ${list.length}</td><td class="fb">${fmt(tHeld)}</td><td></td><td class="fb">${fmtRate(tfb)}</td><td class="fb">${fmt(tfb*HR_WEEK)}</td><td class="fb">${fmt(tfb*HR_MONTH)}</td>${gf}</tr></tfoot></table></div>`;
+function fuelCardGrid(list){
+  if(!list.length) return emptyBox('No structures match','Structures with fuel data appear here once synced.');
+  return `<div class="grid">${list.map(s=>fuelOnlyCard(s)).join('')}</div>`;
+}
+function metenoxCardGrid(list){
+  if(!list.length) return emptyBox('No Metenox moon drills found','They appear here once your corp owns one and it\'s returned by ESI.');
+  return `<div class="hint gas" style="margin-bottom:10px">ESI only publishes a drill's fuel-bay contents when it isn't actively running, so block and gas counts can read blank. <b>Fuel left</b> is always accurate (from the structure's fuel timer); the block count is estimated from it. Use <b>Set gas</b> to enter magmatic gas — it then counts down live at the draw rate.</div>
+    <div class="grid">${list.map(s=>fuelOnlyCard(s)).join('')}</div>`;
 }
 
 /* ---------- filters ---------- */
@@ -871,9 +858,9 @@ function renderAll(){
   document.getElementById('metenoxSub').textContent=`${metenox.length} drill${metenox.length!==1?'s':''} · fuel blocks & magmatic gas (ESI assets)`;
   document.getElementById('moonSub').textContent='refineries · fuel blocks';
   document.getElementById('allSub').textContent='citadels, engineering complexes & other';
-  document.getElementById('metenoxFuel').innerHTML=metenoxTable(metenox);
-  document.getElementById('moonFuel').innerHTML=fuelTable(moon,false);
-  document.getElementById('allFuel').innerHTML=fuelTable(all,false);
+  document.getElementById('metenoxFuel').innerHTML=metenoxCardGrid(metenox);
+  document.getElementById('moonFuel').innerHTML=fuelCardGrid(moon);
+  document.getElementById('allFuel').innerHTML=fuelCardGrid(all);
   document.getElementById('decomGrid').innerHTML=decom.length?decom.map(s=>card(s,{compact:true})).join(''):emptyBox('No anchoring or unanchoring','Structures your corp is anchoring or decommissioning appear here automatically from ESI, each with its state-timer countdown.');
   refreshOptFilters(active); renderCalendar(); renderPlanList();
   renderPip();
@@ -1462,11 +1449,11 @@ window.alertScan=alertScan;
 let toastT; function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('show'),5000); }
 
 /* ---------- init ---------- */
-setInterval(()=>{ if(structures.length){ renderAll(); alertScan({toastOnChange:true}); } }, 30000);
+setInterval(()=>{ if(structures.length){ renderAll(); alertScan({toastOnChange:true}); } }, 120000);
 let _syncing=false;
 async function backgroundSync(){ if(_syncing) return; if(document.visibilityState&&document.visibilityState!=='visible') return; if(!visibleCharIds().length) return;
   _syncing=true; try{ await importAllCorps(true); }catch(e){} finally{ _syncing=false; } }
-setInterval(backgroundSync,30000); // live ESI update every 30 seconds
+setInterval(backgroundSync,120000); // live ESI update every 2 minutes
 
 (async function init(){
   document.getElementById('footer').textContent='';
