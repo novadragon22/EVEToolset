@@ -13,6 +13,8 @@
     --gold:#c9a868; --gold-bright:#e8d296; --gold-dim:#8a7048; --gold-deep:#6a4828; --gold-soft:#c9b676;
     --cyan:#7ab8c8; --cyan-edge:#2a4050; --cyan-bright:#a0d0e0;
     --green:#8cc86a; --red:#d66a5a; --rederr:#e89b8d;
+    --violet:#a48ad6; --violet-edge:#3a3055; --violet-soft:#8f78bd;
+    --steel:#6a92c8; --steel-edge:#2a3a55; --steel-soft:#7a9cd0;
     --text:#c9d4db; --text2:#a8bac8; --muted:#7a8fa0; --muted2:#5a6b78;
     --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
     --ui:1;
@@ -81,7 +83,7 @@
   .cf-label{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em}
   .cf-chip{font-family:var(--mono);font-size:11px;color:var(--cyan);border:1px solid var(--line2);padding:4px 10px;cursor:pointer;background:#05080b;transition:.12s}
   .cf-chip:hover{border-color:var(--cyan)}
-  .cf-chip.on{background:rgba(122,184,200,.15);border-color:var(--cyan);color:var(--cyan-bright)}
+  .cf-chip.on{background:rgba(122,184,200,.15);border-color:var(--cyan);color:var(--cyan-bright);box-shadow:0 0 10px rgba(122,184,200,.25),0 2px 6px rgba(0,0,0,.3);transform:translateY(-1px)}
   .tb-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-dim)}
   .tb-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .tb-btn{padding:4px 10px;background:#0a0f13;border:1px solid var(--line2);color:#8ba4b3;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .12s}
@@ -149,7 +151,8 @@
   section.sec{display:none}
   section.sec.on{display:block}
 
-  .panel-title{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:2px 0 14px;display:flex;align-items:center;gap:10px}
+  .panel-title{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:2px 0 14px;display:flex;align-items:center;gap:10px;
+    padding:8px 12px;background:linear-gradient(90deg,rgba(201,168,104,.06),transparent 70%);border-left:2px solid var(--gold-dim);border-radius:0 2px 2px 0}
   .panel-title .di{width:9px;height:9px}
   .panel-title::after{content:'';height:1px;flex:1;background:linear-gradient(90deg,var(--line),transparent)}
 
@@ -169,9 +172,12 @@
   .rail.anchoring{background:var(--cyan);box-shadow:0 0 10px rgba(122,184,200,.45)}
   .rail.support{background:var(--muted2)}
   .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
-  .struct-render{width:52px;height:52px;flex-shrink:0;border-radius:4px;object-fit:cover;
+  .struct-render{width:64px;height:64px;flex-shrink:0;border-radius:4px;object-fit:cover;
     background:radial-gradient(120% 120% at 30% 20%,#1a2530,#05080b);
     border:1px solid rgba(122,184,200,.25);box-shadow:0 4px 12px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.3) inset;}
+  .struct-render.sm{width:40px;height:40px}
+  .card.compact{padding:12px 14px 11px 17px}
+  .sec-tag{font-family:var(--mono);font-weight:600;margin-right:6px}
   .nm-row{display:flex;align-items:center;gap:8px}
   .struct-thumb{width:26px;height:26px;flex-shrink:0;border-radius:3px;object-fit:cover;
     background:radial-gradient(120% 120% at 30% 20%,#1a2530,#05080b);border:1px solid rgba(122,184,200,.2)}
@@ -181,6 +187,8 @@
   .badge{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;white-space:nowrap;border:1px solid}
   .badge.metenox{color:var(--gold);border-color:var(--gold-deep);background:rgba(201,168,104,.08)}
   .badge.refinery{color:var(--cyan);border-color:var(--cyan-edge);background:rgba(122,184,200,.07)}
+  .badge.citadel{color:var(--steel-soft);border-color:var(--steel-edge);background:rgba(106,146,200,.08)}
+  .badge.ec{color:var(--violet-soft);border-color:var(--violet-edge);background:rgba(164,138,214,.08)}
   .badge.other{color:var(--muted);border-color:var(--line2);background:rgba(98,120,141,.06)}
   .status-line{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .status-line.extracting{color:var(--green)} .status-line.ready{color:var(--cyan)}
@@ -212,7 +220,8 @@
   .hint.ready{border-left-color:var(--cyan);background:rgba(122,184,200,.05);border-color:rgba(122,184,200,.2)}
   .hint.red{border-left-color:var(--red);background:rgba(214,106,90,.05);border-color:rgba(214,106,90,.2);color:var(--rederr)}
 
-  .empty{border:1px dashed var(--line2);padding:46px 24px;text-align:center;color:var(--muted);grid-column:1/-1}
+  .empty{border:1px dashed var(--line2);padding:30px 24px 36px;text-align:center;color:var(--muted);grid-column:1/-1}
+  .empty-art{display:block;margin:0 auto 10px;opacity:.8}
   .empty h3{font-family:var(--mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);margin-bottom:8px}
   .empty p{font-size:12.5px;max-width:440px;margin:0 auto;line-height:1.6}
 
@@ -526,17 +535,21 @@ const TYPES={
   metenox:{label:'Metenox Moon Drill',short:'METENOX',cls:'metenox',cat:'moondrill',mining:true,fb:5,gas:200},
   athanor:{label:'Athanor — Refinery',short:'ATHANOR',cls:'refinery',cat:'refinery',mining:true,fb:5,gas:0},
   tatara:{label:'Tatara — Refinery',short:'TATARA',cls:'refinery',cat:'refinery',mining:true,fb:10,gas:0},
-  astrahus:{label:'Astrahus — Citadel',short:'ASTRAHUS',cls:'other',cat:'other',mining:false,fb:5,gas:0},
-  fortizar:{label:'Fortizar — Citadel',short:'FORTIZAR',cls:'other',cat:'other',mining:false,fb:10,gas:0},
-  keepstar:{label:'Keepstar — Citadel',short:'KEEPSTAR',cls:'other',cat:'other',mining:false,fb:24,gas:0},
-  raitaru:{label:'Raitaru — Eng. Complex',short:'RAITARU',cls:'other',cat:'other',mining:false,fb:5,gas:0},
-  azbel:{label:'Azbel — Eng. Complex',short:'AZBEL',cls:'other',cat:'other',mining:false,fb:10,gas:0},
-  sotiyo:{label:'Sotiyo — Eng. Complex',short:'SOTIYO',cls:'other',cat:'other',mining:false,fb:20,gas:0},
+  astrahus:{label:'Astrahus — Citadel',short:'ASTRAHUS',cls:'citadel',cat:'other',mining:false,fb:5,gas:0},
+  fortizar:{label:'Fortizar — Citadel',short:'FORTIZAR',cls:'citadel',cat:'other',mining:false,fb:10,gas:0},
+  keepstar:{label:'Keepstar — Citadel',short:'KEEPSTAR',cls:'citadel',cat:'other',mining:false,fb:24,gas:0},
+  raitaru:{label:'Raitaru — Eng. Complex',short:'RAITARU',cls:'ec',cat:'other',mining:false,fb:5,gas:0},
+  azbel:{label:'Azbel — Eng. Complex',short:'AZBEL',cls:'ec',cat:'other',mining:false,fb:10,gas:0},
+  sotiyo:{label:'Sotiyo — Eng. Complex',short:'SOTIYO',cls:'ec',cat:'other',mining:false,fb:20,gas:0},
   other:{label:'Other structure',short:'OTHER',cls:'other',cat:'other',mining:false,fb:5,gas:0},
 };
 const ESI_TYPE={35825:'raitaru',35826:'azbel',35827:'sotiyo',35832:'astrahus',35833:'fortizar',35834:'keepstar',35835:'athanor',35836:'tatara',81826:'metenox'};
 const TYPE_ID_BY_KEY=Object.fromEntries(Object.entries(ESI_TYPE).map(([id,key])=>[key,+id]));
 function renderTypeId(s){ return s.typeId||TYPE_ID_BY_KEY[s.type]||null; }
+function typeAccent(s){ const cls=(TYPES[s.type]||{}).cls;
+  return cls==='metenox'?'var(--gold)':cls==='refinery'?'var(--cyan)':cls==='citadel'?'var(--steel)':cls==='ec'?'var(--violet)':'var(--muted2)'; }
+function secColor(sec){ if(sec==null) return 'var(--muted2)'; return sec>=0.5?'var(--green)':sec>0?'var(--gold)':'var(--red)'; }
+function secWash(sec){ if(sec==null) return 'transparent'; const c=sec>=0.5?'140,200,106':sec>0?'201,168,104':'214,106,90'; return `rgba(${c},.05)`; }
 
 /* ===== FUEL MODEL (Dogma attr 2109 base rates + hull role multipliers) ===== */
 // Base service consumption in fuel blocks/hour, grouped by the hull role that discounts them.
@@ -638,10 +651,14 @@ function runwayText(h){ if(h===Infinity) return 'no draw'; if(h<=0) return 'DEPL
 function level(h){ if(h===Infinity) return 'nominal'; if(h<=48) return 'critical'; if(h<=HR_WEEK) return 'caution'; return 'nominal'; }
 function levelColor(l){ return l==='critical'?'var(--red)':l==='caution'?'var(--gold)':'var(--cyan)'; }
 function countdown(ts){ const d=ts-now(); return d<=0?null:runwayText(d/3600000); }
-function segBar(h,color){ const fill=h===Infinity?100:Math.max(0,Math.min(100,(h/HR_MONTH)*100)); const n=16,f=Math.round(fill/100*n); let s='';
+function segBar(h,color,ref){ ref=ref||HR_MONTH; const fill=h===Infinity?100:Math.max(0,Math.min(100,(h/ref)*100)); const n=16,f=Math.round(fill/100*n); let s='';
   for(let i=0;i<n;i++){ const on=i<f;
     s+=`<div class="seg${on?' on':''}" style="${on?`background:${color};--seg-glow:${color}`:''}"></div>`; }
   return `<div class="segs">${s}</div>`; }
+function countdownGauge(msLeft,label,color){ const h=Math.max(0,msLeft/3600000);
+  return `<div class="meter-block"><div class="meter-row"><span class="meter-label">${label}</span><span class="meter-val" style="color:${color}">${countdown(Date.now()+msLeft)||'—'}</span></div>
+    ${segBar(h,color,336)}</div>`; }
+function pulseSpeed(hoursLeft){ if(hoursLeft==null||hoursLeft===Infinity) return 1.6; return hoursLeft<=2?0.7:hoursLeft<=12?1.1:1.6; }
 function fuelMeter(s){ const h=fuelHoursLeft(s),lvl=level(h),col=levelColor(lvl);
   const val=s.fuelExpires?shortDate(s.fuelExpires):(fmt(s.fuel)+' blk');
   return `<div class="meter-block"><div class="meter-row"><span class="meter-label"><span class="ic">▮</span> Fuel blocks${s.fuelExpires?' · ESI':''}</span><span class="meter-val" style="color:${col}">${val}</span></div>
@@ -657,29 +674,37 @@ function gasMeter(s){
 
 function card(s,opts){
   const showEdit=!opts||opts.showEdit!==false;
+  const compact=opts&&opts.compact;
   const t=TYPES[s.type], st=statusOf(s);
   const stLabel={extracting:'Mining',ready:'Chunk ready',idle:'Idle',anchoring:'Anchoring',decommissioning:'Unanchoring',support:'Online'}[st];
+  // urgency-scaled pulse: find the nearest relevant countdown for this card's state
+  let urgencyH=null;
+  if(st==='extracting') urgencyH=(new Date(s.extractionEnd).getTime()-Date.now())/3600000;
+  else if(st==='anchoring'&&s.stateTimerEnd) urgencyH=(new Date(s.stateTimerEnd).getTime()-Date.now())/3600000;
+  else if(st==='decommissioning'&&s.unanchorsAt) urgencyH=(new Date(s.unanchorsAt).getTime()-Date.now())/3600000;
   const pulse=(st==='extracting'||st==='decommissioning'||st==='anchoring')?'pulse':'';
+  const pulseDur=pulseSpeed(urgencyH);
   let body='';
-  if(st==='extracting'&&t.cat==='refinery') body+=`<div class="runway lvl-nominal" style="margin-bottom:4px">Extraction completes in <b>${countdown(new Date(s.extractionEnd).getTime())||'—'}</b></div>`;
+  if(st==='extracting'&&t.cat==='refinery') body+=countdownGauge(new Date(s.extractionEnd).getTime()-Date.now(),'Extraction completes in','var(--green)');
   else if(st==='ready') body+=`<div class="hint ready">Chunk ready to fracture — detonate the depot to release ore.</div>`;
   else if(st==='extracting'&&s.type==='metenox') body+=`<div class="runway lvl-nominal" style="margin-bottom:4px">Auto-mining${s.gasUnknown?' — set gas to track runway.':' — limited by gas runway.'}</div>`;
   body+=fuelMeter(s);
   if(s.type==='metenox') body+=gasMeter(s);
   if(st==='idle'&&s.type==='metenox') body+=`<div class="hint gas">Out of magmatic gas — drill has stopped. Refill to resume mining.</div>`;
   else if(st==='idle'&&t.cat==='refinery') body+=`<div class="hint">No extraction scheduled. Start one to begin pulling a chunk.</div>`;
-  if(st==='anchoring'){ const cd=s.stateTimerEnd?countdown(new Date(s.stateTimerEnd).getTime()):null;
-    body+=`<div class="hint" style="color:var(--cyan)">${cd?'Anchoring completes in <b>'+cd+'</b>':'Anchoring — no timer reported by ESI.'}</div>`; }
-  if(st==='decommissioning'){ const cd=s.unanchorsAt?countdown(new Date(s.unanchorsAt).getTime()):null;
-    body+=`<div class="hint red">${cd?'Unanchors in <b>'+cd+'</b>':'Unanchoring — no timer reported by ESI.'}</div>`; }
+  if(st==='anchoring') body+=s.stateTimerEnd?countdownGauge(new Date(s.stateTimerEnd).getTime()-Date.now(),'Anchoring completes in','var(--cyan)'):`<div class="hint" style="color:var(--cyan)">Anchoring — no timer reported by ESI.</div>`;
+  if(st==='decommissioning') body+=s.unanchorsAt?countdownGauge(new Date(s.unanchorsAt).getTime()-Date.now(),'Unanchors in','var(--red)'):`<div class="hint red">Unanchoring — no timer reported by ESI.</div>`;
   const actions=showEdit?`<div class="card-actions"><button class="btn sm" onclick="openEdit('${s.id}')">Edit</button></div>`:'';
   const tid=renderTypeId(s);
-  const img=tid?`<img class="struct-render" src="https://images.evetech.net/types/${tid}/render?size=128" onerror="this.style.display='none'" alt="">`:'';
-  return `<div class="card"><div class="rail ${st}"></div>
+  const imgSize=compact?64:128;
+  const accent=typeAccent(s);
+  const img=tid?`<img class="struct-render${compact?' sm':''}" style="border-color:color-mix(in srgb, ${accent} 55%, transparent)" src="https://images.evetech.net/types/${tid}/render?size=${imgSize}" onerror="this.style.display='none'" alt="">`:'';
+  const secTag=(s.sec!=null)?`<span class="sec-tag" style="color:${secColor(s.sec)}">${s.sec.toFixed(1)}</span>`:'';
+  return `<div class="card${compact?' compact':''}" style="background:linear-gradient(165deg,#0d1218,var(--panel2)),radial-gradient(160% 140% at 100% 0%,${secWash(s.sec)},transparent 60%);border-top:2px solid color-mix(in srgb, ${accent} 65%, transparent)"><div class="rail ${st}"></div>
     <div class="card-head">${img}<div><div class="card-name">${esc(s.name)||'Unnamed'}</div>
-      <div class="card-loc">${esc(s.loc)||'— no location —'}${s.esiId?'<span class="esi-tag">ESI</span>':''}</div></div>
+      <div class="card-loc">${secTag}${esc(s.loc)||'— no location —'}${s.esiId?'<span class="esi-tag">ESI</span>':''}</div></div>
       <span class="badge ${t.cls}">${t.short}</span></div>
-    <div class="status-line ${st}"><span class="sdot ${pulse}"></span>${stLabel}</div>
+    <div class="status-line ${st}"><span class="sdot ${pulse}" style="${pulse?`animation-duration:${pulseDur}s`:''}"></span>${stLabel}</div>
     ${body}${actions}</div>`;
 }
 
@@ -700,7 +725,7 @@ function metenoxTable(list){
     else { gasQty=fmt(g)+(s.gasFromEsi?'':' <i class="estt">est</i>'); gLeft=gh===Infinity?'—':runwayText(gh); gCol=gh<=48?'rd':gh<=HR_WEEK?'am':'gas'; }
     const tid=renderTypeId(s);
     const thumb=tid?`<img class="struct-thumb" src="https://images.evetech.net/types/${tid}/render?size=32" onerror="this.style.display='none'" alt="">`:'';
-    return `<tr><td class="l"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${esc(s.system||s.loc)||'—'} · ${esc(s.constellation||'—')}</div></div></div></td>
+    return `<tr><td class="l" style="border-left:2px solid color-mix(in srgb, ${typeAccent(s)} 45%, transparent)"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${esc(s.system||s.loc)||'—'} · ${esc(s.constellation||'—')}</div></div></div></td>
       <td class="fb">${fuelQty}</td><td class="${fCol}">${fLeft}</td>
       <td class="gas">${gasQty}</td><td class="${gCol}">${gLeft}</td><td class="gas">${fmt(gr)}/hr</td>
       <td style="text-align:right"><button class="btn sm" onclick="openEdit('${s.id}')">Set gas</button></td></tr>`;
@@ -730,7 +755,7 @@ function fuelTable(list,withGas){
       else { gl=`<td class="dim">—</td>`; gc=`<td class="dim">—</td><td class="dim">—</td><td class="dim">—</td>`; } }
     const tid=renderTypeId(s);
     const thumb=tid?`<img class="struct-thumb" src="https://images.evetech.net/types/${tid}/render?size=32" onerror="this.style.display='none'" alt="">`:'';
-    return `<tr><td class="l"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${TYPES[s.type].short} · ${esc(s.system||s.loc)||'—'}</div></div></div></td>
+    return `<tr><td class="l" style="border-left:2px solid color-mix(in srgb, ${typeAccent(s)} 45%, transparent)"><div class="nm-row">${thumb}<div><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${TYPES[s.type].short} · ${esc(s.system||s.loc)||'—'}</div></div></div></td>
       <td class="fb">${held}</td><td class="${fCol}">${fLeft}</td><td class="fb">${fmtRate(fb)}</td><td class="fb">${fmt(fb*HR_WEEK)}</td><td class="fb">${fmt(fb*HR_MONTH)}</td>${gl}${gc}</tr>`;
   }).join('');
   const gh=withGas?`<th>Gas left</th><th>Gas/hr</th><th>Gas/wk</th><th>Gas/mo</th>`:'';
@@ -763,7 +788,13 @@ function renderFuelSummary(metenox,moon,all){ const a=[...metenox,...moon,...all
     <div class="ftile"><div class="l">Structures shown</div><div class="v">${a.length}</div><div class="sub">${metenox.length} metenox · ${moon.length} refinery · ${all.length} support</div></div>`; }
 
 /* ---------- render ---------- */
-function emptyBox(h,p){ return `<div class="empty"><h3>${h}</h3><p>${p}</p></div>`; }
+function emptyBox(h,p){ return `<div class="empty">
+  <svg class="empty-art" viewBox="0 0 120 80" width="120" height="80" fill="none">
+    <g opacity=".5"><path d="M60 14l16 10v20l-16 10-16-10V24z" stroke="var(--gold-dim)" stroke-width="1.4"/>
+    <path d="M60 14v-6M60 66v6M44 24l-6-3M76 24l6-3M44 44l-6 3M76 44l6 3" stroke="var(--gold-dim)" stroke-width="1"/></g>
+    <circle cx="60" cy="34" r="3" fill="var(--gold-dim)" opacity=".6"/>
+  </svg>
+  <h3>${h}</h3><p>${p}</p></div>`; }
 let corpFilter=(function(){ try{ return localStorage.getItem('eve_structures_corpfilter')||''; }catch(e){ return ''; } })();
 function setCorpFilter(v){ corpFilter=v; try{ localStorage.setItem('eve_structures_corpfilter',v); }catch(e){} renderAll(); }
 window.setCorpFilter=setCorpFilter;
@@ -792,7 +823,7 @@ function renderAll(){
   document.getElementById('cFuel').textContent=active.length;
   document.getElementById('cDec').textContent=decom.length;
   document.getElementById('extractGrid').innerHTML=extracting.length?extracting.map(s=>card(s,{showEdit:false})).join(''):emptyBox('Nothing is mining','Refineries with a scheduled extraction appear here.');
-  document.getElementById('idleGrid').innerHTML=idle.length?idle.map(card).join(''):emptyBox('No idle drills','Idle refineries land here.');
+  document.getElementById('idleGrid').innerHTML=idle.length?idle.map(s=>card(s,{compact:true})).join(''):emptyBox('No idle drills','Idle refineries land here.');
   refreshFuelFilters(active);
   const filtered=applyFuelFilters(active);
   const metenox=filtered.filter(s=>s.type==='metenox');
@@ -805,7 +836,7 @@ function renderAll(){
   document.getElementById('metenoxFuel').innerHTML=metenoxTable(metenox);
   document.getElementById('moonFuel').innerHTML=fuelTable(moon,false);
   document.getElementById('allFuel').innerHTML=fuelTable(all,false);
-  document.getElementById('decomGrid').innerHTML=decom.length?decom.map(card).join(''):emptyBox('No anchoring or unanchoring','Structures your corp is anchoring or decommissioning appear here automatically from ESI, each with its state-timer countdown.');
+  document.getElementById('decomGrid').innerHTML=decom.length?decom.map(s=>card(s,{compact:true})).join(''):emptyBox('No anchoring or unanchoring','Structures your corp is anchoring or decommissioning appear here automatically from ESI, each with its state-timer countdown.');
   refreshOptFilters(active); renderCalendar(); renderPlanList();
   renderPip();
 }
@@ -1274,15 +1305,17 @@ async function importFromEsi(token,silent,charIdForDot){
   const sysCache={},constCache={}; let added=0,updated=0; const seen=new Set();
   for(const st of list){
     const typeKey=ESI_TYPE[st.type_id]||'other';
-    let sysName='',constName='';
+    let sysName='',constName='',secStatus=null;
     try{ if(!sysCache[st.system_id]){ const sy=await esiGet('/universe/systems/'+st.system_id+'/',token); sysCache[st.system_id]=sy.name;
+        sysCache['sec'+st.system_id]=sy.security_status;
         if(sy.constellation_id){ if(!constCache[sy.constellation_id]){ try{ constCache[sy.constellation_id]=(await esiGet('/universe/constellations/'+sy.constellation_id+'/',token)).name; }catch(e){ constCache[sy.constellation_id]=''; } } sysCache['c'+st.system_id]=constCache[sy.constellation_id]; } }
-      sysName=sysCache[st.system_id]; constName=sysCache['c'+st.system_id]||''; }catch(e){}
+      sysName=sysCache[st.system_id]; constName=sysCache['c'+st.system_id]||''; secStatus=sysCache['sec'+st.system_id]; }catch(e){}
     let nm=st.name||''; if(!nm){ try{ nm=(await esiGet('/universe/structures/'+st.structure_id+'/',token)).name; }catch(e){ nm='Structure '+st.structure_id; } }
     const ex=structures.find(s=>s.esiId===st.structure_id); const o=ex||{id:'s'+Date.now()+Math.random().toString(36).slice(2,6)};
     o.esiId=st.structure_id; seen.add(st.structure_id); o.type=typeKey; o.typeId=st.type_id; o.name=nm||('Structure '+st.structure_id);
     o.corpId=corpId; o.corpName=(Object.values(chars).find(c=>c.corpId==corpId)||{}).corpName||('Corp '+corpId);
     o.system=sysName||('System '+st.system_id); o.constellation=constName||'Unknown'; o.loc=o.system;
+    if(secStatus!=null) o.sec=secStatus;
     o.fuelExpires=st.fuel_expires||null; o.unanchorsAt=st.unanchors_at||null; o.state=st.state||null;
     o.stateTimerStart=st.state_timer_start||null; o.stateTimerEnd=st.state_timer_end||null;
     o.fuelRate=combinedRate(o); // Dogma base × hull multiplier, summed over online services (float)
