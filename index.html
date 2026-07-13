@@ -102,7 +102,7 @@
     <h1 id="titleHome">EVE<span class="diamond"></span>Toolset</h1>
     <div class="sub">Spin the ring — the card up front launches inline.</div>
     <div class="roster" id="roster"></div>
-    <div class="bar"><button class="addchar" id="addCharBtn">+ Add Character</button></div>
+    <div class="bar"><button class="addchar" id="addCharBtn">+ Add Corp</button></div>
   </header>
   <div class="stage" id="stage">
     <div class="ring" id="ring"></div>
@@ -114,7 +114,9 @@
 <div class="scopeOverlay" id="scopeOverlay">
   <div class="scopeBox">
     <h3>Sign in with EVE Online</h3>
-    <p>Every tool in this suite shares one sign-in. Adding a character grants the combined set of permissions below — used across whichever tools you open. You can add characters from different corporations; each tool will use whichever of your signed-in characters applies.</p>
+    <p>Every tool in this suite shares one sign-in. This suite links <b>one character per corporation</b> — adding a character replaces any existing one from the same corp. You'll be prompted if that happens.</p>
+    <p>To add a character from a <i>different EVE account</i>, log out at login.eveonline.com first (or use a private/incognito window) — EVE's SSO doesn't offer a way for this page to force that switch for you.</p>
+    <p>Adding a character grants the combined set of permissions below, used across whichever tools you open:</p>
     <ul id="scopeList"></ul>
     <div class="scopeBtns">
       <button class="btn" id="scopeCancel">Cancel</button>
@@ -139,29 +141,34 @@
 // All four tools read pre-authenticated characters from SHARED_KEY below
 // instead of logging in themselves.
 //
-// SETUP REQUIRED: register ONE EVE Developer application at
+// SETUP: register ONE EVE Developer application at
 // https://developers.eveonline.com covering the scopes listed in
-// SCOPE_INFO, with callback URL set to wherever auth-callback.html ends
-// up living (printed to the console below), then paste that app's
-// client ID into SUITE_CLIENT_ID.
+// SCOPE_INFO, with callback URL set to AUTH_CALLBACK below, then
+// paste that app's client ID into SUITE_CLIENT_ID.
 // =====================================================================
-const SUITE_CLIENT_ID='REPLACE_WITH_YOUR_EVE_SSO_CLIENT_ID';
+const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5';
 const SHARED_KEY='eve_suite_chars';
-const AUTH_CALLBACK=location.origin+location.pathname.replace(/[^/]*$/,'')+'auth-callback.html';
-console.log('[EVE Toolset] register this callback URL on your EVE SSO app:', AUTH_CALLBACK);
+const AUTH_CALLBACK='https://novadragon22.github.io/EVEToolset/';
+console.log('[EVE Toolset] registered callback URL for the EVE SSO app:', AUTH_CALLBACK);
 
 const SCOPE_INFO=[
   {scope:'publicData', tool:'All tools', desc:'Basic public character info'},
-  {scope:'esi-planets.manage_planets.v1', tool:'Industry Console', desc:'Read & manage your PI colonies'},
-  {scope:'esi-location.read_location.v1', tool:'Industry Console · Jump Freight Planner', desc:'Read your current solar system'},
-  {scope:'esi-skills.read_skills.v1', tool:'Industry Console · Fit Manager', desc:'Read trained skills'},
-  {scope:'esi-characters.read_standings.v1', tool:'Industry Console', desc:'Read your standings'},
+  {scope:'esi-planets.manage_planets.v1', tool:'PI Planner', desc:'Read & manage your PI colonies'},
+  {scope:'esi-location.read_location.v1', tool:'PI Planner · Jump Freight Planner', desc:'Read your current solar system'},
+  {scope:'esi-skills.read_skills.v1', tool:'PI Planner · Fit Manager · Industry Console', desc:'Read trained skills'},
+  {scope:'esi-characters.read_standings.v1', tool:'PI Planner', desc:'Read your standings'},
   {scope:'esi-fittings.read_fittings.v1', tool:'Fit Manager', desc:'Read your in-game fittings'},
   {scope:'esi-fittings.write_fittings.v1', tool:'Fit Manager', desc:'Save fittings to your ship'},
   {scope:'esi-corporations.read_structures.v1', tool:'Structure Browser', desc:'Read corp Upwell structures'},
-  {scope:'esi-universe.read_structures.v1', tool:'Structure Browser', desc:'Resolve structure names & locations'},
+  {scope:'esi-universe.read_structures.v1', tool:'Structure Browser · Industry Console', desc:'Resolve structure names & locations'},
   {scope:'esi-industry.read_corporation_mining.v1', tool:'Structure Browser', desc:'Read moon-mining extraction timers'},
-  {scope:'esi-assets.read_corporation_assets.v1', tool:'Structure Browser', desc:'Read corp assets (fuel & gas in structures)'},
+  {scope:'esi-assets.read_corporation_assets.v1', tool:'Structure Browser · Industry Console', desc:'Read corp assets (fuel, gas, materials)'},
+  {scope:'esi-industry.read_character_jobs.v1', tool:'Industry Console', desc:'Read your manufacturing/reaction jobs'},
+  {scope:'esi-characters.read_blueprints.v1', tool:'Industry Console', desc:'Read your owned blueprints'},
+  {scope:'esi-assets.read_assets.v1', tool:'Industry Console', desc:'Read your personal assets'},
+  {scope:'esi-industry.read_corporation_jobs.v1', tool:'Industry Console', desc:'Read corp manufacturing/reaction jobs'},
+  {scope:'esi-corporations.read_blueprints.v1', tool:'Industry Console', desc:'Read corp-owned blueprints'},
+  {scope:'esi-corporations.read_divisions.v1', tool:'Industry Console', desc:'Read corp hangar/wallet division names'},
 ];
 const SUITE_SCOPES=SCOPE_INFO.map(s=>s.scope).join(' ');
 
@@ -203,6 +210,16 @@ async function handleSuiteRedirect(){
     const entry={access:t.access_token,refresh:t.refresh_token,expires:Date.now()+(t.expires_in||1200)*1000,charId,charName:pl.name||('Char '+charId),corpId:null,corpName:''};
     try{ const ch=await esiPub('/characters/'+charId+'/'); entry.corpId=ch.corporation_id;
       const co=await esiPub('/corporations/'+entry.corpId+'/'); entry.corpName=co.name||''; }catch(e){}
+    // one character per corp: this suite treats "add character" as "add a corp"
+    if(entry.corpId){
+      const dupeId=Object.keys(suiteChars).find(id=>+id!==charId && suiteChars[id].corpId===entry.corpId);
+      if(dupeId){
+        const dupeName=suiteChars[dupeId].charName;
+        const replace=confirm(`${entry.corpName||'This corporation'} is already linked via ${dupeName}.\n\nEach corp can only be signed in once — replace ${dupeName} with ${entry.charName}?`);
+        if(!replace){ renderRoster(); return; }
+        delete suiteChars[dupeId];
+      }
+    }
     suiteChars[charId]=entry; saveSuiteChars(suiteChars); renderRoster();
   }catch(e){ alert('Sign-in failed: '+e.message); }
 }
@@ -245,12 +262,22 @@ const ART={
    <circle cx="44" cy="98" r="4.5" fill="#c9a868"/><circle cx="298" cy="98" r="4.5" fill="#8cc86a"/>
    <g stroke="#c9a868" stroke-width="1.7" fill="#0b1015"><path d="M150 40 h30 l10 11 -10 11 h-30 l-8-11 z"/></g>
    <path d="M142 51 h-16" stroke="#d8a24a" stroke-width="3"/><path d="M150 45 h26M150 57 h26" stroke="#2a4050" stroke-width="1"/></svg>`,
+ pi:`<svg viewBox="0 0 342 130" fill="none">
+   <g opacity=".5" fill="#7ab8c8"><circle cx="40" cy="24" r="1.2"/><circle cx="300" cy="30" r="1.2"/><circle cx="270" cy="100" r="1"/></g>
+   <circle cx="118" cy="65" r="30" stroke="#c9a868" stroke-width="1.8" fill="#0b1015"/>
+   <path d="M92 50c10 8 40 8 52 0M88 65h60M92 80c10-8 40-8 52 0" stroke="#8a7048" stroke-width="1.1" opacity=".8"/>
+   <ellipse cx="118" cy="65" rx="52" ry="15" stroke="#7ab8c8" stroke-width="1.4" opacity=".8"/>
+   <circle cx="176" cy="60" r="3.5" fill="#d8a24a"/>
+   <g stroke="#7ab8c8" stroke-width="1.4"><path d="M215 40h95M215 65h80M215 90h95"/><circle cx="215" cy="40" r="3"/><circle cx="295" cy="65" r="3"/><circle cx="215" cy="90" r="3"/></g></svg>`,
 };
 // local pages instead of external GitHub Pages URLs
 const APPS=[
-  { key:'industry', name:'Industry Console', tag:'Manufacturing · Planner', url:'pi.html',
-    desc:'Browse every buildable BPO, BPC and reaction, track which originals you still need, and plan construction runs against structure rigs and your assets.',
-    feats:['Blueprints','BPO tracker','Construction planner','ESI assets'] },
+  { key:'industry', name:'Industry Console', tag:'Manufacturing · Planner', url:'industry.html',
+    desc:'Compare owned blueprint originals and copies against everything buildable, plan manufacturing/reaction jobs against structure rigs, and track jobs across your characters and corps.',
+    feats:['Blueprints','Job planner','Corp roles','ESI assets'] },
+  { key:'pi', name:'PI Planner', tag:'Planetary Interaction', url:'pi.html',
+    desc:'Track every planetary colony across your characters, see extractor timers and commodity chains at a glance, and know when a colony needs attention.',
+    feats:['Colonies','Extractor timers','Commodity chains'] },
   { key:'fits', name:'Fit Manager', tag:'Fittings · Self-improving', url:'fits.html',
     desc:'Import EFT fits, store them in a GitHub repo, get Pyfa-accurate per-character stats and killboard-meta suggestions, and push fits to your in-game fittings.',
     feats:['EFT import','Pyfa stats','Killboard meta','Send to game'] },
@@ -298,10 +325,19 @@ addEventListener('keydown',e=>{
   if(e.key==='Enter')openTool(((current%n)+n)%n);
 });
 addEventListener('resize',()=>{ place(); render(); });
-let dragging=false,sx=0,moved=0;
-stage.addEventListener('pointerdown',e=>{ dragging=true; sx=e.clientX; moved=0; ring.style.transition='none'; });
+let dragging=false,sx=0,moved=0,downOnNav=false;
+stage.addEventListener('pointerdown',e=>{ downOnNav=!!e.target.closest('.nav'); dragging=true; sx=e.clientX; moved=0; ring.style.transition='none'; });
 addEventListener('pointermove',e=>{ if(!dragging)return; moved=e.clientX-sx; ring.style.transform=`translateZ(${-R}px) rotateY(${-current*theta+moved*0.25}deg)`; });
-addEventListener('pointerup',()=>{ if(!dragging)return; dragging=false; ring.style.transition=''; if(Math.abs(moved)>60)step(moved<0?1:-1); else render(); });
+addEventListener('pointerup',e=>{ if(!dragging)return; dragging=false; ring.style.transition='';
+  if(Math.abs(moved)>60){ step(moved<0?1:-1); return; }
+  render();
+  if(downOnNav) return; // arrows/dots already handle themselves via their own onclick
+  // Reliable click-to-launch/navigate: 3D-transformed cards can fail native hit-testing in some
+  // browsers once the ring has rotated (clicks land on #stage instead of the card), so figure out
+  // intent from horizontal click position relative to stage center instead of relying on it.
+  const rect=stage.getBoundingClientRect(); const dx=e.clientX-(rect.left+rect.width/2);
+  if(Math.abs(dx)<180) openTool(((current%n)+n)%n); else step(dx<0?-1:1);
+});
 
 // --- inline tool switching ---
 const toolwrap=document.getElementById('toolwrap');

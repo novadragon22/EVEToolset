@@ -169,7 +169,7 @@ const cfg=JSON.parse(localStorage.getItem("efm_cfg")||"{}");
 const EVE_SCOPES=["publicData","esi-skills.read_skills.v1","esi-fittings.read_fittings.v1","esi-fittings.write_fittings.v1"].join(" ");
 const eveRedirect=()=>cfg.eveRedirect||(location.origin+location.pathname);
 const SHARED_KEY='eve_suite_chars';
-const SUITE_CLIENT_ID='REPLACE_WITH_YOUR_EVE_SSO_CLIENT_ID'; // must match index.html's SUITE_CLIENT_ID
+const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
 let chars=JSON.parse(localStorage.getItem(SHARED_KEY)||"{}");   // {charId:{access,refresh,expires,charId,charName,corpId,corpName}}
 let activeChar=+(localStorage.getItem("efm_active")||0)||null;
 const saveChars=()=>localStorage.setItem(SHARED_KEY,JSON.stringify(chars));
@@ -202,18 +202,16 @@ async function loadChar(id){ const s=chars[id];
   renderEve(); }
 
 function renderEve(){ const a=$("eveAuth");
-  if(!eveLoggedIn()){ a.innerHTML='<button class="btn" id="eveLoginBtn">EVE login</button>'; $("eveLoginBtn").onclick=eveLogin; refreshSendButtons(); return; }
+  if(!eveLoggedIn()){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; refreshSendButtons(); return; }
   const ids=Object.keys(chars).map(Number); const act=chars[activeChar]||chars[ids[0]];
   a.innerHTML=`<div class="epick"><button class="btn" id="ePickBtn">▾ ${act?act.charName:ids.length+" pilots"}</button>
     <div class="emenu" id="eMenu" hidden><div class="esec">Active pilot (skills &amp; sends)</div>
     ${ids.map(id=>`<div class="erow ${id===activeChar?'on':''}" data-act="${id}">
       <img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
-      <span class="en">${chars[id].charName}<i>${chars[id].corpName||'corp…'}</i></span><span class="ex" data-rm="${id}" title="Remove">✕</span></div>`).join("")}
-    <div class="efoot"><span id="eAdd">+ Add character</span><span id="eOut">Sign out all</span></div></div></div>`;
+      <span class="en">${chars[id].charName}<i>${chars[id].corpName||'corp…'}</i></span></div>`).join("")}
+    <div class="efoot"><a href="index.html" style="color:inherit;text-decoration:none;opacity:.7">Manage in Menu ▸</a></div></div></div>`;
   const menu=$("eMenu"); $("ePickBtn").onclick=()=>menu.hidden=!menu.hidden;
-  a.querySelectorAll("[data-act]").forEach(r=>r.onclick=e=>{ if(e.target.dataset.rm)return; activeChar=+r.dataset.act; localStorage.setItem("efm_active",activeChar); renderEve(); refreshSendButtons(); if(sel)renderDetail&&0; });
-  a.querySelectorAll("[data-rm]").forEach(x=>x.onclick=e=>{ e.stopPropagation(); eveLogout(+x.dataset.rm); });
-  $("eAdd").onclick=eveLogin; $("eOut").onclick=()=>{ chars={};activeChar=null;saveChars();localStorage.removeItem("efm_active");renderEve();refreshSendButtons(); };
+  a.querySelectorAll("[data-act]").forEach(r=>r.onclick=e=>{ activeChar=+r.dataset.act; localStorage.setItem("efm_active",activeChar); renderEve(); refreshSendButtons(); if(sel)renderDetail&&0; });
   refreshSendButtons();
 }
 function refreshSendButtons(){ const on=eveLoggedIn()&&activeChar; const b=$("sendIngame"); if(b) b.disabled=!(on&&pendingFit); }

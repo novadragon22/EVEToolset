@@ -7,12 +7,10 @@
 <body style="background:#030507;color:#c9d4db;font-family:'IBM Plex Sans',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
 <div>Completing EVE sign-in…</div>
 <script>
-  // Shared EVE SSO callback for the whole suite. Each tool stores which page
-  // it came from in sessionStorage before redirecting to login.eveonline.com;
-  // we read that here and bounce the browser (with ?code=&state= intact)
-  // back to that tool, whose own handleRedirect/resumeAuth logic takes it from there.
-  const back = sessionStorage.getItem('eve_suite_return') || 'index.html';
-  location.replace(back + location.search);
+  // Registered EVE SSO callback URL for the whole suite. Login only ever
+  // originates from index.html (the launcher) now, so this just bounces
+  // straight back there with ?code=&state= intact.
+  location.replace('index.html' + location.search);
 </script>
 </body>
 </html>

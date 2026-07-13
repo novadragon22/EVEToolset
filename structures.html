@@ -281,10 +281,10 @@
   <div class="gate-sub">Capsuleer Logistics Net</div>
   <div class="gate-card">
     <h3>Link your corporation</h3>
-    <p>Sign in with EVE SSO to pull your corp's structures, fuel and unanchor timers. Structure scopes only — read access, nothing else. The character must hold the <strong style="color:var(--gold)">Director</strong> role.</p>
-    <button class="btn-gold" id="gateAuth"><span class="di diamond"></span> Authorize with EVE Online</button>
+    <p>Sign in once from the suite's main menu to pull your corp's structures, fuel and unanchor timers. Structure scopes only — read access, nothing else. The character must hold the <strong style="color:var(--gold)">Director</strong> role.</p>
+    <button class="btn-gold" id="gateAuth"><span class="di diamond"></span> Sign in from the Menu</button>
     <div class="gate-err" id="gateErr"></div>
-    <div class="gate-hint">This app is pre-configured — nothing to fill in. Your character and corp are read via EVE SSO with the <strong>read_structures</strong>, <strong>read_corporation_mining</strong> and <strong>read_corporation_assets</strong> scopes.</div>
+    <div class="gate-hint">Every tool in this suite shares one sign-in, managed from the main menu.</div>
   </div>
   <div class="gate-skip"><a id="gateSkip">Continue without signing in →</a></div>
 </div>
@@ -557,7 +557,7 @@ const SSO_AUTH='https://login.eveonline.com/v2/oauth/authorize/';
 const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
 const ESI_BASE='https://esi.evetech.net/latest';
 const SHARED_KEY='eve_suite_chars';
-const SUITE_CLIENT_ID='REPLACE_WITH_YOUR_EVE_SSO_CLIENT_ID'; // must match index.html's SUITE_CLIENT_ID
+const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
 const APP_CONFIG={ clientId:SUITE_CLIENT_ID, redirectUri: location.origin + location.pathname.replace(/[^/]*$/,'') + 'auth-callback.html' };
 const STORE_KEY='eve_structures_v3', TOKEN_KEY=SHARED_KEY, COLLAPSE_KEY='eve_fuel_collapse_v3';
 let structures=[], chars={}, editingId=null, bypass=false;   // chars: charId -> {access,refresh,expires,charId,charName,corpId,corpName}
@@ -1060,11 +1060,12 @@ function renderTopbar(){
     html+=ids.map(id=>{ const c=chars[id];
       const av=`<img class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">`;
       const corp=c.corpName?` · ${esc(c.corpName)}`:'';
-      return `<span class="char-chip">${av}<span class="char-name">${esc(c.charName||'capsuleer')}${corp}</span><span class="char-dot" id="syncDot-${id}"></span><span class="char-x" title="Disconnect" onclick="disconnectEsi('${id}')">✕</span></span>`;
+      return `<span class="char-chip">${av}<span class="char-name">${esc(c.charName||'capsuleer')}${corp}</span><span class="char-dot" id="syncDot-${id}"></span></span>`;
     }).join('');
     html+=`<button class="sync-btn" id="syncBtn" onclick="syncNow()">Sync</button>`;
+    html+=`<a class="tb-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center">Manage in Menu ▸</a>`;
   } else {
-    html+=`<button class="tb-btn" onclick="showGate()">Connect ESI</button>`;
+    html+=`<a class="tb-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center">Sign in from the menu ▸</a>`;
   }
   if('documentPictureInPicture' in window) html+=`<button class="tb-btn" id="pipBtn" onclick="togglePip()">⧉ Pop out</button>`;
   html+=`<button class="tb-btn" onclick="openModal('help')">? Help</button>`;

@@ -585,7 +585,7 @@ function colonyPlan(target,sysId){
 let tier=2, target=null, secFilter='all', whole=false, homeId=null, results=[], distCache={}, chosen=null, feederMark=null, logiFactory=null, _sheetPlan=null;
 let icOverride=5, ccuOverride=5, viewing='list';
 const SHARED_KEY='eve_suite_chars';
-const SUITE_CLIENT_ID='REPLACE_WITH_YOUR_EVE_SSO_CLIENT_ID'; // must match index.html's SUITE_CLIENT_ID
+const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
 let chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); let colonies={}; let charLoc={}; let closestSys=null; let baseSuggest=[];
 (function(){ let n=0, changed=false; Object.keys(chars).forEach(k=>{ if(chars[k] && chars[k].order==null){ chars[k].order=n; changed=true; } n=Math.max(n+1,((chars[k]&&chars[k].order)||0)+1); }); if(changed) try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){} })();
 let charSkills={}; // id -> {ic,ccu} per character (from ESI)
@@ -1743,16 +1743,15 @@ function updateLocNow(){ const id=Object.keys(charLoc)[0]; const sys=id?charLoc[
 $('locBtn').onclick=()=>{ const sys=Object.values(charLoc).find(s=>SYS[s]); if(!sys){ alert('Log in with EVE first so I can read your current system.'); return; } $('home').value=SYS[sys][0]; compute(); };
 function logout(id){ delete chars[id]; delete colonies[id]; saveChars(); renderAuth(); drawMap(); }
 function renderAuth(){ const a=$('auth'); const ids=Object.keys(chars).map(Number).sort((x,y)=>(((chars[x]&&chars[x].order)??1e9)-((chars[y]&&chars[y].order)??1e9))||(x-y));
-  if(!ids.length){ a.innerHTML='<button class="btn" id="loginBtn">EVE login</button>'; $('loginBtn').onclick=login; const rb=$('resyncBtn'); if(rb) rb.hidden=true; return; }
+  if(!ids.length){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; const rb=$('resyncBtn'); if(rb) rb.hidden=true; return; }
   { const rb=$('resyncBtn'); if(rb) rb.hidden=false; }
   const totalCol=Object.values(colonies).flat().length;
   a.innerHTML=`<div class="picker"><button class="btn" id="pk">▾ ${ids.length} pilot${ids.length>1?'s':''}${totalCol?` · ${totalCol} colonies`:''}</button>
     <div class="emenu" id="em" hidden>${ids.map(id=>`<div class="erow"><img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
-      <span class="en">${chars[id].charName}<i>${(colonies[id]||[]).length} colonies</i></span><span class="ex" data-rm="${id}">✕</span></div>`).join('')}
-      <div class="efoot"><span id="eAdd">+ Add</span><span id="eOut">Sign out all</span></div></div></div>`;
+      <span class="en">${chars[id].charName}<i>${chars[id].corpName?chars[id].corpName+' · ':''}${(colonies[id]||[]).length} colonies</i></span></div>`).join('')}
+      <div class="efoot"><a href="index.html" style="color:inherit;text-decoration:none;opacity:.7">Manage in Menu ▸</a></div></div></div>`;
   $('pk').onclick=()=>{ const m=$('em'); m.hidden=!m.hidden; };
-  a.querySelectorAll('[data-rm]').forEach(x=>x.onclick=e=>{e.stopPropagation();logout(+x.dataset.rm);});
-  $('eAdd').onclick=login; $('eOut').onclick=()=>{ chars={};colonies={};saveChars();renderAuth();drawMap(); }; }
+}
 
 // ---------- UI scale ----------
 function applyUi(pct){ const v=Math.max(50,Math.min(500,+pct||150))/100; document.documentElement.style.setProperty('--ui',v);

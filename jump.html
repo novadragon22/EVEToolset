@@ -315,7 +315,7 @@ function killHeat(id){ const k=killmap[id]; if(!k) return 0; return (k.s+k.p)/ma
 
 // ---- ESI auth (PKCE, multi-character) ----
 const SHARED_KEY='eve_suite_chars';
-const SUITE_CLIENT_ID='REPLACE_WITH_YOUR_EVE_SSO_CLIENT_ID'; // must match index.html's SUITE_CLIENT_ID
+const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
 const AUTH_KEY='eve_jfp_token', CHARS_KEY=SHARED_KEY;
 const APP_CONFIG={ clientId:SUITE_CLIENT_ID, redirectUri:location.origin+location.pathname.replace(/[^/]*$/,'')+'auth-callback.html' };
 const SSO_AUTH='https://login.eveonline.com/v2/oauth/authorize/', SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
@@ -352,8 +352,8 @@ function logoutChar(cid){ delete chars[cid]; delete pilotByChar[cid];
   saveChars(); renderAuth(); renderWps(); draw(); }
 window.logoutChar=logoutChar;
 function renderAuth(){ const a=document.getElementById('authArea');
-  const chips=Object.entries(chars).map(([cid,c])=>`<span class="pilot-chip"><img src="https://images.evetech.net/characters/${cid}/portrait?size=32" onerror="this.style.display='none'"><span class="pn">${c.charName||'pilot'}</span><span class="px" title="Sign out" onclick="logoutChar('${cid}')">✕</span></span>`).join('');
-  a.innerHTML=chips+`<button class="auth-btn" onclick="addChar()">${anyChar()?'+ Character':'Sign in with EVE'}</button>`;
+  const chips=Object.entries(chars).map(([cid,c])=>`<span class="pilot-chip"><img src="https://images.evetech.net/characters/${cid}/portrait?size=32" onerror="this.style.display='none'"><span class="pn">${c.charName||'pilot'}${c.corpName?' · '+c.corpName:''}</span></span>`).join('');
+  a.innerHTML=chips+(anyChar()?'<a class="auth-btn" href="index.html" style="text-decoration:none">Manage in Menu ▸</a>':'<a class="auth-btn" href="index.html" style="text-decoration:none">Sign in from the menu ▸</a>');
   if(jumpChar&&!chars[jumpChar]) jumpChar=null;
   if(!jumpChar&&anyChar()) jumpChar=Object.keys(chars)[0];
   renderJumpChar();
@@ -362,7 +362,7 @@ function renderJumpChar(){ const el=document.getElementById('jumpPilotBar'); if(
   if(!anyChar()){ el.innerHTML=''; return; }
   if(!jumpChar||!chars[jumpChar]) jumpChar=Object.keys(chars)[0];
   el.innerHTML=`<label class="lbl" style="margin-top:2px">Jumping pilot — watches whole constellation</label>
-    <select class="jumpsel" id="jumpSel" onchange="setJumpChar(this.value)">${Object.entries(chars).map(([cid,c])=>`<option value="${cid}" ${cid===jumpChar?'selected':''}>${c.charName||'pilot'}</option>`).join('')}</select>`;
+    <select class="jumpsel" id="jumpSel" onchange="setJumpChar(this.value)">${Object.entries(chars).map(([cid,c])=>`<option value="${cid}" ${cid===jumpChar?'selected':''}>${c.charName||'pilot'}${c.corpName?' · '+c.corpName:''}</option>`).join('')}</select>`;
 }
 function setJumpChar(cid){ jumpChar=cid||null; renderWps(); renderRoute(); if(routeConfirmed) confirmRoute(); }
 window.setJumpChar=setJumpChar;
