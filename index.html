@@ -238,10 +238,15 @@ const SCOPE_INFO=[
   {scope:'esi-industry.read_corporation_mining.v1', tool:'Structure Browser', desc:'Read moon-mining extraction timers'},
   {scope:'esi-assets.read_corporation_assets.v1', tool:'Structure Browser · Industry Console', desc:'Read corp assets (fuel, gas, materials)'},
   {scope:'esi-industry.read_character_jobs.v1', tool:'Industry Console', desc:'Read your manufacturing/reaction jobs'},
+  {scope:'esi-industry.read_corporation_jobs.v1', tool:'Industry Console', desc:'Read corp manufacturing/reaction jobs'},
   {scope:'esi-characters.read_blueprints.v1', tool:'Industry Console', desc:'Read your owned blueprints'},
   {scope:'esi-assets.read_assets.v1', tool:'Industry Console', desc:'Read your personal assets'},
   {scope:'esi-corporations.read_blueprints.v1', tool:'Industry Console', desc:'Read corp-owned blueprints'},
   {scope:'esi-corporations.read_divisions.v1', tool:'Industry Console', desc:'Read corp hangar/wallet division names'},
+  {scope:'esi-markets.read_character_orders.v1', tool:'Industry Console', desc:'Read your active market orders'},
+  {scope:'esi-markets.structure_markets.v1', tool:'Industry Console', desc:'Read sell/buy prices at a structure market'},
+  {scope:'esi-wallet.read_character_wallet.v1', tool:'Industry Console', desc:'Read your wallet balance'},
+  {scope:'esi-planets.read_customs_offices.v1', tool:'Industry Console', desc:'Read corp customs office PI throughput'},
 ];
 const SUITE_SCOPES=SCOPE_INFO.map(s=>s.scope).join(' ');
 

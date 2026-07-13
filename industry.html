@@ -190,7 +190,7 @@
   td.have.short{color:var(--amber)} td.have.full{color:var(--green)}
   td.short.short{color:var(--amber)} td.short.full{color:var(--green)}
   .plansumm{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:10px}
-  .plansumm b{color:var(--gold-bright)} .plansumm .shorttxt{color:var(--amber)} .plansumm .muted{color:var(--muted2)}
+  .plansumm b{color:var(--gold-bright)} .plansumm .shorttxt{color:var(--amber)} .plansumm .okrun{color:var(--green)} .plansumm .muted{color:var(--muted2)}
   tfoot td{border-top:1px solid var(--line2);font-family:var(--mono);color:var(--gold-bright);padding-top:8px}
   .skillmark{font-family:var(--mono);font-size:10px;margin-left:8px}
   /* jobs panel */
@@ -348,6 +348,13 @@ function readyToBuild(pid){
   const rec=recipeByProduct[pid]; if(!rec) return false;
   return rec.materials.every(([mid,bq])=>(assetQty[mid]||0)>=bq);
 }
+function maxBuildable(pid){
+  const rec=recipeByProduct[pid]; if(!rec||!bpOwned[pid]) return {runs:0,units:0};
+  let runs=Infinity;
+  for(const [mid,bq] of rec.materials){ if(bq<=0) continue; const have=assetQty[mid]||0; runs=Math.min(runs,Math.floor(have/bq)); }
+  runs=isFinite(runs)?runs:0;
+  return {runs,units:runs*rec.pq};
+}
 function kindOf(pid){ if(RXN_PROD.has(pid)) return 'rxn'; const b=bpOf(pid); return (b!=null&&INV_OUT.has(b))?'bpc':'bpo'; }
 function buildable(pid){ const b=bpOf(pid); return b!=null && PUB.has(pid) && PUB.has(b); }   // published & player-usable
 // category bucket for grouping (reactions get their own bucket)
@@ -447,9 +454,11 @@ function renderBrowse(){
     if(col) continue;
     for(const p of arr){ if(shown>=900){ break; } shown++; const k=kindOf(p.pid); const ready=readyToBuild(p.pid);
       const kindColor=k==='bpo'?'var(--green)':k==='bpc'?'var(--violet-soft)':'var(--amber)';
+      let buildTxt='';
+      if(ready&&readyOnly){ const mb=maxBuildable(p.pid); if(mb.runs) buildTxt=` · can build ${mb.runs} run${mb.runs!==1?'s':''} (×${mb.units} unit${mb.units!==1?'s':''})`; }
       html+=`<div class="pitem ${sel===p.pid?'on':''}" data-pid="${p.pid}" style="border-left:2px solid color-mix(in srgb, ${kindColor} 45%, transparent)">
         <img loading="lazy" src="${icon(p.pid)}" onerror="this.style.visibility='hidden'">
-        <div style="flex:1"><div class="nm">${nm(p.pid)}${KINDBADGE[k]||''}${ready?' <span class="readybadge" title="Owned + materials in stock">● ready</span>':''}</div>
+        <div style="flex:1"><div class="nm">${nm(p.pid)}${KINDBADGE[k]||''}${ready?` <span class="readybadge" title="Owned + materials in stock">● ready${buildTxt}</span>`:''}</div>
         <div class="mt">out ×${recipeByProduct[p.pid].pq}</div></div>
         <span class="plusplan" data-plan="${p.pid}" title="Add to construction plan">＋</span></div>`; }
   }
@@ -731,6 +740,7 @@ function renderDetail(){
       <div class="c"><div class="l">Output total</div><div class="v cy">${fmt(out)}</div></div>
       <div class="c"><div class="l">Job time</div><div class="v">${fmtTime(jobTime(rec))}</div></div>
       <div class="c"><div class="l">Materials</div><div class="v">${rec.materials.length}</div></div>
+      <div class="c" id="buildableKpi" style="display:none"><div class="l">Buildable now</div><div class="v" id="buildableKpiVal">—</div><div class="sub" id="buildableKpiSub"></div></div>
     </div>
 
     <div class="controls">
@@ -803,9 +813,10 @@ const APP={
   redirect:'https://novadragon22.github.io/EVEToolset/auth-callback.html',
   tokenProxy:'',
 };
-const SCOPES=['publicData','esi-skills.read_skills.v1','esi-industry.read_character_jobs.v1',
+const SCOPES=['publicData','esi-skills.read_skills.v1','esi-industry.read_character_jobs.v1','esi-industry.read_corporation_jobs.v1',
   'esi-characters.read_blueprints.v1','esi-assets.read_assets.v1',
-  'esi-corporations.read_blueprints.v1','esi-assets.read_corporation_assets.v1','esi-universe.read_structures.v1','esi-corporations.read_divisions.v1'].join(' ');
+  'esi-corporations.read_blueprints.v1','esi-assets.read_corporation_assets.v1','esi-universe.read_structures.v1','esi-corporations.read_divisions.v1',
+  'esi-markets.read_character_orders.v1','esi-markets.structure_markets.v1','esi-wallet.read_character_wallet.v1','esi-planets.read_customs_offices.v1'].join(' ');
 const SESS_KEY='eve_ind_session';
 const ACTIVITY={1:'Manufacturing',3:'TE Research',4:'ME Research',5:'Copying',7:'Reverse Eng',8:'Invention',9:'Reaction',11:'Reaction'};
 
@@ -912,6 +923,8 @@ async function loadAll(){
     try{ d.bps=await authPages('/characters/'+cid+'/blueprints/',cid); }catch(e){ d.bps=[]; }
     try{ const arr=await authPages('/characters/'+cid+'/assets/',cid); d.assetQty=tally(arr); d.byLoc=tallyByLoc(arr); }catch(e){ d.assetQty={}; d.byLoc={}; }   // includes items in corp offices & Upwell/alliance structures
     try{ d.jobs=(await(await authGet('/characters/'+cid+'/industry/jobs/?include_completed=false',cid)).json()).map(j=>({...j,owner:s.charName})); }catch(e){ d.jobs=[]; }
+    try{ d.wallet=await(await authGet('/characters/'+cid+'/wallet/',cid)).json(); }catch(e){ d.wallet=null; }
+    try{ d.orders=await(await authGet('/characters/'+cid+'/orders/',cid)).json(); }catch(e){ d.orders=[]; }
     selChars.add(+cid);
   }
   // per unique corp (fetch once using any member char that has access) — only corps reached via a visible character
@@ -936,20 +949,34 @@ let lastSync=null;
 
 // aggregate the SELECTED characters + corps into the active maps
 function recompute(){
-  bpOwned={}; ownedBpoSet=new Set(); skillsMap={}; assetQty={}; jobs=[]; assetByLoc={};
+  bpOwned={}; ownedBpoSet=new Set(); skillsMap={}; assetQty={}; jobs=[]; assetByLoc={}; walletTotal=0; myOrders=[];
   const addBP=(arr,owner)=>{ (arr||[]).forEach(b=>{ if(b.runs===-1||b.quantity===-1) ownedBpoSet.add(b.type_id);
     const prod=BP_PRODUCT[b.type_id]; if(prod==null) return; const me=Math.max(0,b.material_efficiency||0),te=Math.max(0,b.time_efficiency||0);
     const cur=bpOwned[prod]; if(!cur||me>cur.me||(me===cur.me&&te>cur.te)) bpOwned[prod]={me,te,owner}; }); };
   const mergeA=src=>{ for(const k in src) assetQty[k]=(assetQty[k]||0)+src[k]; };
   const mergeLoc=src=>{ for(const loc in (src||{})){ const d=assetByLoc[loc]=assetByLoc[loc]||{}; for(const t in src[loc]) d[t]=(d[t]||0)+src[loc][t]; } };
   selChars.forEach(cid=>{ const d=charData[cid]; if(!d) return; addBP(d.bps,(chars[cid]||{}).charName||'you'); mergeA(d.assetQty); mergeLoc(d.byLoc); jobs.push(...d.jobs);
-    for(const sk in d.skills) skillsMap[sk]=Math.max(skillsMap[sk]||0,d.skills[sk]); });   // best skill level across selected pilots
+    for(const sk in d.skills) skillsMap[sk]=Math.max(skillsMap[sk]||0,d.skills[sk]); if(typeof d.wallet==='number') walletTotal+=d.wallet;
+    myOrders.push(...(d.orders||[]).map(o=>({...o,owner:(chars[cid]||{}).charName||'you'}))); });   // best skill level across selected pilots
   selCorps.forEach(corpId=>{ const cd=corpData[corpId]; if(!cd) return; addBP(cd.bps,cd.name); mergeA(cd.assetQty); mergeLoc(cd.byLoc); jobs.push(...cd.jobs); });
   const jb=document.getElementById('jobsBtn'); if(jb){ jb.style.display=jobs.length?'':'none'; jb.textContent='Jobs ('+jobs.length+')'; }
   updateJobsBadge();
   renderAuth(); renderList(); if(sel) renderDetail();
   resolveLocations();
   reportDashboard();
+}
+let walletTotal=0, myOrders=[];
+const JITA_REGION=10000002; // The Forge — used as a reference market for shortfall pricing
+const priceCache={};
+async function jitaSellPrice(typeId){
+  if(priceCache[typeId]!=null) return priceCache[typeId];
+  try{
+    const r=await fetch(esiUrl('/markets/'+JITA_REGION+'/orders/?type_id='+typeId+'&order_type=sell'));
+    if(!r.ok){ priceCache[typeId]=null; return null; }
+    const orders=await r.json();
+    const price=orders.length?Math.min(...orders.map(o=>o.price)):null;
+    priceCache[typeId]=price; return price;
+  }catch(e){ priceCache[typeId]=null; return null; }
 }
 const DASHBOARD_KEY='eve_suite_dashboard';
 function reportDashboard(){
@@ -1002,6 +1029,13 @@ function augmentDetail(rec){
         (isRxn?'':` · <b>ME ${own.me}</b> / <b>TE ${own.te}</b> <span class="use" id="useMine">Use my ME/TE</span>`);
       const u=document.getElementById('useMine'); if(u) u.onclick=()=>{ me=own.me; te=own.te; renderDetail(); };
     } else ban.className=''; ban.innerHTML=ban.className?ban.innerHTML:''; }
+  // "buildable now" KPI: direct materials only, same calculation used in the browse list
+  const bk=document.getElementById('buildableKpi');
+  if(bk){ if(loggedIn()&&bpOwned[sel]){ const mb=maxBuildable(sel); bk.style.display='';
+      document.getElementById('buildableKpiVal').textContent=mb.runs+' run'+(mb.runs!==1?'s':'');
+      document.getElementById('buildableKpiVal').style.color=mb.runs?'var(--green)':'var(--rederr)';
+      document.getElementById('buildableKpiSub').textContent=mb.runs?('×'+fmt(mb.units)+' units'):'missing materials';
+    } else bk.style.display='none'; }
   const summ=document.getElementById('planSumm');
   if(!loggedIn()){ if(summ) summ.innerHTML='<span class="muted">Connect one or more characters to read your asset stock from ESI and compute what you still need to buy.</span>'; return; }
   // skills met/unmet
@@ -1027,7 +1061,33 @@ function augmentDetail(rec){
     tNeed+=need; tHave+=Math.min(have,need); tShort+=Math.max(0,need-have); if(have>=need) covered++; });
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
   set('totNeed',fmt(tNeed)); set('totHave',fmt(tHave)); set('totShort',tShort?fmt(tShort):'✓');
-  if(summ) summ.innerHTML=`<b>${covered}</b>/${rawRows.length} raw materials fully stocked · still need to acquire <b class="${tShort?'shorttxt':''}">${fmt(tShort)}</b> units across <b>${rawRows.filter(tr=>(assetQty[+tr.dataset.raw]||0)<+tr.dataset.need).length}</b> materials`;
+  // max runs achievable right now across the FULL bill of materials (respects current buy/build toggles),
+  // approximated by assuming raw-material need scales linearly with runs
+  let maxRuns=Infinity;
+  rawRows.forEach(tr=>{ const id=+tr.dataset.raw, need=+tr.dataset.need, have=assetQty[id]||0;
+    const perRun=need/(runs||1); if(perRun>0) maxRuns=Math.min(maxRuns,Math.floor(have/perRun)); });
+  maxRuns=isFinite(maxRuns)?maxRuns:0;
+  const maxRunsTxt=maxRuns>0?`<b class="okrun">${maxRuns}</b> run${maxRuns!==1?'s':''} (×${fmt(maxRuns*rec.pq)} units)`:`<b class="shorttxt">0</b> — missing at least one raw material entirely`;
+  if(summ) summ.innerHTML=`<b>${covered}</b>/${rawRows.length} raw materials fully stocked · still need to acquire <b class="${tShort?'shorttxt':''}">${fmt(tShort)}</b> units across <b>${rawRows.filter(tr=>(assetQty[+tr.dataset.raw]||0)<+tr.dataset.need).length}</b> materials<br>
+    <span style="opacity:.85">Buildable right now across the full BOM (respecting build/buy choices above): ${maxRunsTxt}</span>
+    <div id="shortfallCost" style="margin-top:6px;opacity:.85">Pricing shortfall against Jita sell orders…</div>`;
+  // price the shortfall (fire-and-forget; updates the DOM once resolved so the summary doesn't block on network)
+  const shortItems=rawRows.map(tr=>({id:+tr.dataset.raw,need:+tr.dataset.need,have:assetQty[+tr.dataset.raw]||0}))
+    .filter(x=>x.have<x.need).map(x=>({id:x.id,qty:x.need-x.have}));
+  (async()=>{
+    const costEl=document.getElementById('shortfallCost'); if(!costEl) return;
+    if(!shortItems.length){ costEl.textContent='Nothing to buy — full shortfall already covered.'; return; }
+    let total=0, priced=0;
+    for(const it of shortItems){ const p=await jitaSellPrice(it.id); if(p!=null){ total+=p*it.qty; priced++; } }
+    const el2=document.getElementById('shortfallCost'); if(!el2) return; // detail may have re-rendered while we were fetching
+    if(!priced){ el2.textContent='Could not price the shortfall (no sell orders found).'; return; }
+    const afford=walletTotal>=total;
+    const buyIds=new Set(shortItems.map(x=>x.id));
+    const activeBuys=myOrders.filter(o=>o.is_buy_order&&buyIds.has(o.type_id));
+    const orderNote=activeBuys.length?` · <span style="color:var(--cyan)">you already have ${activeBuys.length} buy order${activeBuys.length!==1?'s':''} out for ${activeBuys.length!==1?'some of these':'this'}</span>`:'';
+    el2.innerHTML=`Cost to buy shortfall at Jita sell price${priced<shortItems.length?' ('+priced+'/'+shortItems.length+' materials priced)':''}: <b>${fmt(total)} ISK</b> · `+
+      (walletTotal>0?`wallet <b>${fmt(walletTotal)} ISK</b> · <b class="${afford?'okrun':'shorttxt'}">${afford?'affordable':'short on ISK'}</b>`:'<span class="muted">connect a character with wallet access to check affordability</span>')+orderNote;
+  })();
 }
 
 // jobs panel
