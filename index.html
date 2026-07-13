@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Toolset</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#030507;--panel:#0a0d10;--line:#1a2028;--line2:#2a4050;
+    --gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;
+    --green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;
+    --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:
+    radial-gradient(1100px 620px at 50% -10%, rgba(201,168,104,.07), transparent 60%),
+    radial-gradient(900px 520px at 88% 112%, rgba(122,184,200,.05), transparent 55%), var(--bg);
+    color:var(--text);font-family:var(--sans)}
+  .diamond{width:8px;height:8px;background:var(--gold);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);display:inline-block;vertical-align:middle}
+  .app{height:100vh;display:flex;flex-direction:column}
+  header{text-align:center;padding:30px 20px 4px;flex:none}
+  .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.5em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:11px}
+  h1{font-family:var(--mono);font-weight:600;letter-spacing:.28em;text-transform:uppercase;font-size:23px;color:var(--gold-bright);margin:0;cursor:pointer}
+  h1 .diamond{margin:0 13px;transform:translateY(-3px)}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:9px}
+  .bar{display:flex;justify-content:center;gap:10px;margin-top:14px}
+  .btn{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line2);color:var(--muted);padding:7px 13px;background:#05080b;cursor:pointer}
+  .btn:hover{color:var(--gold-bright);border-color:var(--gold-dim)}
+
+  .stage{flex:1;position:relative;perspective:1500px;perspective-origin:50% 42%;min-height:0}
+  .ring{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.33,.12,.18,1)}
+  .card{position:absolute;top:50%;left:50%;width:342px;height:446px;margin:-223px 0 0 -171px;
+    background:linear-gradient(160deg,#0b1015,#070a0d);border:1px solid var(--line);padding:0 0 18px;
+    -webkit-backface-visibility:hidden;backface-visibility:hidden;cursor:pointer;overflow:hidden;
+    transition:opacity .55s, filter .55s, border-color .25s, box-shadow .35s;display:flex;flex-direction:column}
+  .card.active{border-color:var(--gold-dim);box-shadow:0 26px 64px rgba(0,0,0,.62),0 0 0 1px rgba(201,168,104,.16)}
+  .card:not(.active){opacity:.6;filter:blur(3px) saturate(.55) brightness(.72)}
+  .card::before,.card::after{content:"";position:absolute;width:13px;height:13px;border:1px solid var(--gold-dim);opacity:.6;z-index:3}
+  .card::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
+  .card::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
+  .hero{height:130px;flex:none;border-bottom:1px solid var(--line);position:relative;overflow:hidden;
+    background:radial-gradient(130% 120% at 50% 0,#0f171e,#05080b)}
+  .hero svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero .ttl{position:absolute;left:18px;bottom:10px;z-index:2}
+  .hero h2{font-size:17px;margin:0;color:#eaf0f4;font-weight:600;text-shadow:0 2px 8px #000}
+  .tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-top:3px;text-shadow:0 1px 6px #000}
+  .body{padding:14px 22px 0;display:flex;flex-direction:column;flex:1}
+  .card p{font-size:12.5px;line-height:1.6;color:var(--muted);margin:0 0 14px;flex:1}
+  .feat{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .feat span{font-family:var(--mono);font-size:9px;color:var(--cyan);border:1px solid var(--line);padding:2px 7px}
+  .go{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:12px}
+  .go .lnk{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-bright)}
+  .go .url{font-family:var(--mono);font-size:9px;color:var(--muted2);max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .nav{position:absolute;bottom:24px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:18px;z-index:5}
+  .arw{width:42px;height:42px;border:1px solid var(--line2);background:#05080b;color:var(--gold);cursor:pointer;display:grid;place-items:center;font-size:16px;transition:.18s}
+  .arw:hover{border-color:var(--gold-dim);color:var(--gold-bright);background:rgba(201,168,104,.08)}
+  .dots{display:flex;gap:9px}
+  .dot{width:8px;height:8px;background:#1c2731;border:1px solid var(--line2);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);cursor:pointer;transition:.2s}
+  .dot.on{background:var(--gold);border-color:var(--gold)}
+  .hint{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.06em}
+
+  /* --- character roster --- */
+  .roster{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px;max-width:820px;margin-left:auto;margin-right:auto}
+  .rchip{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);background:#05080b;padding:4px 10px 4px 4px;font-family:var(--mono);font-size:10.5px;color:var(--text)}
+  .rchip img{width:20px;height:20px;border:1px solid var(--line)}
+  .rchip .corp{color:var(--muted2)}
+  .rchip .x{cursor:pointer;color:var(--muted2);margin-left:2px}
+  .rchip .x:hover{color:var(--red)}
+  .addchar{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--gold-dim);color:var(--gold-bright);background:rgba(201,168,104,.08);padding:6px 13px;cursor:pointer}
+  .addchar:hover{background:rgba(201,168,104,.18)}
+
+  /* --- scope confirmation modal --- */
+  .scopeOverlay{position:fixed;inset:0;background:rgba(3,5,7,.82);z-index:80;display:none;align-items:center;justify-content:center}
+  .scopeOverlay.show{display:flex}
+  .scopeBox{width:520px;max-width:92vw;max-height:82vh;overflow:auto;background:var(--panel);border:1px solid var(--gold-dim);padding:22px 24px}
+  .scopeBox h3{margin:0 0 6px;color:var(--gold-bright);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;font-size:14px}
+  .scopeBox p{color:var(--muted);font-size:12.5px;line-height:1.6;margin:0 0 14px}
+  .scopeBox ul{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:9px}
+  .scopeBox li{border:1px solid var(--line);padding:8px 10px;font-family:var(--mono);font-size:11px;color:var(--text)}
+  .scopeBox li .sd{color:var(--muted);font-size:10.5px;display:block;margin-top:3px}
+  .scopeBox li .sd i{color:var(--cyan);font-style:normal}
+  .scopeBtns{display:flex;justify-content:flex-end;gap:10px}
+
+  /* --- inline tool view --- */
+  .toolwrap{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column}
+  .toolwrap.show{display:flex}
+  .toolbar{flex:none;display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);background:#05080b}
+  .toolbar .back{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-bright);border:1px solid var(--gold-dim);background:rgba(201,168,104,.08);padding:6px 12px;cursor:pointer}
+  .toolbar .back:hover{background:rgba(201,168,104,.18)}
+  .toolbar .name{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+  .toolbar .name b{color:var(--gold-bright)}
+  .toolbar .spacer{flex:1}
+  .toolbar .ext{font-family:var(--mono);font-size:10px;color:var(--muted2);text-decoration:none;border:1px solid var(--line2);padding:6px 10px}
+  .toolbar .ext:hover{color:var(--gold-bright);border-color:var(--gold-dim)}
+  .toolframe{flex:1;border:0;width:100%;background:var(--bg)}
+</style>
+</head>
+<body>
+<div class="app" id="menuApp">
+  <header>
+    <div class="kicker">New Eden Industrial Suite</div>
+    <h1 id="titleHome">EVE<span class="diamond"></span>Toolset</h1>
+    <div class="sub">Spin the ring — the card up front launches inline.</div>
+    <div class="roster" id="roster"></div>
+    <div class="bar"><button class="addchar" id="addCharBtn">+ Add Character</button></div>
+  </header>
+  <div class="stage" id="stage">
+    <div class="ring" id="ring"></div>
+    <div class="nav"><div class="arw" id="prev">‹</div><div class="dots" id="dots"></div><div class="arw" id="next">›</div></div>
+    <div class="hint">drag · arrow keys · click a side card</div>
+  </div>
+</div>
+
+<div class="scopeOverlay" id="scopeOverlay">
+  <div class="scopeBox">
+    <h3>Sign in with EVE Online</h3>
+    <p>Every tool in this suite shares one sign-in. Adding a character grants the combined set of permissions below — used across whichever tools you open. You can add characters from different corporations; each tool will use whichever of your signed-in characters applies.</p>
+    <ul id="scopeList"></ul>
+    <div class="scopeBtns">
+      <button class="btn" id="scopeCancel">Cancel</button>
+      <button class="addchar" id="scopeConfirm">Continue to EVE login ▸</button>
+    </div>
+  </div>
+</div>
+
+<div class="toolwrap" id="toolwrap">
+  <div class="toolbar">
+    <button class="back" id="backBtn">◂ Menu</button>
+    <span class="name">Now viewing: <b id="toolName"></b></span>
+    <span class="spacer"></span>
+    <a class="ext" id="extLink" target="_blank" rel="noopener">Open in new tab ↗</a>
+  </div>
+  <iframe class="toolframe" id="toolFrame" src="about:blank"></iframe>
+</div>
+
+<script>
+// =====================================================================
+// SHARED EVE SSO LOGIN — the ONLY place sign-in happens in this suite.
+// All four tools read pre-authenticated characters from SHARED_KEY below
+// instead of logging in themselves.
+//
+// SETUP REQUIRED: register ONE EVE Developer application at
+// https://developers.eveonline.com covering the scopes listed in
+// SCOPE_INFO, with callback URL set to wherever auth-callback.html ends
+// up living (printed to the console below), then paste that app's
+// client ID into SUITE_CLIENT_ID.
+// =====================================================================
+const SUITE_CLIENT_ID='REPLACE_WITH_YOUR_EVE_SSO_CLIENT_ID';
+const SHARED_KEY='eve_suite_chars';
+const AUTH_CALLBACK=location.origin+location.pathname.replace(/[^/]*$/,'')+'auth-callback.html';
+console.log('[EVE Toolset] register this callback URL on your EVE SSO app:', AUTH_CALLBACK);
+
+const SCOPE_INFO=[
+  {scope:'publicData', tool:'All tools', desc:'Basic public character info'},
+  {scope:'esi-planets.manage_planets.v1', tool:'Industry Console', desc:'Read & manage your PI colonies'},
+  {scope:'esi-location.read_location.v1', tool:'Industry Console · Jump Freight Planner', desc:'Read your current solar system'},
+  {scope:'esi-skills.read_skills.v1', tool:'Industry Console · Fit Manager', desc:'Read trained skills'},
+  {scope:'esi-characters.read_standings.v1', tool:'Industry Console', desc:'Read your standings'},
+  {scope:'esi-fittings.read_fittings.v1', tool:'Fit Manager', desc:'Read your in-game fittings'},
+  {scope:'esi-fittings.write_fittings.v1', tool:'Fit Manager', desc:'Save fittings to your ship'},
+  {scope:'esi-corporations.read_structures.v1', tool:'Structure Browser', desc:'Read corp Upwell structures'},
+  {scope:'esi-universe.read_structures.v1', tool:'Structure Browser', desc:'Resolve structure names & locations'},
+  {scope:'esi-industry.read_corporation_mining.v1', tool:'Structure Browser', desc:'Read moon-mining extraction timers'},
+  {scope:'esi-assets.read_corporation_assets.v1', tool:'Structure Browser', desc:'Read corp assets (fuel & gas in structures)'},
+];
+const SUITE_SCOPES=SCOPE_INFO.map(s=>s.scope).join(' ');
+
+function b64url(b){return btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+async function sha256(s){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));}
+function rnd(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return b64url(a.buffer);}
+function jwt(t){try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}catch(e){return{};}}
+async function tok(body){ const r=await fetch('https://login.eveonline.com/v2/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body).toString()}); if(!r.ok) throw new Error('token '+r.status); return r.json(); }
+async function esiPub(path){ const r=await fetch('https://esi.evetech.net/latest'+path); if(!r.ok) throw new Error('ESI '+r.status); return r.json(); }
+
+function loadSuiteChars(){ try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};} }
+function saveSuiteChars(chars){ localStorage.setItem(SHARED_KEY, JSON.stringify(chars)); }
+let suiteChars=loadSuiteChars();
+
+function renderScopeList(){ document.getElementById('scopeList').innerHTML=SCOPE_INFO.map(s=>
+  `<li><b>${s.scope}</b><span class="sd">${s.desc} — <i>${s.tool}</i></span></li>`).join(''); }
+document.getElementById('addCharBtn').onclick=()=>{ renderScopeList(); document.getElementById('scopeOverlay').classList.add('show'); };
+document.getElementById('scopeCancel').onclick=()=>document.getElementById('scopeOverlay').classList.remove('show');
+document.getElementById('scopeConfirm').onclick=()=>{ document.getElementById('scopeOverlay').classList.remove('show'); beginLogin(); };
+
+async function beginLogin(){
+  if(!SUITE_CLIENT_ID || SUITE_CLIENT_ID.indexOf('REPLACE')===0){
+    alert('SUITE_CLIENT_ID is not set yet.\n\nRegister one EVE SSO app with callback URL:\n'+AUTH_CALLBACK+'\n\nand paste its client ID into index.html (SUITE_CLIENT_ID).');
+    return;
+  }
+  const v=rnd(32); sessionStorage.setItem('suite_pkce',v); sessionStorage.setItem('eve_suite_return','index.html');
+  const c=b64url(await sha256(v));
+  const u=new URL('https://login.eveonline.com/v2/oauth/authorize');
+  u.search=new URLSearchParams({response_type:'code',redirect_uri:AUTH_CALLBACK,client_id:SUITE_CLIENT_ID,scope:SUITE_SCOPES,code_challenge:c,code_challenge_method:'S256',state:rnd(8)}).toString();
+  location.href=u.toString();
+}
+
+async function handleSuiteRedirect(){
+  const p=new URLSearchParams(location.search); const code=p.get('code'); if(!code) return;
+  history.replaceState({},'',location.pathname);
+  try{
+    const t=await tok({grant_type:'authorization_code',code,client_id:SUITE_CLIENT_ID,code_verifier:sessionStorage.getItem('suite_pkce')||'',redirect_uri:AUTH_CALLBACK});
+    const pl=jwt(t.access_token); const charId=+String(pl.sub||'').split(':').pop();
+    const entry={access:t.access_token,refresh:t.refresh_token,expires:Date.now()+(t.expires_in||1200)*1000,charId,charName:pl.name||('Char '+charId),corpId:null,corpName:''};
+    try{ const ch=await esiPub('/characters/'+charId+'/'); entry.corpId=ch.corporation_id;
+      const co=await esiPub('/corporations/'+entry.corpId+'/'); entry.corpName=co.name||''; }catch(e){}
+    suiteChars[charId]=entry; saveSuiteChars(suiteChars); renderRoster();
+  }catch(e){ alert('Sign-in failed: '+e.message); }
+}
+function removeSuiteChar(charId){ delete suiteChars[charId]; saveSuiteChars(suiteChars); renderRoster(); }
+window.removeSuiteChar=removeSuiteChar;
+function renderRoster(){
+  const r=document.getElementById('roster'); const ids=Object.keys(suiteChars);
+  if(!ids.length){ r.innerHTML='<span class="sub" style="margin:0">No characters signed in yet — every tool below will prompt you to add one here.</span>'; return; }
+  r.innerHTML=ids.map(id=>{ const c=suiteChars[id];
+    return `<span class="rchip"><img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">${c.charName}<span class="corp">${c.corpName?(' · '+c.corpName):''}</span><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')">✕</span></span>`;
+  }).join('');
+}
+handleSuiteRedirect(); renderRoster();
+</script>
+<script>
+// thematic original SVG art per app
+const ART={
+ industry:`<svg viewBox="0 0 342 130" fill="none">
+   <defs><pattern id="bp" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" stroke="#14202b" stroke-width="1"/></pattern></defs>
+   <rect width="342" height="130" fill="url(#bp)"/>
+   <g stroke="#c9a868" stroke-width="1.7"><circle cx="118" cy="62" r="25"/><circle cx="118" cy="62" r="8"/>
+   <g stroke-width="2.4"><path d="M118 31v-8M118 101v-8M87 62h-8M157 62h-8M96 40l-6-6M146 90l-6-6M140 40l6-6M90 90l6-6"/></g></g>
+   <g stroke="#7ab8c8" stroke-width="1.5" opacity=".85"><path d="M188 86l42-17 42 17-42 17z"/><path d="M188 70l42-17 42 17"/><path d="M188 54l42-17 42 17"/></g></svg>`,
+ fits:`<svg viewBox="0 0 342 130" fill="none">
+   <g stroke="#c9a868" stroke-width="1.8"><path d="M171 22 L206 65 L171 108 L136 65 Z"/><line x1="171" y1="22" x2="171" y2="108"/><line x1="136" y1="65" x2="206" y2="65"/></g>
+   <g stroke="#7ab8c8" stroke-width="1.4" fill="#05080b">
+   <rect x="70" y="40" width="13" height="13"/><rect x="70" y="78" width="13" height="13"/>
+   <rect x="259" y="40" width="13" height="13"/><rect x="259" y="78" width="13" height="13"/>
+   <rect x="100" y="20" width="13" height="13"/><rect x="229" y="20" width="13" height="13"/></g>
+   <g stroke="#2a4050" stroke-width="1"><path d="M83 46H136M83 84H140M272 46H206M272 84H202M113 26l30 18M229 26l-30 18"/></g></svg>`,
+ structures:`<svg viewBox="0 0 342 130" fill="none">
+   <g opacity=".5" fill="#7ab8c8"><circle cx="50" cy="28" r="1.3"/><circle cx="300" cy="40" r="1.3"/><circle cx="260" cy="20" r="1"/><circle cx="80" cy="100" r="1"/></g>
+   <ellipse cx="171" cy="110" rx="92" ry="13" stroke="#7ab8c8" stroke-width="1.2" opacity=".55"/>
+   <g stroke="#c9a868" stroke-width="1.8" fill="#0b1015"><path d="M171 14 l26 16 v60 l-26 16 -26-16 v-60 z"/></g>
+   <g stroke="#c9a868" stroke-width="1.2" opacity=".8"><path d="M145 42h52M145 66h52M145 90h52M171 14v-9M158 6h26"/></g>
+   <g stroke="#7ab8c8" stroke-width="1.4"><path d="M197 50l24-10M145 80l-24 10"/></g></svg>`,
+ jump:`<svg viewBox="0 0 342 130" fill="none">
+   <g opacity=".6" fill="#7ab8c8"><circle cx="60" cy="30" r="1.3"/><circle cx="120" cy="22" r="1"/><circle cx="250" cy="26" r="1.3"/><circle cx="300" cy="44" r="1"/><circle cx="90" cy="96" r="1"/></g>
+   <path d="M44 98 Q171 8 298 98" stroke="#c9a868" stroke-width="1.5" stroke-dasharray="4 6" opacity=".8"/>
+   <circle cx="44" cy="98" r="4.5" fill="#c9a868"/><circle cx="298" cy="98" r="4.5" fill="#8cc86a"/>
+   <g stroke="#c9a868" stroke-width="1.7" fill="#0b1015"><path d="M150 40 h30 l10 11 -10 11 h-30 l-8-11 z"/></g>
+   <path d="M142 51 h-16" stroke="#d8a24a" stroke-width="3"/><path d="M150 45 h26M150 57 h26" stroke="#2a4050" stroke-width="1"/></svg>`,
+};
+// local pages instead of external GitHub Pages URLs
+const APPS=[
+  { key:'industry', name:'Industry Console', tag:'Manufacturing · Planner', url:'pi.html',
+    desc:'Browse every buildable BPO, BPC and reaction, track which originals you still need, and plan construction runs against structure rigs and your assets.',
+    feats:['Blueprints','BPO tracker','Construction planner','ESI assets'] },
+  { key:'fits', name:'Fit Manager', tag:'Fittings · Self-improving', url:'fits.html',
+    desc:'Import EFT fits, store them in a GitHub repo, get Pyfa-accurate per-character stats and killboard-meta suggestions, and push fits to your in-game fittings.',
+    feats:['EFT import','Pyfa stats','Killboard meta','Send to game'] },
+  { key:'structures', name:'Structure Browser', tag:'Citadels · Fuel', url:'structures.html',
+    desc:'Track your corp’s Upwell structures, services and fuel runtime, with dogma-based fuel and Metenox magmatic-gas modelling.',
+    feats:['Structures','Fuel runtime','Services'] },
+  { key:'jump', name:'Jump Freight Planner', tag:'Logistics · Routes', url:'jump.html',
+    desc:'Plan jump-freighter routes across a 2-D New Eden map with fuel and fatigue maths, sovereignty and gate layers, and a live killboard threat feed.',
+    feats:['JF routes','Fuel & fatigue','Kill heatmap'] },
+];
+
+const n=APPS.length, theta=360/n;
+let R=340, current=0;
+const ring=document.getElementById('ring'), stage=document.getElementById('stage');
+
+function buildCards(){
+  ring.innerHTML=APPS.map((a,i)=>`<div class="card" data-i="${i}">
+      <div class="hero">${ART[a.key]||''}<div class="ttl"><h2>${a.name}</h2><div class="tag">${a.tag}</div></div></div>
+      <div class="body">
+        <p>${a.desc}</p>
+        <div class="feat">${a.feats.map(f=>`<span>${f}</span>`).join('')}</div>
+        <div class="go"><span class="lnk">Launch ▸</span><span class="url">${a.url}</span></div>
+      </div></div>`).join('');
+  ring.querySelectorAll('.card').forEach(c=>{ const i=+c.dataset.i;
+    c.onclick=e=>{ if(i!==((current%n)+n)%n){ goTo(i); return; } openTool(i); }; });
+  place();
+}
+function place(){ R=Math.round(171/Math.tan(Math.PI/n))+155; ring.querySelectorAll('.card').forEach(c=>{ const i=+c.dataset.i;
+  c.style.transform=`rotateY(${i*theta}deg) translateZ(${R}px)`; }); }
+function render(){ ring.style.transform=`translateZ(${-R}px) rotateY(${-current*theta}deg)`;
+  const act=((current%n)+n)%n;
+  ring.querySelectorAll('.card').forEach(c=>c.classList.toggle('active',+c.dataset.i===act));
+  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===act)); }
+function goTo(i){ const act=((current%n)+n)%n; let d=i-act; if(d>n/2)d-=n; if(d<-n/2)d+=n; current+=d; render(); }
+function step(d){ current+=d; render(); }
+
+document.getElementById('dots').innerHTML=APPS.map((_,i)=>`<span class="dot" data-i="${i}"></span>`).join('');
+document.querySelectorAll('.dot').forEach(d=>d.onclick=()=>goTo(+d.dataset.i));
+document.getElementById('next').onclick=()=>step(1);
+document.getElementById('prev').onclick=()=>step(-1);
+document.getElementById('titleHome').onclick=closeTool;
+addEventListener('keydown',e=>{
+  if(toolwrap.classList.contains('show')){ if(e.key==='Escape') closeTool(); return; }
+  if(e.key==='ArrowRight')step(1); if(e.key==='ArrowLeft')step(-1);
+  if(e.key==='Enter')openTool(((current%n)+n)%n);
+});
+addEventListener('resize',()=>{ place(); render(); });
+let dragging=false,sx=0,moved=0;
+stage.addEventListener('pointerdown',e=>{ dragging=true; sx=e.clientX; moved=0; ring.style.transition='none'; });
+addEventListener('pointermove',e=>{ if(!dragging)return; moved=e.clientX-sx; ring.style.transform=`translateZ(${-R}px) rotateY(${-current*theta+moved*0.25}deg)`; });
+addEventListener('pointerup',()=>{ if(!dragging)return; dragging=false; ring.style.transition=''; if(Math.abs(moved)>60)step(moved<0?1:-1); else render(); });
+
+// --- inline tool switching ---
+const toolwrap=document.getElementById('toolwrap');
+const toolFrame=document.getElementById('toolFrame');
+const toolName=document.getElementById('toolName');
+const extLink=document.getElementById('extLink');
+document.getElementById('backBtn').onclick=closeTool;
+
+function openTool(i){
+  const a=APPS[i];
+  toolName.textContent=a.name;
+  extLink.href=a.url;
+  toolFrame.src=a.url;
+  toolwrap.classList.add('show');
+}
+function closeTool(){
+  toolwrap.classList.remove('show');
+  toolFrame.src='about:blank';
+}
+
+buildCards(); render();
+</script>
+</body>
+</html>

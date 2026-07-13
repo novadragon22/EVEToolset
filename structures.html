@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVE Structure · Operations Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#030507; --panel:#0a0d10; --panel2:#0a0f13; --line:#1a2028; --line2:#2a4050;
+    --gold:#c9a868; --gold-bright:#e8d296; --gold-dim:#8a7048; --gold-deep:#6a4828; --gold-soft:#c9b676;
+    --cyan:#7ab8c8; --cyan-edge:#2a4050; --cyan-bright:#a0d0e0;
+    --green:#8cc86a; --red:#d66a5a; --rederr:#e89b8d;
+    --text:#c9d4db; --text2:#a8bac8; --muted:#7a8fa0; --muted2:#5a6b78;
+    --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+    --ui:1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow:hidden;zoom:var(--ui);width:calc(100vw / var(--ui));height:calc(100vh / var(--ui))}
+  input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:#050709}
+  ::-webkit-scrollbar-thumb{background:#1a2430;border:1px solid #050709}
+  ::-webkit-scrollbar-thumb:hover{background:#2a3544}
+  select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6'><path d='M0 0l4 6 4-6z' fill='%238ba4b3'/></svg>");background-repeat:no-repeat;background-position:right 8px center;padding-right:20px}
+  button{background:none;border:none;color:inherit;font:inherit;cursor:pointer}
+  input,select{font:inherit;outline:none}
+  .diamond{background:linear-gradient(135deg,#c8a068,#6a4828);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+
+  /* ===== welcome gate ===== */
+  .gate{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;
+    background:radial-gradient(circle at 50% 25%,rgba(201,168,104,.05) 0%,transparent 60%),var(--bg);overflow:auto}
+  .gate-diamond{width:40px;height:40px;margin-bottom:16px;animation:gpulse 3s ease-in-out infinite}
+  @keyframes gpulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+  .gate-title{font-family:var(--mono);font-size:24px;letter-spacing:.15em;color:var(--gold-bright);text-transform:uppercase;margin-bottom:6px}
+  .gate-sub{font-family:var(--mono);font-size:11px;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-bottom:36px}
+  .gate-card{width:min(560px,92vw);border:1px solid rgba(201,168,104,.3);background:linear-gradient(180deg,rgba(201,168,104,.04),rgba(201,168,104,.01));padding:28px 32px;position:relative}
+  .gate-card::before,.gate-card::after{content:'';position:absolute;width:14px;height:14px;border:1px solid var(--gold)}
+  .gate-card::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
+  .gate-card::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
+  .gate-card h3{font-family:var(--mono);font-size:13px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;margin-bottom:14px;font-weight:500}
+  .gate-card p{font-size:13px;line-height:1.6;color:var(--text2);margin-bottom:18px}
+  .lbl{font-family:var(--mono);font-size:10.5px;color:#8a9ba8;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px}
+  .fld{width:100%;padding:10px 12px;background:rgba(10,14,20,.8);border:1px solid rgba(201,168,104,.35);color:#d9e0e6;font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;transition:border-color .15s,box-shadow .15s}
+  .fld:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(201,168,104,.25)}
+  .fld::placeholder{color:#5a6b78;font-style:italic}
+  .fld.err{border-color:var(--red);box-shadow:0 0 8px rgba(214,106,90,.3)}
+  .ro{font-family:var(--mono);font-size:11px;color:var(--muted);background:rgba(10,14,20,.6);border:1px solid var(--line);padding:8px 10px;word-break:break-all}
+  .btn-gold{display:inline-flex;align-items:center;gap:10px;padding:11px 22px;background:linear-gradient(180deg,rgba(201,168,104,.18),rgba(201,168,104,.08));border:1px solid var(--gold);color:var(--gold-bright);font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+  .btn-gold:hover{background:linear-gradient(180deg,rgba(201,168,104,.28),rgba(201,168,104,.14));color:#f5e2a8;box-shadow:0 0 12px rgba(201,168,104,.3)}
+  .btn-gold:disabled{opacity:.4;cursor:not-allowed;background:rgba(50,50,50,.3);border-color:#555;color:#888;box-shadow:none}
+  .btn-gold .di{width:14px;height:14px}
+  .gate-row{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+  .gate-err{margin-top:14px;padding:10px 14px;border:1px solid #5a2a2a;background:rgba(90,42,42,.18);color:var(--rederr);font-family:var(--mono);font-size:11.5px;line-height:1.5;display:none}
+  .gate-err.show{display:block}
+  .gate-hint{margin-top:20px;padding-top:16px;border-top:1px solid rgba(201,168,104,.12);font-size:11px;color:var(--muted);line-height:1.6}
+  .gate-hint strong{color:var(--gold);font-weight:500}
+  .gate-skip{margin-top:26px;font-family:var(--mono);font-size:10px;color:var(--muted2);letter-spacing:.05em}
+  .gate-skip a{color:var(--gold);text-decoration:none;border-bottom:1px dashed rgba(201,168,104,.4);cursor:pointer}
+  .gate-skip a:hover{color:var(--gold-bright)}
+  textarea{width:100%;background:rgba(10,14,20,.8);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:11px;padding:9px;resize:vertical;min-height:60px}
+  textarea:focus{outline:none;border-color:var(--gold)}
+
+  /* ===== app frame ===== */
+  .app{display:none;flex-direction:column;height:100%}
+  .app.on{display:flex}
+  .topbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:var(--bg);border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+  .tb-left{display:flex;align-items:center;gap:10px}
+  .tb-diamond{width:12px;height:12px}
+  .tb-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-dim)}
+  .tb-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tb-btn{padding:4px 10px;background:#0a0f13;border:1px solid var(--line2);color:#8ba4b3;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .12s}
+  .tb-btn:hover{background:#1a2430;color:#e8eef2;border-color:#3a5060}
+  .char-chip{display:inline-flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:rgba(201,168,104,.06);border:1px solid rgba(201,168,104,.25)}
+  .char-av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#3a4a5a,#1a2530);object-fit:cover}
+  .char-name{font-family:var(--mono);font-size:11px;color:var(--gold-bright);letter-spacing:.02em;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .char-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px rgba(140,200,106,.6)}
+  .char-dot.busy{background:var(--gold);animation:dotp 1.2s ease-in-out infinite;box-shadow:none}
+  @keyframes dotp{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+  .char-x{margin-left:2px;color:#6c8592;font-family:var(--mono);font-size:11px;padding:0 4px;opacity:.5;transition:all .15s}
+  .char-x:hover{opacity:1;color:var(--rederr)}
+  .sync-btn{padding:4px 12px;background:rgba(108,160,192,.08);border:1px solid rgba(108,160,192,.4);color:var(--cyan);font-family:var(--mono);font-size:10px;letter-spacing:.1em;cursor:pointer;transition:all .15s;text-transform:uppercase}
+  .sync-btn:hover:not(:disabled){background:rgba(108,160,192,.18);color:var(--cyan-bright);box-shadow:0 0 8px rgba(108,160,192,.25)}
+  .sync-btn:disabled{opacity:.5;cursor:not-allowed;font-style:italic}
+
+  /* tabs */
+  nav.tabs{flex-shrink:0;display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 12px;background:var(--bg);flex-wrap:wrap}
+  .tab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;cursor:pointer;color:#8a9ba8;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:8px}
+  .tab:hover{color:var(--text)}
+  .tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+  .tab .cnt{font-family:var(--mono);font-size:10px;background:rgba(201,168,104,.08);border:1px solid rgba(201,168,104,.25);padding:1px 6px;color:var(--gold-dim)}
+  .tab.on .cnt{color:var(--gold)}
+
+  /* subtabs nested inside a section (e.g. Extractions: Active / Optimised) */
+  .subtabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap}
+  .subtab{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;padding:8px 14px;cursor:pointer;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s}
+  .subtab:hover{color:var(--text)}
+  .subtab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+  .subpanel{display:none}
+  .subpanel.on{display:block}
+
+  /* extraction calendar */
+  .opt-lbl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .fuel-controls #optDuration,.fuel-controls #optWindow{width:64px}
+  .cal-strip{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
+  .cal-tile{flex:0 0 auto;width:46px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border:1px solid var(--line);background:var(--panel2)}
+  .cal-tile.today{border-color:var(--gold)}
+  .cal-tile.lo{border-color:var(--cyan-edge);background:rgba(122,184,200,.06)}
+  .cal-tile.hi{border-color:var(--gold-deep);background:rgba(201,168,104,.1)}
+  .cal-dow{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .cal-dom{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text)}
+  .cal-count{font-family:var(--mono);font-size:9px;color:var(--gold);background:rgba(201,168,104,.12);border-radius:8px;padding:0 5px}
+  .cal-list{margin-top:12px;border:1px solid var(--line)}
+  .cal-day-row{display:flex;gap:14px;padding:9px 12px;border-bottom:1px solid var(--line);align-items:baseline;flex-wrap:wrap}
+  .cal-day-row:last-child{border-bottom:none}
+  .cal-day-date{font-family:var(--mono);font-size:11px;color:var(--gold);min-width:120px}
+  .cal-day-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .cal-chip{font-family:var(--mono);font-size:10.5px;color:var(--text2);background:var(--panel2);border:1px solid var(--line2);padding:3px 8px}
+  .cal-chip i{color:var(--muted);font-style:normal}
+
+  /* plan form / list */
+  .plan-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .plan-form input{flex:1;min-width:160px;background:rgba(10,14,20,.8);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px}
+  .plan-form input:focus{border-color:var(--gold)}
+  .plan-row{display:flex;align-items:center;gap:12px;padding:8px 12px;border:1px solid var(--line);border-top:none;font-family:var(--mono);font-size:12px}
+  .plan-row:first-child{border-top:1px solid var(--line)}
+  .plan-row .dim{color:var(--muted2);margin-left:auto}
+
+  main{flex:1;overflow:auto;padding:20px}
+  .wrap{max-width:1200px;margin:0 auto}
+  section.sec{display:none}
+  section.sec.on{display:block}
+
+  .panel-title{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:2px 0 14px;display:flex;align-items:center;gap:10px}
+  .panel-title .di{width:9px;height:9px}
+  .panel-title::after{content:'';height:1px;flex:1;background:linear-gradient(90deg,var(--line),transparent)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+  .card{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);padding:15px 16px 14px 19px}
+  .card::before,.card::after{content:'';position:absolute;width:10px;height:10px;border:1px solid rgba(201,168,104,.35)}
+  .card::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
+  .card::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
+  .rail{position:absolute;left:0;top:0;bottom:0;width:3px}
+  .rail.extracting{background:var(--green);box-shadow:0 0 10px rgba(140,200,106,.5)}
+  .rail.ready{background:var(--cyan);box-shadow:0 0 10px rgba(122,184,200,.5)}
+  .rail.idle{background:var(--gold);box-shadow:0 0 10px rgba(201,168,104,.45)}
+  .rail.decommissioning{background:var(--red);box-shadow:0 0 10px rgba(214,106,90,.45)}
+  .rail.anchoring{background:var(--cyan);box-shadow:0 0 10px rgba(122,184,200,.45)}
+  .rail.support{background:var(--muted2)}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .card-name{font-family:var(--mono);font-weight:500;font-size:15px;letter-spacing:.02em;line-height:1.2;color:#dfe7ee}
+  .card-loc{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px}
+  .esi-tag{color:var(--cyan);margin-left:6px;font-size:9px;letter-spacing:.1em}
+  .badge{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;white-space:nowrap;border:1px solid}
+  .badge.metenox{color:var(--gold);border-color:var(--gold-deep);background:rgba(201,168,104,.08)}
+  .badge.refinery{color:var(--cyan);border-color:var(--cyan-edge);background:rgba(122,184,200,.07)}
+  .badge.other{color:var(--muted);border-color:var(--line2);background:rgba(98,120,141,.06)}
+  .status-line{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .status-line.extracting{color:var(--green)} .status-line.ready{color:var(--cyan)}
+  .status-line.idle{color:var(--gold)} .status-line.decommissioning{color:var(--red)} .status-line.anchoring{color:var(--cyan)} .status-line.support{color:var(--muted)}
+  .sdot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+  .sdot.pulse{animation:dotp 1.6s infinite}
+
+  .meter-block{margin-top:11px}
+  .meter-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .meter-label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .meter-label .ic{color:var(--cyan)}
+  .meter-block.gas .meter-label .ic{color:var(--gold)}
+  .meter-val{font-family:var(--mono);font-size:12px;font-weight:600}
+  .segs{display:flex;gap:2px;height:8px}
+  .seg{flex:1;background:#10161d;transition:.2s}
+  .runway{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between}
+  .runway b{font-weight:600}
+  .lvl-nominal b{color:var(--cyan)} .lvl-caution b{color:var(--gold)} .lvl-critical b{color:var(--red)}
+
+  .card-actions{display:flex;gap:6px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .btn{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:1px solid var(--line2);background:transparent;color:#8ba4b3;padding:6px 11px;transition:all .15s}
+  .btn:hover{color:var(--text);border-color:#3a5060;background:#131a22}
+  .btn.gold{border-color:var(--gold);color:var(--gold)}
+  .btn.gold:hover{background:rgba(201,168,104,.12);color:var(--gold-bright)}
+  .btn.sm{padding:5px 10px}
+  .hint{font-family:var(--sans);font-size:11.5px;color:var(--text2);line-height:1.5;background:rgba(201,168,104,.05);border:1px solid rgba(201,168,104,.2);border-left:2px solid var(--gold);padding:9px 11px;margin-top:11px}
+  .hint.gas{border-left-color:var(--gold-soft)}
+  .hint.ready{border-left-color:var(--cyan);background:rgba(122,184,200,.05);border-color:rgba(122,184,200,.2)}
+  .hint.red{border-left-color:var(--red);background:rgba(214,106,90,.05);border-color:rgba(214,106,90,.2);color:var(--rederr)}
+
+  .empty{border:1px dashed var(--line2);padding:46px 24px;text-align:center;color:var(--muted);grid-column:1/-1}
+  .empty h3{font-family:var(--mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);margin-bottom:8px}
+  .empty p{font-size:12.5px;max-width:440px;margin:0 auto;line-height:1.6}
+
+  .fuel-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;background:var(--panel2);border:1px solid var(--line);padding:11px 12px}
+  .fuel-controls input,.fuel-controls select{background:rgba(10,14,20,.8);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px}
+  .fuel-controls input:focus,.fuel-controls select:focus{border-color:var(--gold)}
+  .fuel-search{flex:1;min-width:170px}
+  .fuel-controls select{min-width:150px}
+  .fuel-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:8px}
+  .ftile{background:var(--panel2);border:1px solid var(--line);padding:13px 15px;position:relative}
+  .ftile .l{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .ftile .v{font-family:var(--mono);font-weight:600;font-size:21px;margin-top:5px;color:var(--text)}
+  .ftile.fb .v{color:var(--cyan)} .ftile.gas .v{color:var(--gold-soft)}
+  .ftile .sub{font-family:var(--mono);font-size:9.5px;color:var(--muted2);margin-top:3px}
+
+  .subhead{font-family:var(--mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);margin:24px 0 12px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .subhead .di{width:8px;height:18px;clip-path:none}
+  .subhead.moon .di{background:linear-gradient(180deg,var(--gold),var(--gold-deep))}
+  .subhead.metenox .di{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
+  .subhead.all .di{background:linear-gradient(180deg,var(--cyan),#1a4050)}
+  .subhead small{font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:none;color:var(--muted2);font-weight:400}
+  .subhead .chev{margin-left:auto;font-size:12px;color:var(--muted);transition:transform .15s}
+  .subhead.collapsed .chev{transform:rotate(-90deg)}
+  .fuel-table-wrap.collapsed{display:none}
+
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px}
+  thead th{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:right;padding:10px 12px;background:var(--panel2);border-bottom:1px solid var(--line2);white-space:nowrap}
+  thead th.l{text-align:left}
+  tbody td{padding:9px 12px;text-align:right;font-family:var(--mono);border-bottom:1px solid var(--line)}
+  tbody td.l{text-align:left;font-family:var(--sans)}
+  tbody td .nm{font-family:var(--mono);font-size:12.5px;color:#dfe7ee}
+  tbody td .ty{font-family:var(--mono);font-size:9.5px;color:var(--muted)}
+  tbody tr:hover{background:rgba(201,168,104,.03)}
+  tbody td.fb{color:var(--cyan)} tbody td.gas{color:var(--gold-soft)} tbody td.dim{color:var(--muted2)}
+  tbody td.rd{color:var(--red)} tbody td.am{color:var(--gold)} tbody td.gr{color:var(--green)}
+  .estt{color:var(--muted2);font-style:normal;font-size:9px;letter-spacing:.05em}
+  tfoot td{padding:10px 12px;text-align:right;font-family:var(--mono);font-weight:600;border-top:1px solid var(--line2);background:var(--panel2)}
+  tfoot td.l{text-align:left;letter-spacing:.08em;text-transform:uppercase;font-size:11px;color:var(--muted)}
+  tfoot td.fb{color:var(--cyan)} tfoot td.gas{color:var(--gold-soft)}
+
+  /* modal */
+  .overlay{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.82);backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem}
+  .overlay.on{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--gold);max-width:520px;width:100%;padding:22px 24px;box-shadow:0 0 0 3px rgba(201,168,104,.08),0 20px 60px rgba(0,0,0,.6);position:relative;color:var(--text)}
+  .modal h2{font-family:var(--mono);font-size:16px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+  .modal .msub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:18px}
+  .modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border:1px solid #2a3a45;border-radius:50%;color:#7a8a95;font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .modal-close:hover{color:var(--red);border-color:var(--red)}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .field input,.field select{width:100%;background:rgba(10,14,20,.8);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12.5px;padding:9px 11px}
+  .field input:focus,.field select:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(201,168,104,.2)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .svc-toggles{display:flex;flex-wrap:wrap;gap:8px}
+  .svc-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid var(--line2);background:rgba(10,14,20,.6);cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--text2);transition:all .12s}
+  .svc-chip:hover{border-color:var(--gold-dim)}
+  .svc-chip.on{border-color:var(--gold);color:var(--gold-bright);background:rgba(201,168,104,.12)}
+  .svc-chip input{accent-color:var(--gold);margin:0}
+  .svc-chip .r{color:var(--muted);font-size:9.5px}
+  .svc-note{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5}
+  .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;flex-wrap:wrap}
+  .hide{display:none!important}
+  .help-body h3{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:.08em;text-transform:uppercase;margin:14px 0 6px}
+  .help-body h3:first-child{margin-top:0}
+  .help-body p,.help-body li{font-size:12.5px;color:var(--text2);line-height:1.55}
+  .help-body ul{padding-left:1.2rem;margin:6px 0}
+  .help-body code{font-family:var(--mono);font-size:11px;color:var(--gold);background:rgba(201,168,104,.1);padding:1px 5px;border:1px solid rgba(201,168,104,.25)}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);font-family:var(--mono);font-size:12px;padding:11px 18px;z-index:9500;max-width:90%;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .toast.show{opacity:1}
+  .footer{font-family:var(--mono);font-size:9.5px;color:var(--muted2);text-align:center;letter-spacing:.04em;line-height:1.7;border-top:1px solid var(--line);margin-top:26px;padding-top:16px}
+
+  /* picture-in-picture: mirrors the active page/subtab, scrolls for long lists */
+  .pip-body{margin:0;padding:10px;background:var(--bg);font-family:var(--sans);color:var(--text);height:100vh;overflow-y:auto;box-sizing:border-box}
+  .pip-h{position:sticky;top:-10px;z-index:5;background:var(--bg);font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-dim);display:flex;align-items:center;gap:8px;padding:4px 0 8px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+  .pip-h .di{width:9px;height:9px}
+  .pip-mirror .panel-title{font-size:11px;margin-bottom:10px}
+  .pip-mirror .grid{grid-template-columns:1fr}
+  .pip-mirror .subtabs,.pip-mirror .fuel-controls,.pip-mirror .plan-form,.pip-mirror .btn-gold,.pip-mirror datalist{display:none}
+  .pip-mirror .card-actions,.pip-mirror .btn{display:none}
+</style>
+</head>
+<body>
+
+<!-- ===== WELCOME GATE ===== -->
+<div class="gate" id="gate">
+  <div class="gate-diamond diamond"></div>
+  <div class="gate-title">Structure Ops</div>
+  <div class="gate-sub">Capsuleer Logistics Net</div>
+  <div class="gate-card">
+    <h3>Link your corporation</h3>
+    <p>Sign in with EVE SSO to pull your corp's structures, fuel and unanchor timers. Structure scopes only — read access, nothing else. The character must hold the <strong style="color:var(--gold)">Director</strong> role.</p>
+    <button class="btn-gold" id="gateAuth"><span class="di diamond"></span> Authorize with EVE Online</button>
+    <div class="gate-err" id="gateErr"></div>
+    <div class="gate-hint">This app is pre-configured — nothing to fill in. Your character and corp are read via EVE SSO with the <strong>read_structures</strong>, <strong>read_corporation_mining</strong> and <strong>read_corporation_assets</strong> scopes.</div>
+  </div>
+  <div class="gate-skip"><a id="gateSkip">Continue without signing in →</a></div>
+</div>
+
+<!-- ===== APP ===== -->
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="tb-left"><span class="tb-diamond diamond"></span><span class="tb-label">Structure Ops</span></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="tb-right" id="tbRight"></div>
+      <button class="btn" id="setBtn" title="Resize the interface">⚏ Scale</button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab on" data-sec="extractions"><span>Extractions</span><span class="cnt" id="cExtract">0</span></button>
+    <button class="tab" data-sec="metcalc"><span>Metenox Calculator</span></button>
+    <button class="tab" data-sec="idle"><span>Idle extractions</span><span class="cnt" id="cIdle">0</span></button>
+    <button class="tab" data-sec="fuel"><span>Structure fuel</span><span class="cnt" id="cFuel">0</span></button>
+    <button class="tab" data-sec="decom"><span>Anchoring/Decommissioning</span><span class="cnt" id="cDec">0</span></button>
+  </nav>
+  <main>
+    <div class="wrap">
+      <section class="sec on" id="sec-extractions">
+        <nav class="subtabs">
+          <button class="subtab on" data-sub="active">Active extractions</button>
+          <button class="subtab" data-sub="optimised">Optimised extraction</button>
+        </nav>
+
+        <div class="subpanel on" id="sub-active">
+          <div class="panel-title"><span class="di diamond"></span>Active extractions — mining now</div>
+          <div class="grid" id="extractGrid"></div>
+        </div>
+
+        <div class="subpanel" id="sub-optimised">
+          <div class="panel-title"><span class="di diamond"></span>Optimised extraction — calendar &amp; staggered scheduling</div>
+          <div class="fuel-controls">
+            <select id="optConst"><option value="all">All constellations</option></select>
+            <span class="opt-lbl">Days between extractions</span><input id="optDuration" type="number" min="0.5" step="0.5" value="7"><span class="opt-lbl">days</span>
+            <span class="opt-lbl">Planning window</span><input id="optWindow" type="number" min="3" max="60" value="14"><span class="opt-lbl">days</span>
+          </div>
+
+          <div class="subhead all"><span class="di"></span>Extraction calendar <small>chunk arrivals read from ESI</small></div>
+          <div id="calendarWrap"></div>
+
+          <div class="subhead moon"><span class="di"></span>Plan new systems <small>queue systems, then generate a staggered start pattern</small></div>
+          <div class="plan-form">
+            <input id="planSystem" placeholder="System name" list="constDatalist" autocomplete="off">
+            <input id="planConst" placeholder="Constellation (optional)" list="constDatalist" autocomplete="off">
+            <button class="btn gold sm" id="addPlanBtn">+ Add to plan</button>
+          </div>
+          <datalist id="constDatalist"></datalist>
+          <div class="plan-form" style="margin-top:0">
+            <input id="optExclude" placeholder="Exclusion keywords — comma-separated, e.g. POS, staging, Athanor-3" autocomplete="off">
+          </div>
+          <div class="hint" style="margin-top:0;margin-bottom:10px">Any structure whose name (or system) contains one of these keywords is ignored — left out of the calendar and the generated pattern. Case-insensitive.</div>
+          <div id="planList"></div>
+
+          <button class="btn-gold" id="genPatternBtn" style="margin-top:16px"><span class="di diamond"></span> Generate optimal pattern</button>
+          <div class="hint" style="margin-top:12px">Every refinery in a system is scheduled before moving to the next system, and only once all systems are done does the cycle return to the first. Each successive start is spaced by the days-between-extractions figure above. Refineries are read from your synced structures per system.</div>
+          <div id="patternResult"></div>
+        </div>
+      </section>
+      <section class="sec" id="sec-metcalc">
+        <div class="panel-title"><span class="di diamond"></span>Metenox Calculator — moon-drill value @ 40% efficiency</div>
+        <p class="hint" style="max-width:900px">Metenox Moon Drills passively extract <b>12,000 m&sup3; of moon ore per hour</b> (40% of a moon's full 30,000 m&sup3;/hr rate — the drill's fixed efficiency). All moon ore is <b>10 m&sup3; per unit</b> &rarr; <b>1,200 units/hour</b> at 100% composition, split by the moon's makeup. The drill hold is <b>500,000 m&sup3;</b>. Enter the composition (paste a survey or use the dropdowns) and pull live prices from ESI for the selected hub.</p>
+
+        <div class="fuel-controls">
+          <span class="opt-lbl">Trade hub</span>
+          <select id="metHub"><option>Jita</option><option>Amarr</option><option>Dodixie</option><option>Rens</option><option>Hek</option></select>
+          <span class="opt-lbl">· Metenox drills</span><input id="metCount" type="number" min="1" step="1" value="1" style="width:60px">
+          <span class="opt-lbl">· Reprocess yield</span><input id="metYield" type="number" min="1" max="100" step="1" value="85" style="width:56px"><span class="opt-lbl">%</span>
+          <button class="btn" id="metFetch">&#8635; Fetch ESI prices</button>
+          <span class="opt-lbl" id="metFetchMsg"></span>
+        </div>
+
+        <div style="margin:12px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
+          <textarea id="metSurvey" placeholder="Optional: paste moon survey composition (e.g.  Zeolites 34%   Sylvite 22% ...) then Parse." style="flex:1;min-width:280px;height:64px;background:var(--panel2);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:11px;padding:8px;resize:vertical"></textarea>
+          <button class="btn" id="metParse">Parse survey</button>
+        </div>
+
+        <table style="width:100%">
+          <thead><tr>
+            <th style="text-align:left">Moon ore</th><th>Composition %</th><th>Price ISK/unit @ <span id="metHubLbl">Jita</span></th><th>Units/hr</th><th>Value/hr</th><th></th>
+          </tr></thead>
+          <tbody id="metRows"></tbody>
+          <tfoot><tr>
+            <td style="text-align:left">Total</td><td id="metPctTot">0%</td><td style="text-align:right" id="metM3Tot">0 m&sup3;/hr</td><td id="metUnitTot" style="text-align:right">0</td><td id="metValTot" style="text-align:right">0</td><td></td>
+          </tr></tfoot>
+        </table>
+        <div style="margin:10px 0"><button class="btn" id="metAddRow">+ Add moon ore</button> <button class="btn" id="metClear">Clear</button></div>
+
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:14px">
+          <div class="ftile" style="flex:1 1 330px;min-width:290px">
+            <div class="panel-title" style="margin:0 0 10px">Metenox yield (&times; <span id="metCountOut">1</span> drill)</div>
+            <div style="display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono)">
+              <div><div class="opt-lbl">per hour</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerHr">0</b></div></div>
+              <div><div class="opt-lbl">per day</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerDay">0</b></div></div>
+              <div><div class="opt-lbl">per 30 days</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerMo">0</b></div></div>
+            </div>
+            <div class="hint" style="margin-top:8px">Reprocessed (moon materials @ <span id="metYieldOut">85</span>% yield): <b id="metRValHr">0</b>/hr · <b id="metRValDay">0</b>/day · <b id="metRValMo">0</b>/30d</div>
+            <div class="hint" style="margin-top:4px">Hold (500,000 m&sup3;) fills in <b id="metHold">0</b> per drill.</div>
+            <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:9px">
+              <div class="opt-lbl" style="margin-bottom:6px">Profit — yield minus fuel</div>
+              <table style="width:100%;font-family:var(--mono);font-size:13px;border-collapse:collapse">
+                <tr><td></td><td class="opt-lbl" style="text-align:right;padding-left:14px">per day</td><td class="opt-lbl" style="text-align:right;padding-left:14px">per week</td><td class="opt-lbl" style="text-align:right;padding-left:14px">per 30 days</td></tr>
+                <tr><td class="opt-lbl" style="text-align:left">Raw ore</td><td style="text-align:right;padding-left:14px"><b id="metProfDay">0</b></td><td style="text-align:right;padding-left:14px"><b id="metProfWk">0</b></td><td style="text-align:right;padding-left:14px"><b id="metProfMo">0</b></td></tr>
+                <tr><td class="opt-lbl" style="text-align:left">Reprocessed</td><td style="text-align:right;padding-left:14px"><b id="metRProfDay">0</b></td><td style="text-align:right;padding-left:14px"><b id="metRProfWk">0</b></td><td style="text-align:right;padding-left:14px"><b id="metRProfMo">0</b></td></tr>
+              </table>
+            </div>
+          </div>
+
+          <div class="ftile" style="flex:1 1 330px;min-width:290px">
+            <div class="panel-title" style="margin:0 0 10px">Fuel cost</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:9px">
+              <span class="opt-lbl">Fuel block</span><input id="metFbPrice" type="number" min="0" step="100" style="width:96px;text-align:right"><span class="opt-lbl">ISK</span>
+              <span class="opt-lbl">Magmatic gas</span><input id="metGasPrice" type="number" min="0" step="10" style="width:96px;text-align:right"><span class="opt-lbl">ISK</span>
+            </div>
+            <div class="hint" style="margin-bottom:9px">Consumes <b>5 fuel blocks</b> + <b>200 magmatic gas</b> per hour, per drill.</div>
+            <div style="display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono)">
+              <div><div class="opt-lbl">per day</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelDay">0</b></div></div>
+              <div><div class="opt-lbl">per week</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelWk">0</b></div></div>
+              <div><div class="opt-lbl">per 30 days</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelMo">0</b></div></div>
+            </div>
+            <div class="hint" style="margin-top:8px">Prices auto-fill from ESI for the selected hub; editable.</div>
+          </div>
+        </div>
+      </section>
+      <section class="sec" id="sec-idle">
+        <div class="panel-title"><span class="di diamond"></span>Idle extractions — capacity going to waste</div>
+        <div class="grid" id="idleGrid"></div>
+      </section>
+      <section class="sec" id="sec-fuel">
+        <div class="panel-title"><span class="di diamond"></span>Structure fuel requirements</div>
+        <div class="fuel-controls">
+          <input class="fuel-search" id="fuelSearch" placeholder="Search name, system or constellation…">
+          <select id="fuelConst"><option value="all">All constellations</option></select>
+          <select id="fuelSys"><option value="all">All systems</option></select>
+        </div>
+        <div class="fuel-summary" id="fuelSummary"></div>
+        <div class="subhead metenox" id="metenoxHead"><span class="di"></span>Metenox moon drills <small id="metenoxSub"></small><span class="chev">▾</span></div>
+        <div id="metenoxFuel" class="fuel-table-wrap"></div>
+        <div class="subhead moon" id="moonHead"><span class="di"></span>Moon drilling <small id="moonSub"></small><span class="chev">▾</span></div>
+        <div id="moonFuel" class="fuel-table-wrap"></div>
+        <div class="subhead all" id="allHead"><span class="di"></span>All structures <small id="allSub"></small><span class="chev">▾</span></div>
+        <div id="allFuel" class="fuel-table-wrap"></div>
+      </section>
+      <section class="sec" id="sec-decom">
+        <div class="panel-title"><span class="di diamond"></span>Anchoring / Decommissioning — structure state timers</div>
+        <div class="grid" id="decomGrid"></div>
+      </section>
+      <div class="footer" id="footer"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalStructure">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 id="mTitle">Add structure</h2><div class="msub" id="mSub">Manual entry</div>
+    <div class="field"><label for="fName">Name / tag</label><input id="fName" placeholder="e.g. P-DR Athanor 1" autocomplete="off"></div>
+    <div class="row2">
+      <div class="field"><label for="fType">Type</label><select id="fType"></select></div>
+      <div class="field"><label for="fLoc">System</label><input id="fLoc" placeholder="e.g. 4-HWWF" autocomplete="off"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="fFuel">Fuel blocks held</label><input id="fFuel" type="number" min="0" placeholder="0"></div>
+      <div class="field"><label>Combined rate (computed)</label><div class="ro" id="rateReadout">—</div></div>
+    </div>
+    <div class="field" id="svcRow"><label>Services online — Dogma base × hull bonus</label><div id="svcToggles" class="svc-toggles"></div><div class="svc-note" id="svcNote"></div></div>
+    <div class="row2" id="gasRow">
+      <div class="field"><label for="fGas">Magmatic gas held</label><input id="fGas" type="number" min="0" placeholder="0"></div>
+      <div class="field"><label for="fGasRate">Magmatic gas / hr</label><input id="fGasRate" type="number" min="0" step="0.1"></div>
+    </div>
+    <div class="field" id="extractRow"><label for="fExtract">Extraction completes (optional)</label><input id="fExtract" type="datetime-local"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn gold" id="saveBtn">Save</button></div>
+  </div>
+
+  <div class="modal hide" id="modalHelp">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>Setup &amp; notes</h2><div class="msub">EVE SSO · structure scopes only</div>
+    <div class="help-body">
+      <h3>Connecting</h3>
+      <p>This app connects only via live EVE SSO — the application Client ID and callback are embedded in the code, so there's nothing to configure. Click Authorize, pick your character, and approve the scopes below.</p>
+      <h3>Scopes &amp; role</h3>
+      <ul><li><code>esi-corporations.read_structures.v1</code></li><li><code>esi-universe.read_structures.v1</code></li><li><code>esi-industry.read_corporation_mining.v1</code></li><li><code>esi-assets.read_corporation_assets.v1</code></li></ul>
+      <p>The authorizing character needs the <strong style="color:var(--gold)">Director</strong> role.</p>
+      <h3>What's tracked</h3>
+      <p>Fuel runway comes from ESI's fuel-expiry timestamp on each structure. The Structure fuel tab has a dedicated Metenox moon drills section that reads fuel blocks and the magmatic gas reagent from corp assets (<code>read_corporation_assets</code>). Auto-syncs every 30 seconds. Each refresh also scans for low fuel (depleted / under 48h / under a week) and idle extractors, colouring the Idle and Structure&nbsp;fuel tab badges and raising a warning toast when the problem set changes.</p>
+    </div>
+    <div class="modal-actions"><button class="btn gold" onclick="closeModal()">Close</button></div>
+  </div>
+</div>
+
+<div id="setModal" style="position:fixed;inset:0;z-index:99999;background:rgba(3,5,7,.82);display:none;align-items:center;justify-content:center">
+    <div style="width:420px;max-width:92vw;background:var(--panel);border:1px solid var(--gold);padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+      <h2 style="font-family:var(--mono);font-size:15px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin:0 0 4px">UI Scale</h2>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:16px">Resize the entire interface. Applies instantly and is saved on this device.</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <input id="cfgUiRange" type="range" min="60" max="200" step="5" style="flex:1">
+        <input id="cfgUi" type="number" min="60" max="200" step="5" style="width:84px;background:var(--panel2);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);padding:6px">
+        <span style="font-family:var(--mono);color:var(--muted)">%</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end"><button class="btn gold" id="cfgClose">Done</button></div>
+    </div>
+  </div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const HR_WEEK=168, HR_MONTH=720;
+const TYPES={
+  metenox:{label:'Metenox Moon Drill',short:'METENOX',cls:'metenox',cat:'moondrill',mining:true,fb:5,gas:200},
+  athanor:{label:'Athanor — Refinery',short:'ATHANOR',cls:'refinery',cat:'refinery',mining:true,fb:5,gas:0},
+  tatara:{label:'Tatara — Refinery',short:'TATARA',cls:'refinery',cat:'refinery',mining:true,fb:10,gas:0},
+  astrahus:{label:'Astrahus — Citadel',short:'ASTRAHUS',cls:'other',cat:'other',mining:false,fb:5,gas:0},
+  fortizar:{label:'Fortizar — Citadel',short:'FORTIZAR',cls:'other',cat:'other',mining:false,fb:10,gas:0},
+  keepstar:{label:'Keepstar — Citadel',short:'KEEPSTAR',cls:'other',cat:'other',mining:false,fb:24,gas:0},
+  raitaru:{label:'Raitaru — Eng. Complex',short:'RAITARU',cls:'other',cat:'other',mining:false,fb:5,gas:0},
+  azbel:{label:'Azbel — Eng. Complex',short:'AZBEL',cls:'other',cat:'other',mining:false,fb:10,gas:0},
+  sotiyo:{label:'Sotiyo — Eng. Complex',short:'SOTIYO',cls:'other',cat:'other',mining:false,fb:20,gas:0},
+  other:{label:'Other structure',short:'OTHER',cls:'other',cat:'other',mining:false,fb:5,gas:0},
+};
+const ESI_TYPE={35825:'raitaru',35826:'azbel',35827:'sotiyo',35832:'astrahus',35833:'fortizar',35834:'keepstar',35835:'athanor',35836:'tatara',81826:'metenox'};
+
+/* ===== FUEL MODEL (Dogma attr 2109 base rates + hull role multipliers) ===== */
+// Base service consumption in fuel blocks/hour, grouped by the hull role that discounts them.
+const SERVICES={
+  moondrill:   {label:'Moon Drilling',          base:5,  group:'refinery'},
+  reprocessing:{label:'Reprocessing',           base:10, group:'refinery'},
+  biochem:     {label:'Biochemical Reactor',    base:10, group:'refinery'},
+  composite:   {label:'Composite Reactor',      base:10, group:'refinery'},
+  hybrid:      {label:'Hybrid Reactor',         base:10, group:'refinery'},
+  manufacturing:{label:'Manufacturing',         base:10, group:'engineering'},
+  research:    {label:'Research / Invention',   base:10, group:'engineering'},
+  clonebay:    {label:'Clone Bay',              base:10, group:'citadel'},
+  market:      {label:'Market',                 base:10, group:'citadel'},
+  bureau:      {label:'Bureau / Office',        base:10, group:'citadel'},
+};
+// Hull role bonus: multiplier applied to its native service group. Flex hulls use a fixed rate.
+const HULLS={
+  athanor: {mult:0.80, groups:['refinery']},
+  tatara:  {mult:0.75, groups:['refinery']},
+  raitaru: {mult:0.75, groups:['engineering']},
+  azbel:   {mult:0.75, groups:['engineering']},
+  sotiyo:  {mult:0.75, groups:['engineering']},
+  astrahus:{mult:0.75, groups:['citadel']},
+  fortizar:{mult:0.75, groups:['citadel']},
+  keepstar:{mult:0.75, groups:['citadel']},
+  metenox: {flex:true, fixed:5},   // fixed consumption, no service toggles
+};
+// Services a hull can host (its native discounted group), used to build the planning toggles.
+function applicableServices(type){ const h=HULLS[type]; if(!h||h.flex) return [];
+  const groups=h.groups||[]; return Object.keys(SERVICES).filter(k=>groups.includes(SERVICES[k].group)); }
+// Modified hourly rate of one online service on a given hull — kept as a float (no rounding).
+function serviceRate(key,type){ const sv=SERVICES[key]; if(!sv) return 0; const h=HULLS[type];
+  const mult=(h && !h.flex && (h.groups||[]).includes(sv.group))?h.mult:1.0; return sv.base*mult; }
+// Total combined hourly rate: sum of online services' modified rates (float). Flex hulls return fixed.
+function combinedRate(s){ const h=HULLS[s.type];
+  if(h && h.flex) return h.fixed;
+  if(Array.isArray(s.services)) return s.services.reduce((sum,k)=>sum+serviceRate(k,s.type),0);
+  return TYPES[s.type]?TYPES[s.type].fb:0; } // unconfigured fallback: legacy hull total
+// One-time onlining penalty: 72h (3 days) of that module's modified hourly rate.
+function calculateOnliningCost(key,type){ return 72*serviceRate(key,type); }
+
+const ESI_SCOPES=['esi-corporations.read_structures.v1','esi-universe.read_structures.v1','esi-industry.read_corporation_mining.v1','esi-assets.read_corporation_assets.v1'];
+const FUEL_BLOCK_TYPES=new Set([4051,4246,4247,4312]); // Nitrogen/Hydrogen/Helium/Oxygen fuel blocks
+const MAGMATIC_GAS_TYPE=81143; // Magmatic Gas reagent
+const SSO_AUTH='https://login.eveonline.com/v2/oauth/authorize/';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const ESI_BASE='https://esi.evetech.net/latest';
+const SHARED_KEY='eve_suite_chars';
+const SUITE_CLIENT_ID='REPLACE_WITH_YOUR_EVE_SSO_CLIENT_ID'; // must match index.html's SUITE_CLIENT_ID
+const APP_CONFIG={ clientId:SUITE_CLIENT_ID, redirectUri: location.origin + location.pathname.replace(/[^/]*$/,'') + 'auth-callback.html' };
+const STORE_KEY='eve_structures_v3', TOKEN_KEY=SHARED_KEY, COLLAPSE_KEY='eve_fuel_collapse_v3';
+let structures=[], chars={}, editingId=null, bypass=false;   // chars: charId -> {access,refresh,expires,charId,charName,corpId,corpName}
+let fuelFilter={q:'',constellation:'all',system:'all'}, fuelCollapse={metenox:false,moon:false,all:false};
+
+/* ---------- storage ---------- */
+const _mem={};
+async function sGet(k){ try{ if(window.storage){ const r=await window.storage.get(k); return r&&r.value!=null?JSON.parse(r.value):null; } }catch(e){}
+  try{ const v=localStorage.getItem(k); return v!=null?JSON.parse(v):null; }catch(e){} return (k in _mem)?_mem[k]:null; }
+async function sSet(k,v){ const s=JSON.stringify(v); try{ if(window.storage){ await window.storage.set(k,s); return; } }catch(e){}
+  try{ localStorage.setItem(k,s); return; }catch(e){} _mem[k]=v; }
+async function sDel(k){ try{ if(window.storage){ await window.storage.delete(k); return; } }catch(e){}
+  try{ localStorage.removeItem(k); return; }catch(e){} delete _mem[k]; }
+async function save(){ await sSet(STORE_KEY,structures); renderAll(); }
+
+/* ---------- helpers ---------- */
+const now=()=>Date.now();
+const fmt=n=>(n==null||isNaN(n))?'0':Math.round(n).toLocaleString();
+const fmtRate=n=>(n==null||isNaN(n))?'0':(Math.round(n*100)/100).toLocaleString(undefined,{maximumFractionDigits:2}); // float hourly rate, not rounded to int
+function shortDate(iso){ const d=new Date(iso); return d.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function hoursLeft(q,r){ if(!r||r<=0) return Infinity; return (q||0)/r; }
+function currentFuel(s){ // live blocks remaining, depleting from the last reading at the combined rate
+  const base=+s.fuel||0; if(!s.fuelAsOf) return base;
+  const el=(now()-new Date(s.fuelAsOf).getTime())/3600000; return Math.max(0, base-combinedRate(s)*el); }
+function fuelHoursLeft(s){
+  // Prefer ESI's authoritative fuel_expires (accounts for rigs, exact service config, bonuses);
+  // fall back to the local depletion model only for manually-entered structures.
+  if(s.fuelExpires) return (new Date(s.fuelExpires).getTime()-now())/3600000;
+  if(s.fuelAsOf && combinedRate(s)>0) return hoursLeft(currentFuel(s),combinedRate(s));
+  return hoursLeft(s.fuel,combinedRate(s)); }
+// effective blocks/hr: derive the real rate from ESI fuel_expires + held blocks when both are known,
+// otherwise use the modelled rate. (Onlining-cost math intentionally keeps using the model.)
+function effRate(s){ if(s.fuelExpires && s.fuelFromEsi){ const h=(new Date(s.fuelExpires).getTime()-new Date(s.fuelAsOf||Date.now()).getTime())/3600000;
+    const cf=+s.fuel||0; if(h>0.5 && cf>0) return cf/h; } return combinedRate(s); }
+function fuelOk(s){ return fuelHoursLeft(s)>0; }
+function currentGas(s){ if(s.gasUnknown) return null; const base=+s.gas||0; if(!s.gasAsOf) return base;
+  const el=(now()-new Date(s.gasAsOf).getTime())/3600000; return Math.max(0, base-(+s.gasRate||0)*el); }
+function gasHoursLeft(s){ const g=currentGas(s); if(g==null) return Infinity; return hoursLeft(g,s.gasRate); }
+function statusOf(s){ if(s.state==='anchoring'||s.state==='anchor_vulnerable') return 'anchoring'; if(s.unanchorsAt) return 'decommissioning'; const t=TYPES[s.type]; if(!t.mining) return 'support';
+  if(s.type==='metenox'){ const g=currentGas(s); const run=(g==null)?true:g>0; return (run&&fuelOk(s))?'extracting':'idle'; }
+  if(s.extractionEnd) return new Date(s.extractionEnd).getTime()>now()?'extracting':'ready'; return 'idle'; }
+function runwayText(h){ if(h===Infinity) return 'no draw'; if(h<=0) return 'DEPLETED';
+  const d=Math.floor(h/24),hr=Math.floor(h%24),m=Math.floor((h-Math.floor(h))*60); // floor only — never overstate safety
+  if(d>0) return d+'d '+hr+'h'; if(hr>0) return hr+'h '+m+'m'; return m+'m'; }
+function level(h){ if(h===Infinity) return 'nominal'; if(h<=48) return 'critical'; if(h<=HR_WEEK) return 'caution'; return 'nominal'; }
+function levelColor(l){ return l==='critical'?'var(--red)':l==='caution'?'var(--gold)':'var(--cyan)'; }
+function countdown(ts){ const d=ts-now(); return d<=0?null:runwayText(d/3600000); }
+function segBar(h,color){ const fill=h===Infinity?100:Math.max(0,Math.min(100,(h/HR_MONTH)*100)); const n=16,f=Math.round(fill/100*n); let s='';
+  for(let i=0;i<n;i++) s+=`<div class="seg" style="background:${i<f?color:'#10161d'}"></div>`; return `<div class="segs">${s}</div>`; }
+function fuelMeter(s){ const h=fuelHoursLeft(s),lvl=level(h),col=levelColor(lvl);
+  const val=s.fuelExpires?shortDate(s.fuelExpires):(fmt(s.fuel)+' blk');
+  return `<div class="meter-block"><div class="meter-row"><span class="meter-label"><span class="ic">▮</span> Fuel blocks${s.fuelExpires?' · ESI':''}</span><span class="meter-val" style="color:${col}">${val}</span></div>
+    ${segBar(h,col)}<div class="runway lvl-${lvl}"><span>${fmtRate(effRate(s))}/hr</span><span>runway <b>${runwayText(h)}</b></span></div></div>`; }
+function gasMeter(s){
+  if(s.gasUnknown) return `<div class="meter-block gas"><div class="meter-row"><span class="meter-label"><span class="ic">◆</span> Magmatic gas</span><span class="meter-val" style="color:var(--muted)">not in ESI — set it</span></div>
+    ${segBar(Infinity,'#23272a')}<div class="runway"><span>${fmt(s.gasRate)}/hr</span><span>edit to enter level</span></div></div>`;
+  const g=currentGas(s),h=hoursLeft(g,s.gasRate);
+  const col=h<=48?'var(--red)':h<=HR_WEEK?'var(--gold)':'var(--gold-soft)';
+  const lvl=h<=48?'critical':h<=HR_WEEK?'caution':'nominal';
+  return `<div class="meter-block gas"><div class="meter-row"><span class="meter-label"><span class="ic">◆</span> Magmatic gas · est.</span><span class="meter-val" style="color:${col}">${fmt(g)}</span></div>
+    ${segBar(h,col)}<div class="runway lvl-${lvl}"><span>${fmt(s.gasRate)}/hr</span><span>runway <b>${runwayText(h)}</b></span></div></div>`; }
+
+function card(s,opts){
+  const showEdit=!opts||opts.showEdit!==false;
+  const t=TYPES[s.type], st=statusOf(s);
+  const stLabel={extracting:'Mining',ready:'Chunk ready',idle:'Idle',anchoring:'Anchoring',decommissioning:'Unanchoring',support:'Online'}[st];
+  const pulse=(st==='extracting'||st==='decommissioning'||st==='anchoring')?'pulse':'';
+  let body='';
+  if(st==='extracting'&&t.cat==='refinery') body+=`<div class="runway lvl-nominal" style="margin-bottom:4px">Extraction completes in <b>${countdown(new Date(s.extractionEnd).getTime())||'—'}</b></div>`;
+  else if(st==='ready') body+=`<div class="hint ready">Chunk ready to fracture — detonate the depot to release ore.</div>`;
+  else if(st==='extracting'&&s.type==='metenox') body+=`<div class="runway lvl-nominal" style="margin-bottom:4px">Auto-mining${s.gasUnknown?' — set gas to track runway.':' — limited by gas runway.'}</div>`;
+  body+=fuelMeter(s);
+  if(s.type==='metenox') body+=gasMeter(s);
+  if(st==='idle'&&s.type==='metenox') body+=`<div class="hint gas">Out of magmatic gas — drill has stopped. Refill to resume mining.</div>`;
+  else if(st==='idle'&&t.cat==='refinery') body+=`<div class="hint">No extraction scheduled. Start one to begin pulling a chunk.</div>`;
+  if(st==='anchoring'){ const cd=s.stateTimerEnd?countdown(new Date(s.stateTimerEnd).getTime()):null;
+    body+=`<div class="hint" style="color:var(--cyan)">${cd?'Anchoring completes in <b>'+cd+'</b>':'Anchoring — no timer reported by ESI.'}</div>`; }
+  if(st==='decommissioning'){ const cd=s.unanchorsAt?countdown(new Date(s.unanchorsAt).getTime()):null;
+    body+=`<div class="hint red">${cd?'Unanchors in <b>'+cd+'</b>':'Unanchoring — no timer reported by ESI.'}</div>`; }
+  const actions=showEdit?`<div class="card-actions"><button class="btn sm" onclick="openEdit('${s.id}')">Edit</button></div>`:'';
+  return `<div class="card"><div class="rail ${st}"></div>
+    <div class="card-head"><div><div class="card-name">${esc(s.name)||'Unnamed'}</div>
+      <div class="card-loc">${esc(s.loc)||'— no location —'}${s.esiId?'<span class="esi-tag">ESI</span>':''}</div></div>
+      <span class="badge ${t.cls}">${t.short}</span></div>
+    <div class="status-line ${st}"><span class="sdot ${pulse}"></span>${stLabel}</div>
+    ${body}${actions}</div>`;
+}
+
+function metenoxTable(list){
+  if(!list.length) return `<div class="empty"><p>No Metenox moon drills found. They appear here once your corp owns one and it's returned by ESI.</p></div>`;
+  let tfb=0,tg=0;
+  const rows=list.map(s=>{
+    const fbr=s.fuelRate||0; tfb+=fbr; const gr=s.gasRate||0; tg+=gr;
+    const fh=fuelHoursLeft(s); const fLeft=fh===Infinity?'—':runwayText(fh);
+    const fCol=fh===Infinity?'dim':(fh<=48?'rd':fh<=HR_WEEK?'am':'gr');
+    let fuelQty;
+    if(s.fuelFromEsi) fuelQty=fmt(currentFuel(s));
+    else if(s.fuelExpires&&fbr>0&&fh!==Infinity) fuelQty=fmt(fh*fbr)+' <i class="estt">est</i>';
+    else fuelQty='<span class="dim">—</span>';
+    const g=currentGas(s); const gh=gasHoursLeft(s);
+    let gasQty,gLeft,gCol;
+    if(s.gasUnknown){ gasQty='<span class="dim">— set →</span>'; gLeft='<span class="dim">—</span>'; gCol='dim'; }
+    else { gasQty=fmt(g)+(s.gasFromEsi?'':' <i class="estt">est</i>'); gLeft=gh===Infinity?'—':runwayText(gh); gCol=gh<=48?'rd':gh<=HR_WEEK?'am':'gas'; }
+    return `<tr><td class="l"><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${esc(s.system||s.loc)||'—'} · ${esc(s.constellation||'—')}</div></td>
+      <td class="fb">${fuelQty}</td><td class="${fCol}">${fLeft}</td>
+      <td class="gas">${gasQty}</td><td class="${gCol}">${gLeft}</td><td class="gas">${fmt(gr)}/hr</td>
+      <td style="text-align:right"><button class="btn sm" onclick="openEdit('${s.id}')">Set gas</button></td></tr>`;
+  }).join('');
+  return `<div class="hint gas" style="margin-bottom:10px">ESI only publishes a drill's fuel-bay contents when it isn't actively running, so block and gas counts can read blank. <b>Fuel left</b> is always accurate (from the structure's fuel timer); the block count is estimated from it. Use <b>Set gas</b> to enter magmatic gas — it then counts down live at the draw rate.</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="l">Metenox</th><th>Fuel blocks</th><th>Fuel left</th><th>Magmatic gas</th><th>Gas left</th><th>Gas draw</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td class="l">Total — ${list.length} drill${list.length!==1?'s':''}</td><td class="fb">${fmtRate(tfb)}/hr</td><td></td><td></td><td></td><td class="gas">${fmtRate(tg)}/hr</td><td></td></tr></tfoot>
+  </table></div>`;
+}
+function fuelTable(list,withGas){
+  if(!list.length) return `<div class="empty"><p>No structures match.</p></div>`;
+  let tfb=0,tg=0,tHeld=0;
+  const rows=list.map(s=>{
+    const fb=s.fuelRate||0; tfb+=fb; const g=s.type==='metenox'?(s.gasRate||0):0; tg+=g;
+    const fh=fuelHoursLeft(s); const fLeft=fh===Infinity?'—':runwayText(fh);
+    const fCol=fh===Infinity?'dim':(fh<=48?'rd':fh<=HR_WEEK?'am':'gr');
+    let held;
+    if(s.fuelFromEsi){ const cf=currentFuel(s); held=fmt(cf); tHeld+=cf; }
+    else if(s.fuelExpires&&fb>0&&fh!==Infinity){ held=fmt(fh*fb)+' <i class="estt">est</i>'; tHeld+=fh*fb; }
+    else held='<span class="dim">—</span>';
+    let gl='',gc='';
+    if(withGas){ if(s.type==='metenox'){ const gh=gasHoursLeft(s); const gLeft=s.gasUnknown?'set':(gh===Infinity?'—':runwayText(gh));
+        const gCol=s.gasUnknown?'dim':(gh<=48?'rd':gh<=HR_WEEK?'am':'gas'); gl=`<td class="${gCol}">${gLeft}</td>`;
+        gc=`<td class="gas">${fmt(g)}</td><td class="gas">${fmt(g*HR_WEEK)}</td><td class="gas">${fmt(g*HR_MONTH)}</td>`; }
+      else { gl=`<td class="dim">—</td>`; gc=`<td class="dim">—</td><td class="dim">—</td><td class="dim">—</td>`; } }
+    return `<tr><td class="l"><div class="nm">${esc(s.name)||'Unnamed'}</div><div class="ty">${TYPES[s.type].short} · ${esc(s.system||s.loc)||'—'}</div></td>
+      <td class="fb">${held}</td><td class="${fCol}">${fLeft}</td><td class="fb">${fmtRate(fb)}</td><td class="fb">${fmt(fb*HR_WEEK)}</td><td class="fb">${fmt(fb*HR_MONTH)}</td>${gl}${gc}</tr>`;
+  }).join('');
+  const gh=withGas?`<th>Gas left</th><th>Gas/hr</th><th>Gas/wk</th><th>Gas/mo</th>`:'';
+  const gf=withGas?`<td></td><td class="gas">${fmt(tg)}</td><td class="gas">${fmt(tg*HR_WEEK)}</td><td class="gas">${fmt(tg*HR_MONTH)}</td>`:'';
+  return `<div class="tbl-wrap"><table><thead><tr><th class="l">Structure</th><th>Fuel blocks</th><th>Fuel left</th><th>Fuel/hr</th><th>Fuel/wk</th><th>Fuel/mo</th>${gh}</tr></thead>
+    <tbody>${rows}</tbody><tfoot><tr><td class="l">Total — ${list.length}</td><td class="fb">${fmt(tHeld)}</td><td></td><td class="fb">${fmtRate(tfb)}</td><td class="fb">${fmt(tfb*HR_WEEK)}</td><td class="fb">${fmt(tfb*HR_MONTH)}</td>${gf}</tr></tfoot></table></div>`;
+}
+
+/* ---------- filters ---------- */
+function applyFuelFilters(list){ let l=list.slice();
+  if(fuelFilter.constellation!=='all') l=l.filter(s=>(s.constellation||'Unknown')===fuelFilter.constellation);
+  if(fuelFilter.system!=='all') l=l.filter(s=>(s.system||s.loc||'Unknown')===fuelFilter.system);
+  if(fuelFilter.q){ const q=fuelFilter.q.toLowerCase(); l=l.filter(s=>(s.name||'').toLowerCase().includes(q)||(s.system||s.loc||'').toLowerCase().includes(q)||(s.constellation||'').toLowerCase().includes(q)); }
+  return l; }
+function refreshFuelFilters(active){
+  const cSel=document.getElementById('fuelConst'), sSel=document.getElementById('fuelSys'); if(!cSel) return;
+  const consts=[...new Set(active.map(s=>s.constellation||'Unknown'))].filter(Boolean).sort();
+  const pool=fuelFilter.constellation==='all'?active:active.filter(s=>(s.constellation||'Unknown')===fuelFilter.constellation);
+  const systems=[...new Set(pool.map(s=>s.system||s.loc||'Unknown'))].filter(Boolean).sort();
+  if(fuelFilter.constellation!=='all'&&!consts.includes(fuelFilter.constellation)) fuelFilter.constellation='all';
+  cSel.innerHTML='<option value="all">All constellations</option>'+consts.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join(''); cSel.value=fuelFilter.constellation;
+  if(fuelFilter.system!=='all'&&!systems.includes(fuelFilter.system)) fuelFilter.system='all';
+  sSel.innerHTML='<option value="all">All systems</option>'+systems.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join(''); sSel.value=fuelFilter.system;
+}
+function renderFuelSummary(metenox,moon,all){ const a=[...metenox,...moon,...all];
+  const tfb=a.reduce((x,s)=>x+(s.fuelRate||0),0), tg=metenox.reduce((x,s)=>x+(s.gasRate||0),0);
+  document.getElementById('fuelSummary').innerHTML=`
+    <div class="ftile fb"><div class="l">Fuel blocks / month</div><div class="v">${fmt(tfb*HR_MONTH)}</div><div class="sub">${fmtRate(tfb)}/hr · ${fmt(tfb*HR_WEEK)}/wk</div></div>
+    <div class="ftile gas"><div class="l">Magmatic gas / month</div><div class="v">${fmt(tg*HR_MONTH)}</div><div class="sub">${fmt(tg)}/hr · ${fmt(tg*HR_WEEK)}/wk · ${metenox.length} drill${metenox.length!==1?'s':''}</div></div>
+    <div class="ftile"><div class="l">Structures shown</div><div class="v">${a.length}</div><div class="sub">${metenox.length} metenox · ${moon.length} refinery · ${all.length} support</div></div>`; }
+
+/* ---------- render ---------- */
+function emptyBox(h,p){ return `<div class="empty"><h3>${h}</h3><p>${p}</p></div>`; }
+function renderAll(){
+  const decom=structures.filter(s=>{const st=statusOf(s);return st==='decommissioning'||st==='anchoring';})
+    .sort((a,b)=>{const ta=a.stateTimerEnd?new Date(a.stateTimerEnd).getTime():(a.unanchorsAt?new Date(a.unanchorsAt).getTime():Infinity);const tb=b.stateTimerEnd?new Date(b.stateTimerEnd).getTime():(b.unanchorsAt?new Date(b.unanchorsAt).getTime():Infinity);return ta-tb;});
+  const active=structures.filter(s=>{const st=statusOf(s);return st!=='decommissioning'&&st!=='anchoring';});
+  const mining=active.filter(s=>TYPES[s.type].mining && s.type!=='metenox'); // Metenox handled in their own section
+  const extracting=mining.filter(s=>statusOf(s)==='extracting') // only a refinery actively counting down is "extracting"
+    .sort((a,b)=>(a.extractionEnd?new Date(a.extractionEnd).getTime()-now():Infinity)-(b.extractionEnd?new Date(b.extractionEnd).getTime()-now():Infinity));
+  const idle=mining.filter(s=>statusOf(s)!=='extracting' && !(s.extractionEnd && new Date(s.extractionEnd).getTime()>now())); // not extracting AND no chunk currently in progress — a refinery that has started/​is running an extraction is removed from idle
+  document.getElementById('cExtract').textContent=extracting.length;
+  document.getElementById('cIdle').textContent=idle.length;
+  document.getElementById('cFuel').textContent=active.length;
+  document.getElementById('cDec').textContent=decom.length;
+  document.getElementById('extractGrid').innerHTML=extracting.length?extracting.map(s=>card(s,{showEdit:false})).join(''):emptyBox('Nothing is mining','Refineries with a scheduled extraction appear here.');
+  document.getElementById('idleGrid').innerHTML=idle.length?idle.map(card).join(''):emptyBox('No idle drills','Idle refineries land here.');
+  refreshFuelFilters(active);
+  const filtered=applyFuelFilters(active);
+  const metenox=filtered.filter(s=>s.type==='metenox');
+  const moon=filtered.filter(s=>TYPES[s.type].mining && s.type!=='metenox');
+  const all=filtered.filter(s=>!TYPES[s.type].mining);
+  renderFuelSummary(metenox,moon,all);
+  document.getElementById('metenoxSub').textContent=`${metenox.length} drill${metenox.length!==1?'s':''} · fuel blocks & magmatic gas (ESI assets)`;
+  document.getElementById('moonSub').textContent='refineries · fuel blocks';
+  document.getElementById('allSub').textContent='citadels, engineering complexes & other';
+  document.getElementById('metenoxFuel').innerHTML=metenoxTable(metenox);
+  document.getElementById('moonFuel').innerHTML=fuelTable(moon,false);
+  document.getElementById('allFuel').innerHTML=fuelTable(all,false);
+  document.getElementById('decomGrid').innerHTML=decom.length?decom.map(card).join(''):emptyBox('No anchoring or unanchoring','Structures your corp is anchoring or decommissioning appear here automatically from ESI, each with its state-timer countdown.');
+  refreshOptFilters(active); renderCalendar(); renderPlanList();
+  renderPip();
+}
+
+/* ---------- subtabs (Extractions: Active / Optimised) ---------- */
+document.querySelectorAll('.subtab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.subtab').forEach(x=>x.classList.remove('on')); t.classList.add('on');
+  document.querySelectorAll('.subpanel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('sub-'+t.dataset.sub).classList.add('on'); renderPip(); }));
+
+/* ---------- optimised extraction: calendar + staggered scheduling ---------- */
+const PLAN_KEY='eve_extraction_plans_v1', EXCLUDE_KEY='eve_extraction_exclude_v1';
+let extractionPlans=[]; let optFilter={constellation:'all'}; let excludeKeywords=[];
+function parseExclude(str){ return (str||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean); }
+function isExcluded(name,system){ if(!excludeKeywords.length) return false;
+  const hay=((name||'')+' '+(system||'')).toLowerCase(); return excludeKeywords.some(k=>hay.includes(k)); }
+function dateKey(d){ const x=new Date(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+function startOfDay(ts){ const d=new Date(ts); d.setHours(0,0,0,0); return d; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function dayLabel(d){ return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'}); }
+function refineryArrivals(){ return structures.filter(s=>TYPES[s.type].cat==='refinery'&&s.extractionEnd&&!isExcluded(s.name,s.system||s.loc))
+  .map(s=>({name:s.name,system:s.system||s.loc,constellation:s.constellation||'Unknown',date:new Date(s.extractionEnd)})); }
+function refreshOptFilters(active){
+  const sel=document.getElementById('optConst'); if(!sel) return;
+  const consts=[...new Set((active||[]).map(s=>s.constellation||'Unknown'))].filter(Boolean).sort();
+  if(optFilter.constellation!=='all'&&!consts.includes(optFilter.constellation)) optFilter.constellation='all';
+  sel.innerHTML='<option value="all">All constellations</option>'+consts.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join(''); sel.value=optFilter.constellation;
+  const dl=document.getElementById('constDatalist'); if(dl) dl.innerHTML=consts.map(c=>`<option value="${esc(c)}">`).join('');
+}
+function renderCalendar(){
+  const wrap=document.getElementById('calendarWrap'); if(!wrap) return;
+  const windowDays=Math.max(3,Math.min(60,+document.getElementById('optWindow').value||14));
+  const arrivals=refineryArrivals().filter(a=>optFilter.constellation==='all'||a.constellation===optFilter.constellation);
+  const today=startOfDay(now()); const buckets={};
+  arrivals.forEach(a=>{ const k=dateKey(a.date); (buckets[k]=buckets[k]||[]).push(a); });
+  let strip='',list='';
+  for(let i=0;i<windowDays;i++){
+    const d=addDays(today,i),k=dateKey(d),items=buckets[k]||[];
+    const lvl=items.length===0?'':items.length<=2?'lo':'hi';
+    strip+=`<div class="cal-tile ${lvl}${i===0?' today':''}"><span class="cal-dow">${d.toLocaleDateString([],{weekday:'short'})}</span><span class="cal-dom">${d.getDate()}</span>${items.length?`<span class="cal-count">${items.length}</span>`:''}</div>`;
+    if(items.length) list+=`<div class="cal-day-row"><div class="cal-day-date">${dayLabel(d)}</div><div class="cal-day-chips">${items.map(a=>`<span class="cal-chip">${esc(a.name)} <i>${esc(a.system)}</i></span>`).join('')}</div></div>`;
+  }
+  wrap.innerHTML=`<div class="cal-strip">${strip}</div>${list?`<div class="cal-list">${list}</div>`:`<div class="empty" style="margin-top:10px"><p>No scheduled arrivals in this window${optFilter.constellation!=='all'?' for '+esc(optFilter.constellation):''}.</p></div>`}`;
+}
+async function savePlans(){ await sSet(PLAN_KEY,extractionPlans); renderPlanList(); }
+function renderPlanList(){
+  const wrap=document.getElementById('planList'); if(!wrap) return;
+  const list=extractionPlans.filter(p=>(optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation));
+  wrap.innerHTML=list.length?list.map(p=>{ const ex=isExcluded(p.system,p.system);
+    return `<div class="plan-row" style="${ex?'opacity:.45':''}"><span>${esc(p.system)}${ex?' <i style="color:var(--red);font-style:normal">excluded</i>':''}</span><span class="dim">${esc(p.constellation||'Unspecified')}</span><button class="char-x" onclick="removePlan('${p.id}')">✕</button></div>`; }).join('')
+    :`<div class="empty" style="padding:18px"><p>No systems queued for scheduling yet.</p></div>`;
+}
+window.removePlan=async(id)=>{ extractionPlans=extractionPlans.filter(p=>p.id!==id); await savePlans(); };
+document.getElementById('addPlanBtn').onclick=async()=>{
+  const sysEl=document.getElementById('planSystem'), cEl=document.getElementById('planConst');
+  const system=sysEl.value.trim(); if(!system){ sysEl.focus(); return; }
+  let constellation=cEl.value.trim();
+  if(!constellation){ const match=structures.find(s=>(s.system||'').toLowerCase()===system.toLowerCase()); if(match) constellation=match.constellation||''; }
+  extractionPlans.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),system,constellation});
+  sysEl.value=''; cEl.value=''; await savePlans();
+};
+document.getElementById('optConst').addEventListener('change',e=>{ optFilter.constellation=e.target.value; renderCalendar(); renderPlanList(); });
+document.getElementById('optWindow').addEventListener('input',renderCalendar);
+document.getElementById('optExclude').addEventListener('input',async e=>{ excludeKeywords=parseExclude(e.target.value); await sSet(EXCLUDE_KEY,e.target.value); renderCalendar(); renderPlanList(); });
+document.getElementById('genPatternBtn').onclick=()=>{
+  const gap=Math.max(0.5,+document.getElementById('optDuration').value||7);
+  const today=startOfDay(now());
+  const plansToSchedule=extractionPlans.filter(p=>(optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation)&&!isExcluded(p.system,p.system));
+  const out=document.getElementById('patternResult');
+  if(!plansToSchedule.length){ out.innerHTML=`<div class="empty" style="margin-top:10px"><p>No systems to schedule — add one above, or it may be hidden by your exclusion keywords.</p></div>`; return; }
+  // Expand each planned system into its refineries; plan ALL refineries in a system
+  // before moving on, and only after every system is done does the cycle restart.
+  const units=[];
+  plansToSchedule.forEach(p=>{
+    const refs=structures.filter(s=>TYPES[s.type].cat==='refinery' && (s.system||s.loc||'').toLowerCase()===p.system.toLowerCase() && !isExcluded(s.name,s.system||s.loc));
+    if(refs.length) refs.forEach(r=>units.push({system:p.system,constellation:p.constellation||r.constellation||'Unknown',refinery:r.name}));
+    else units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null});
+  });
+  const N=units.length, cycleDays=Math.round(N*gap);
+  const results=units.map((u,i)=>{ const startDate=addDays(today,Math.round(i*gap)); return {...u,startDate,nextDate:addDays(startDate,cycleDays)}; });
+  out.innerHTML=`<div class="hint" style="margin-top:14px;margin-bottom:10px">${N} extraction${N!==1?'s':''} across ${plansToSchedule.length} system${plansToSchedule.length!==1?'s':''} · one full cycle every <b>${cycleDays}d</b>. Each system's refineries are all scheduled before the cycle returns to the first.</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="l">#</th><th class="l">System</th><th class="l">Refinery</th><th class="l">Constellation</th><th>Suggested start</th><th>Next cycle</th></tr></thead>
+    <tbody>${results.map((r,i)=>`<tr><td class="l dim">${i+1}</td><td class="l"><div class="nm">${esc(r.system)}</div></td><td class="l">${r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>'}</td><td class="l dim">${esc(r.constellation||'Unspecified')}</td>
+      <td>${dayLabel(r.startDate)}</td><td class="dim">${dayLabel(r.nextDate)}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+};
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on')); t.classList.add('on');
+  const map={extractions:'sec-extractions',metcalc:'sec-metcalc',idle:'sec-idle',fuel:'sec-fuel',decom:'sec-decom'};
+  document.querySelectorAll('section.sec').forEach(s=>s.classList.remove('on'));
+  document.getElementById(map[t.dataset.sec]).classList.add('on'); renderPip(); }));
+
+/* ---------- Metenox Calculator ---------- */
+const MOON_ORES=[
+  {n:'Bitumens',r:'R4'},{n:'Coesite',r:'R4'},{n:'Sylvite',r:'R4'},{n:'Zeolites',r:'R4'},
+  {n:'Cobaltite',r:'R8'},{n:'Euxenite',r:'R8'},{n:'Scheelite',r:'R8'},{n:'Titanite',r:'R8'},
+  {n:'Chromite',r:'R16'},{n:'Otavite',r:'R16'},{n:'Sperrylite',r:'R16'},{n:'Vanadinite',r:'R16'},
+  {n:'Carnotite',r:'R32'},{n:'Cinnabar',r:'R32'},{n:'Pollucite',r:'R32'},{n:'Zircon',r:'R32'},
+  {n:'Loparite',r:'R64'},{n:'Monazite',r:'R64'},{n:'Xenotime',r:'R64'},{n:'Ytterbite',r:'R64'}
+];
+const MET_REPROCESS={ // per 100 units (=1000 m³) of base-quality ore: [material, qty]
+  Bitumens:[['Hydrocarbons',65],['Pyerite',6000],['Mexallon',400]],
+  Coesite:[['Silicates',65],['Pyerite',2000],['Mexallon',400]],
+  Sylvite:[['Evaporite Deposits',65],['Pyerite',4000],['Mexallon',400]],
+  Zeolites:[['Atmospheric Gases',65],['Pyerite',8000],['Mexallon',400]],
+  Cobaltite:[['Cobalt',40]], Euxenite:[['Scandium',40]], Scheelite:[['Tungsten',40]], Titanite:[['Titanium',40]],
+  Chromite:[['Chromium',40],['Hydrocarbons',10]], Otavite:[['Cadmium',40],['Atmospheric Gases',10]],
+  Sperrylite:[['Platinum',40],['Evaporite Deposits',10]], Vanadinite:[['Vanadium',40],['Silicates',10]],
+  Carnotite:[['Technetium',50],['Cobalt',10],['Atmospheric Gases',15]], Cinnabar:[['Mercury',50],['Tungsten',10],['Evaporite Deposits',15]],
+  Pollucite:[['Caesium',50],['Scandium',10],['Hydrocarbons',15]], Zircon:[['Hafnium',50],['Titanium',10],['Silicates',15]],
+  Loparite:[['Promethium',22],['Platinum',10],['Scandium',20],['Hydrocarbons',20]], Monazite:[['Neodymium',22],['Chromium',10],['Tungsten',20],['Evaporite Deposits',20]],
+  Xenotime:[['Dysprosium',22],['Vanadium',10],['Cobalt',20],['Atmospheric Gases',20]], Ytterbite:[['Thulium',22],['Cadmium',10],['Titanium',20],['Silicates',20]]
+};
+const MET_MATERIALS=[...new Set(Object.values(MET_REPROCESS).flat().map(m=>m[0]))]; // unique reprocessing outputs
+const metMatPrice={}; // material -> ISK/unit from ESI
+const MET_REGION={Jita:10000002,Amarr:10000043,Dodixie:10000032,Rens:10000030,Hek:10000042};
+const MET_HUB={ Jita:{fb:16000,gas:1500}, Amarr:{fb:17000,gas:1700}, Dodixie:{fb:17500,gas:1800}, Rens:{fb:18000,gas:1900}, Hek:{fb:18000,gas:1900} };
+const MET_M3_HR=12000, MET_ORE_M3=10, MET_HOLD=500000, MET_UNITS_HR=MET_M3_HR/MET_ORE_M3; // 1200 units/hr @100% (fixed 40% efficiency)
+const metPrice={}; // ore -> ISK/unit, last fetched from ESI for the selected hub
+const metCurHub=()=>{ const h=document.getElementById('metHub'); return h?h.value:'Jita'; };
+const metFmt=n=>{ n=Math.round(n||0); const s=n<0?'-':''; n=Math.abs(n);
+  if(n>=1e9)return s+(n/1e9).toFixed(2)+'b'; if(n>=1e6)return s+(n/1e6).toFixed(2)+'m'; if(n>=1e3)return s+(n/1e3).toFixed(1)+'k'; return s+n; };
+const metDur=hrs=>{ if(!isFinite(hrs)||hrs<=0)return '—'; const d=Math.floor(hrs/24), h=Math.round(hrs%24); return (d?d+'d ':'')+h+'h'; };
+function metOreOptions(sel){ return MOON_ORES.map(o=>`<option value="${o.n}" ${o.n===sel?'selected':''}>${o.n} (${o.r})</option>`).join(''); }
+function metAddRow(ore,pct){ const tb=document.getElementById('metRows'); if(!tb)return; const oreN=ore||MOON_ORES[0].n;
+  const price=metPrice[oreN]!=null?Math.round(metPrice[oreN]):'';
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td style="text-align:left"><select class="metOre">${metOreOptions(oreN)}</select></td>`+
+    `<td><input class="metPct" type="number" min="0" step="0.1" value="${pct!=null?pct:''}" style="width:78px;text-align:right"></td>`+
+    `<td><input class="metUP" type="number" min="0" step="1" value="${price}" style="width:130px;text-align:right"></td>`+
+    `<td class="metUnits" style="text-align:right;font-family:var(--mono)">0</td>`+
+    `<td class="metValHr" style="text-align:right;font-family:var(--mono)">0</td>`+
+    `<td style="text-align:right"><span class="metRm" title="Remove" style="cursor:pointer;color:var(--red)">&#10005;</span></td>`;
+  tb.appendChild(tr);
+  tr.querySelector('.metPct').addEventListener('input',metRecompute);
+  tr.querySelector('.metUP').addEventListener('input',()=>{ metPrice[tr.querySelector('.metOre').value]=+tr.querySelector('.metUP').value||0; metRecompute(); });
+  tr.querySelector('.metOre').addEventListener('change',()=>{ const o=tr.querySelector('.metOre').value; if(metPrice[o]!=null) tr.querySelector('.metUP').value=Math.round(metPrice[o]); metRecompute(); });
+  tr.querySelector('.metRm').onclick=()=>{ tr.remove(); metRecompute(); };
+  metRecompute();
+}
+function metRecompute(){ if(!document.getElementById('metCount'))return;
+  const count=Math.max(1,+document.getElementById('metCount').value||1);
+  const yieldPct=Math.max(0,Math.min(100,+((document.getElementById('metYield')||{}).value)||85))/100;
+  let pctTot=0, unitTot=0, valHr=0, reproHr=0;
+  document.querySelectorAll('#metRows tr').forEach(tr=>{ const ore=tr.querySelector('.metOre').value; const pct=+tr.querySelector('.metPct').value||0; const up=+tr.querySelector('.metUP').value||0;
+    const units=MET_UNITS_HR*count*(pct/100); const v=units*up; pctTot+=pct; unitTot+=units; valHr+=v;
+    const rec=MET_REPROCESS[ore]; let perU=0; if(rec) rec.forEach(([m,q])=>{ perU+=(q/100)*(metMatPrice[m]||0); });
+    reproHr+=units*yieldPct*perU;
+    tr.querySelector('.metUnits').textContent=Math.round(units).toLocaleString();
+    tr.querySelector('.metValHr').textContent=metFmt(v); });
+  // fuel (per hub)
+  const hub=metCurHub(); const fb=+document.getElementById('metFbPrice').value||0, gas=+document.getElementById('metGasPrice').value||0;
+  MET_HUB[hub]={fb,gas};
+  const fuelHr=(5*fb+200*gas)*count, profHr=valHr-fuelHr;
+  // hold fill (per drill) at actual m3/hr
+  const perDrillM3=(unitTot/count)*MET_ORE_M3; const holdHr=perDrillM3>0?MET_HOLD/perDrillM3:Infinity;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el)el.textContent=v; };
+  set('metPctTot',pctTot.toFixed(1)+'%'); set('metM3Tot',Math.round(unitTot*MET_ORE_M3).toLocaleString()+' m³/hr');
+  set('metUnitTot',Math.round(unitTot).toLocaleString()); set('metValTot',metFmt(valHr));
+  set('metCountOut',count); set('metHold',metDur(holdHr));
+  set('metPerHr',metFmt(valHr)); set('metPerDay',metFmt(valHr*24)); set('metPerMo',metFmt(valHr*720));
+  set('metFuelDay',metFmt(fuelHr*24)); set('metFuelWk',metFmt(fuelHr*168)); set('metFuelMo',metFmt(fuelHr*720));
+  const setP=(id,v)=>{ const el=document.getElementById(id); if(!el)return; el.textContent=metFmt(v); el.style.color=v>=0?'var(--green)':'var(--rederr)'; };
+  setP('metProfDay',profHr*24); setP('metProfWk',profHr*168); setP('metProfMo',profHr*720);
+  const rProfHr=reproHr-fuelHr;
+  setP('metRProfDay',rProfHr*24); setP('metRProfWk',rProfHr*168); setP('metRProfMo',rProfHr*720);
+  set('metRValHr',metFmt(reproHr)); set('metRValDay',metFmt(reproHr*24)); set('metRValMo',metFmt(reproHr*720));
+}
+function metParseSurvey(){ const el=document.getElementById('metSurvey'); const txt=el?el.value:''; if(!txt.trim())return;
+  document.getElementById('metRows').innerHTML=''; const lines=txt.split(/[\n\r]+/); let added=0;
+  MOON_ORES.forEach(o=>{ const re=new RegExp(o.n+'\\D*?([0-9]+(?:\\.[0-9]+)?)\\s*%?','i');
+    for(const ln of lines){ const m=re.exec(ln); if(m){ let p=parseFloat(m[1]); if(p<=1)p*=100; metAddRow(o.n,+p.toFixed(1)); added++; break; } } });
+  if(!added){ metAddRow(); alert('No moon ores recognised in that text — add them with the dropdowns instead.'); }
+  metRecompute();
+}
+async function metFetchEsi(){ const msg=document.getElementById('metFetchMsg'), btn=document.getElementById('metFetch');
+  const hub=metCurHub(), region=MET_REGION[hub]||10000002; btn.disabled=true; msg.textContent='resolving type IDs…';
+  try{
+    const names=MOON_ORES.map(o=>o.n).concat(MET_MATERIALS,['Magmatic Gas','Nitrogen Fuel Block']);
+    const idr=await fetch('https://esi.evetech.net/latest/universe/ids/?datasource=tranquility',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(names)});
+    const ij=await idr.json(); const nameId={}; (ij.inventory_types||[]).forEach(t=>nameId[t.name]=t.id);
+    msg.textContent='fetching '+hub+' sell prices…';
+    const priceOf={};
+    await Promise.all(names.filter(n=>nameId[n]).map(async n=>{ try{
+      const r=await fetch(`https://esi.evetech.net/latest/markets/${region}/orders/?datasource=tranquility&order_type=sell&type_id=${nameId[n]}`);
+      const os=await r.json(); if(Array.isArray(os)&&os.length) priceOf[n]=Math.min.apply(null,os.map(o=>o.price)); }catch(e){} }));
+    MOON_ORES.forEach(o=>{ if(priceOf[o.n]!=null) metPrice[o.n]=priceOf[o.n]; });
+    MET_MATERIALS.forEach(m=>{ if(priceOf[m]!=null) metMatPrice[m]=priceOf[m]; });
+    document.querySelectorAll('#metRows tr').forEach(tr=>{ const o=tr.querySelector('.metOre').value; if(metPrice[o]!=null) tr.querySelector('.metUP').value=Math.round(metPrice[o]); });
+    if(priceOf['Magmatic Gas']!=null) document.getElementById('metGasPrice').value=Math.round(priceOf['Magmatic Gas']);
+    if(priceOf['Nitrogen Fuel Block']!=null) document.getElementById('metFbPrice').value=Math.round(priceOf['Nitrogen Fuel Block']);
+    MET_HUB[hub]={fb:+document.getElementById('metFbPrice').value||0,gas:+document.getElementById('metGasPrice').value||0};
+    const got=Object.keys(priceOf).length; msg.textContent=got?('✓ '+hub+' · '+got+' prices · '+new Date().toLocaleTimeString()):'no prices returned';
+    metRecompute();
+  }catch(e){ msg.textContent='fetch failed — is ESI reachable?'; }
+  btn.disabled=false;
+}
+function metLoadHub(){ const h=metCurHub(); const p=MET_HUB[h]||MET_HUB.Jita;
+  const fbEl=document.getElementById('metFbPrice'), gasEl=document.getElementById('metGasPrice');
+  if(fbEl&&!fbEl.value) fbEl.value=p.fb; if(gasEl&&!gasEl.value) gasEl.value=p.gas;
+  const lbl=document.getElementById('metHubLbl'); if(lbl) lbl.textContent=h;
+  metRecompute();
+}
+['metCount','metFbPrice','metGasPrice','metYield'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input',()=>{ const y=document.getElementById('metYieldOut'); if(y)y.textContent=Math.round(+((document.getElementById('metYield')||{}).value)||85); metRecompute(); }); });
+{ const hb=document.getElementById('metHub'); if(hb) hb.addEventListener('change',()=>{ const p=MET_HUB[metCurHub()]; document.getElementById('metFbPrice').value=p.fb; document.getElementById('metGasPrice').value=p.gas; document.getElementById('metHubLbl').textContent=metCurHub(); metRecompute(); }); }
+{ const a=document.getElementById('metAddRow'); if(a) a.onclick=()=>metAddRow(); }
+{ const c=document.getElementById('metClear'); if(c) c.onclick=()=>{ document.getElementById('metRows').innerHTML=''; metRecompute(); }; }
+{ const p=document.getElementById('metParse'); if(p) p.onclick=metParseSurvey; }
+{ const f=document.getElementById('metFetch'); if(f) f.onclick=metFetchEsi; }
+if(document.getElementById('metRows')){ metLoadHub(); metAddRow(); }
+
+/* ---------- collapse ---------- */
+function applyCollapse(){ ['metenox','moon','all'].forEach(k=>{ const h=document.getElementById(k+'Head'); const f=document.getElementById(k+'Fuel'); if(h)h.classList.toggle('collapsed',fuelCollapse[k]); if(f)f.classList.toggle('collapsed',fuelCollapse[k]); }); }
+document.getElementById('metenoxHead').onclick=async()=>{ fuelCollapse.metenox=!fuelCollapse.metenox; applyCollapse(); await sSet(COLLAPSE_KEY,fuelCollapse); };
+document.getElementById('moonHead').onclick=async()=>{ fuelCollapse.moon=!fuelCollapse.moon; applyCollapse(); await sSet(COLLAPSE_KEY,fuelCollapse); };
+document.getElementById('allHead').onclick=async()=>{ fuelCollapse.all=!fuelCollapse.all; applyCollapse(); await sSet(COLLAPSE_KEY,fuelCollapse); };
+document.getElementById('fuelSearch').addEventListener('input',e=>{ fuelFilter.q=e.target.value; renderAll(); });
+document.getElementById('fuelConst').addEventListener('change',e=>{ fuelFilter.constellation=e.target.value; fuelFilter.system='all'; renderAll(); });
+document.getElementById('fuelSys').addEventListener('change',e=>{ fuelFilter.system=e.target.value; renderAll(); });
+
+/* ---------- modal ---------- */
+const overlay=document.getElementById('overlay');
+function openModal(which){ document.getElementById('modalStructure').classList.toggle('hide',which==='help'); document.getElementById('modalHelp').classList.toggle('hide',which!=='help'); overlay.classList.add('on'); }
+function closeModal(){ overlay.classList.remove('on'); } window.closeModal=closeModal;
+overlay.addEventListener('click',e=>{ if(e.target===overlay) closeModal(); });
+const typeSel=document.getElementById('fType');
+Object.entries(TYPES).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.label;typeSel.appendChild(o);});
+function syncTypeFields(){ const t=TYPES[typeSel.value];
+  document.getElementById('gasRow').classList.toggle('hide',typeSel.value!=='metenox');
+  document.getElementById('extractRow').classList.toggle('hide',t.cat!=='refinery');
+  buildServiceToggles(typeSel.value); }
+let editOrigServices=[]; // services that were online when the modal opened (for onlining-penalty detection)
+function buildServiceToggles(type, selected){
+  const wrap=document.getElementById('svcToggles'), note=document.getElementById('svcNote'), row=document.getElementById('svcRow');
+  const apps=applicableServices(type); const hull=HULLS[type];
+  if(hull&&hull.flex){ row.classList.add('hide'); document.getElementById('rateReadout').textContent=fmtRate(hull.fixed)+' blk/hr (fixed)'; return; }
+  row.classList.remove('hide');
+  if(!apps.length){ wrap.innerHTML=''; note.textContent='No service modules modelled for this hull — using base rate '+fmtRate(combinedRate({type,services:undefined}))+' blk/hr.'; updateRateReadout(); return; }
+  const sel=selected||[];
+  wrap.innerHTML=apps.map(k=>{ const on=sel.includes(k); const r=serviceRate(k,type);
+    return `<label class="svc-chip ${on?'on':''}"><input type="checkbox" value="${k}" ${on?'checked':''}> ${SERVICES[k].label} <span class="r">${fmtRate(r)}/hr</span></label>`; }).join('');
+  wrap.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change',()=>{ cb.closest('.svc-chip').classList.toggle('on',cb.checked); updateRateReadout(); }));
+  note.innerHTML=`Hull bonus ×${hull?hull.mult:1} applied to ${hull?hull.groups.join(', '):'—'} modules. Onlining a module costs a one-time 72h of its rate.`;
+  updateRateReadout();
+}
+function selectedServices(){ return [...document.querySelectorAll('#svcToggles input[type=checkbox]:checked')].map(c=>c.value); }
+function modalServices(type){ const hull=HULLS[type]; if(hull&&hull.flex) return undefined;
+  if(!applicableServices(type).length) return undefined; // unmodelled hull → legacy fallback rate
+  return selectedServices(); }
+function updateRateReadout(){
+  const type=typeSel.value;
+  const svc=modalServices(type);
+  const rate=combinedRate({type,services:svc});
+  const fuel=+document.getElementById('fFuel').value||0;
+  let penalty=0; (svc||[]).forEach(k=>{ if(!editOrigServices.includes(k)) penalty+=calculateOnliningCost(k,type); });
+  const projFuel=Math.max(0,fuel-penalty);
+  const hrs=rate>0?projFuel/rate:Infinity;
+  let txt=fmtRate(rate)+' blk/hr · runway '+runwayText(hrs);
+  if(penalty>0) txt+=` · onlining −${fmt(penalty)} blk`;
+  document.getElementById('rateReadout').textContent=txt;
+}
+typeSel.addEventListener('change',()=>{ const t=TYPES[typeSel.value];
+  document.getElementById('fGasRate').value=t.gas||''; editOrigServices=[]; syncTypeFields(); });
+document.getElementById('fFuel').addEventListener('input',updateRateReadout);
+window.openEdit=function(id){ const s=structures.find(x=>x.id===id); if(!s)return; editingId=id;
+  document.getElementById('mTitle').textContent='Edit structure'; document.getElementById('mSub').textContent=s.name||'';
+  typeSel.value=s.type; document.getElementById('fName').value=s.name||''; document.getElementById('fLoc').value=s.loc||'';
+  document.getElementById('fFuel').value=s.fuel??''; document.getElementById('fGas').value=s.gasUnknown?'':(currentGas(s)==null?'':Math.round(currentGas(s)));
+  document.getElementById('fGasRate').value=s.gasRate??TYPES[s.type].gas;
+  document.getElementById('fExtract').value=s.extractionEnd?toLocalInput(s.extractionEnd):'';
+  editOrigServices=Array.isArray(s.services)?s.services.slice():[];
+  document.getElementById('gasRow').classList.toggle('hide',s.type!=='metenox');
+  document.getElementById('extractRow').classList.toggle('hide',TYPES[s.type].cat!=='refinery');
+  buildServiceToggles(s.type, editOrigServices);
+  openModal('struct'); };
+function toLocalInput(iso){ const d=new Date(iso); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16); }
+document.getElementById('saveBtn').onclick=async()=>{
+  const type=typeSel.value,t=TYPES[type],hull=HULLS[type]; const name=document.getElementById('fName').value.trim(); if(!name){document.getElementById('fName').focus();return;}
+  const fuelInput=+document.getElementById('fFuel').value||0;
+  const gas=type==='metenox'?(+document.getElementById('fGas').value||0):0, gasRate=type==='metenox'?(+document.getElementById('fGasRate').value||0):0;
+  const ext=(t.cat==='refinery'&&document.getElementById('fExtract').value)?new Date(document.getElementById('fExtract').value).toISOString():null;
+  const svc=modalServices(type);
+  // onlining penalty: one-time 72h of rate for each service switched on this edit, deducted from projected inventory
+  let penalty=0; if(svc) svc.forEach(k=>{ if(!editOrigServices.includes(k)) penalty+=calculateOnliningCost(k,type); });
+  const fuel=Math.max(0,fuelInput-penalty);
+  if(editingId){ const o=structures.find(x=>x.id===editingId); o.type=type;o.name=name;o.services=svc;o.gasRate=gasRate;
+    o.fuelRate=combinedRate(o);
+    if(type==='metenox'){ o.gas=gas;o.gasAsOf=new Date().toISOString();o.gasUnknown=false; }
+    o.fuel=fuel; o.fuelAsOf=new Date().toISOString(); // anchor depletion clock to this edit
+    if(!o.esiId){ o.loc=document.getElementById('fLoc').value.trim();o.system=o.loc;o.fuelExpires=null;o.extractionEnd=ext; }
+    else if(ext){ o.extractionEnd=ext; }
+  } else { const loc=document.getElementById('fLoc').value.trim();
+    const o={id:'s'+Date.now()+Math.random().toString(36).slice(2,6),type,name,loc,system:loc,constellation:'Unknown',
+      services:svc,fuel,fuelAsOf:new Date().toISOString(),gas,gasRate,gasAsOf:new Date().toISOString(),gasUnknown:false,extractionEnd:ext};
+    o.fuelRate=combinedRate(o);
+    structures.push(o); }
+  closeModal(); await save();
+};
+
+/* ---------- topbar ---------- */
+function renderTopbar(){
+  const r=document.getElementById('tbRight');
+  let html='';
+  const ids=Object.keys(chars);
+  if(ids.length){
+    html+=ids.map(id=>{ const c=chars[id];
+      const av=`<img class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">`;
+      const corp=c.corpName?` · ${esc(c.corpName)}`:'';
+      return `<span class="char-chip">${av}<span class="char-name">${esc(c.charName||'capsuleer')}${corp}</span><span class="char-dot" id="syncDot-${id}"></span><span class="char-x" title="Disconnect" onclick="disconnectEsi('${id}')">✕</span></span>`;
+    }).join('');
+    html+=`<button class="sync-btn" id="syncBtn" onclick="syncNow()">Sync</button>`;
+  } else {
+    html+=`<button class="tb-btn" onclick="showGate()">Connect ESI</button>`;
+  }
+  if('documentPictureInPicture' in window) html+=`<button class="tb-btn" id="pipBtn" onclick="togglePip()">⧉ Pop out</button>`;
+  html+=`<button class="tb-btn" onclick="openModal('help')">? Help</button>`;
+  r.innerHTML=html;
+}
+function setSyncDot(state,id){
+  if(id){ const d=document.getElementById('syncDot-'+id); if(d) d.className='char-dot'+(state==='busy'?' busy':''); return; }
+  Object.keys(chars).forEach(cid=>{ const d=document.getElementById('syncDot-'+cid); if(d) d.className='char-dot'+(state==='busy'?' busy':''); });
+}
+
+/* ---------- picture-in-picture watch panel (always-on-top) ---------- */
+let pipWin=null;
+function copyStylesTo(win){
+  [...document.styleSheets].forEach(ss=>{
+    try{ const css=[...ss.cssRules].map(r=>r.cssText).join(''); const st=win.document.createElement('style'); st.textContent=css; win.document.head.appendChild(st); }
+    catch(e){ if(ss.href){ const l=win.document.createElement('link'); l.rel='stylesheet'; l.href=ss.href; win.document.head.appendChild(l); } }
+  });
+}
+function timeLeft(s){ return s.extractionEnd?new Date(s.extractionEnd).getTime()-now():Infinity; }
+function renderPip(){
+  if(!pipWin || pipWin.closed) return;
+  const root=pipWin.document.getElementById('pipRoot'); if(!root) return;
+  const sec=document.querySelector('section.sec.on');
+  const tab=document.querySelector('.tab.on');
+  const label=tab?(tab.querySelector('span')?tab.querySelector('span').textContent:tab.textContent).trim():'Structure Ops';
+  root.innerHTML=`<div class="pip-h"><span class="di diamond"></span>${esc(label)}</div><div class="pip-mirror">${sec?sec.innerHTML:''}</div>`;
+}
+async function togglePip(){
+  if(pipWin && !pipWin.closed){ pipWin.close(); pipWin=null; return; }
+  if(!('documentPictureInPicture' in window)){ toast('Picture-in-Picture needs a Chromium browser (Chrome/Edge).'); return; }
+  try{
+    pipWin=await documentPictureInPicture.requestWindow({width:320,height:480});
+    copyStylesTo(pipWin);
+    pipWin.document.body.classList.add('pip-body');
+    const root=pipWin.document.createElement('div'); root.id='pipRoot'; pipWin.document.body.appendChild(root);
+    pipWin.addEventListener('pagehide',()=>{ pipWin=null; const b=document.getElementById('pipBtn'); if(b) b.textContent='⧉ Pop out'; });
+    const b=document.getElementById('pipBtn'); if(b) b.textContent='⧉ Close pop-out';
+    renderPip();
+  }catch(e){ toast('Could not open pop-out: '+e.message); pipWin=null; }
+}
+window.togglePip=togglePip;
+setInterval(()=>{ if(pipWin && !pipWin.closed) renderPip(); }, 1000); // smooth live countdowns while popped out
+
+/* ---------- gate / auth view ---------- */
+function updateAuthView(){
+  const connected=Object.keys(chars).length>0;
+  const showApp = connected || bypass || structures.length>0;
+  document.getElementById('app').classList.toggle('on',showApp);
+  document.getElementById('gate').style.display = showApp ? 'none' : 'flex';
+  renderTopbar();
+}
+function showGate(){ bypass=false; document.getElementById('gate').style.display='flex'; document.getElementById('app').classList.remove('on'); }
+const gateAuth=document.getElementById('gateAuth');
+function gateErr(m){ const e=document.getElementById('gateErr'); if(!m){e.classList.remove('show');return;} e.textContent=m; e.classList.add('show'); }
+document.getElementById('gateSkip').onclick=()=>{ bypass=true; updateAuthView(); };
+
+/* ---------- ESI auth ---------- */
+function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+async function sha256(s){ return await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)); }
+function randStr(n){ const a=new Uint8Array(n); crypto.getRandomValues(a); return b64url(a.buffer); }
+function jwtPayload(t){ return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+async function esiGet(path,token){ const r=await fetch(ESI_BASE+path,{headers:token?{Authorization:'Bearer '+token}:{}}); if(!r.ok) throw new Error('ESI '+r.status); return r.json(); }
+async function esiGetPaged(path,token,cap){ const sep=path.includes('?')?'&':'?';
+  const f=await fetch(ESI_BASE+path+sep+'page=1',{headers:{Authorization:'Bearer '+token}}); if(!f.ok) throw new Error('ESI '+f.status);
+  let out=await f.json(); const pages=Math.min(parseInt(f.headers.get('X-Pages')||'1',10),cap||20);
+  for(let p=2;p<=pages;p++){ try{ const r=await fetch(ESI_BASE+path+sep+'page='+p,{headers:{Authorization:'Bearer '+token}}); if(r.ok) out=out.concat(await r.json()); }catch(e){} }
+  return out; }
+async function postToken(body){ const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){ let d=''; try{ d=' '+(await r.text()).slice(0,120); }catch(e){} throw new Error('HTTP '+r.status+d); } return r.json(); }
+function storeFromToken(tok){ const p=jwtPayload(tok.access_token);
+  return { access:tok.access_token, refresh:tok.refresh_token||null, expires:now()+((tok.expires_in||1200)*1000),
+    charId:(p.sub||'').split(':').pop(), charName:p.name||'capsuleer' }; }
+function storeFromToken(tok){ const p=jwtPayload(tok.access_token);
+  return { access:tok.access_token, refresh:tok.refresh_token||null, expires:now()+((tok.expires_in||1200)*1000),
+    charId:(p.sub||'').split(':').pop(), charName:p.name||'capsuleer' }; }
+async function resolveCorp(entry){ try{ const ch=await esiGet('/characters/'+entry.charId+'/',entry.access);
+    entry.corpId=ch.corporation_id; const co=await esiGet('/corporations/'+entry.corpId+'/',entry.access); entry.corpName=co.name||''; }catch(e){} return entry; }
+async function refreshToken(charId){ const s=chars[charId]; if(!s||!s.refresh) throw new Error('no refresh');
+  const body=new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:APP_CONFIG.clientId});
+  const tok=await postToken(body); const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[charId]=ns; await sSet(TOKEN_KEY,chars); return ns; }
+async function getValidToken(charId){ const s=chars[charId]; if(!s) return null; if(s.expires>now()+60000) return s;
+  try{ return await refreshToken(charId); }catch(e){ return s.expires>now()?s:null; } }
+async function disconnectEsi(charId){ delete chars[charId]; await sSet(TOKEN_KEY,chars); updateAuthView(); toast('Disconnected. Structure data kept.'); }
+window.disconnectEsi=disconnectEsi;
+
+document.getElementById('gateAuth').onclick=()=>{ // login now happens once, in the launcher, and is shared by every tool
+  if(window.top!==window.self){ window.top.location.href='index.html'; return; }
+  alert('Sign in from the main menu (index.html) — every tool shares one login.');
+  location.href='index.html';
+};
+
+async function resumeEsi(){ /* no-op: sign-in only completes on index.html now */ }
+
+/* import structures for every distinct corp represented among signed-in characters */
+async function importAllCorps(silent){
+  const byCorp={};
+  for(const c of Object.values(chars)){ if(c.corpId && !(c.corpId in byCorp)) byCorp[c.corpId]=c.charId; }
+  for(const charId of Object.values(byCorp)){
+    try{ const v=await getValidToken(charId); if(v) await importFromEsi(v.access,silent,charId); }catch(e){}
+  }
+}
+
+async function importFromEsi(token,silent,charIdForDot){
+  setSyncDot('busy',charIdForDot);
+  const charId=jwtPayload(token).sub.split(':').pop();
+  const ch=await esiGet('/characters/'+charId+'/',token); const corpId=ch.corporation_id;
+  const list=await esiGet('/corporations/'+corpId+'/structures/',token);
+  let extractions=[]; try{ extractions=await esiGet('/corporation/'+corpId+'/mining/extractions/',token); }catch(e){}
+  const exMap={}; extractions.forEach(x=>{ exMap[x.structure_id]=x.chunk_arrival_time; });
+  // corp assets → fuel blocks + magmatic gas held in each structure's fuel bay (for Metenox section)
+  const fuelMap={},gasMap={}; let assetsScopeMissing=false;
+  try{ const assets=await esiGetPaged('/corporations/'+corpId+'/assets/',token,30);
+    assets.forEach(a=>{ if(a.location_flag!=='StructureFuel') return; const sid=a.location_id,q=a.quantity||0;
+      if(FUEL_BLOCK_TYPES.has(a.type_id)) fuelMap[sid]=(fuelMap[sid]||0)+q; else if(a.type_id===MAGMATIC_GAS_TYPE) gasMap[sid]=(gasMap[sid]||0)+q; });
+  }catch(e){ if(/\b403\b/.test(e.message)) assetsScopeMissing=true; }
+  const sysCache={},constCache={}; let added=0,updated=0; const seen=new Set();
+  for(const st of list){
+    const typeKey=ESI_TYPE[st.type_id]||'other';
+    let sysName='',constName='';
+    try{ if(!sysCache[st.system_id]){ const sy=await esiGet('/universe/systems/'+st.system_id+'/',token); sysCache[st.system_id]=sy.name;
+        if(sy.constellation_id){ if(!constCache[sy.constellation_id]){ try{ constCache[sy.constellation_id]=(await esiGet('/universe/constellations/'+sy.constellation_id+'/',token)).name; }catch(e){ constCache[sy.constellation_id]=''; } } sysCache['c'+st.system_id]=constCache[sy.constellation_id]; } }
+      sysName=sysCache[st.system_id]; constName=sysCache['c'+st.system_id]||''; }catch(e){}
+    let nm=st.name||''; if(!nm){ try{ nm=(await esiGet('/universe/structures/'+st.structure_id+'/',token)).name; }catch(e){ nm='Structure '+st.structure_id; } }
+    const ex=structures.find(s=>s.esiId===st.structure_id); const o=ex||{id:'s'+Date.now()+Math.random().toString(36).slice(2,6)};
+    o.esiId=st.structure_id; seen.add(st.structure_id); o.type=typeKey; o.name=nm||('Structure '+st.structure_id);
+    o.system=sysName||('System '+st.system_id); o.constellation=constName||'Unknown'; o.loc=o.system;
+    o.fuelExpires=st.fuel_expires||null; o.unanchorsAt=st.unanchors_at||null; o.state=st.state||null;
+    o.stateTimerStart=st.state_timer_start||null; o.stateTimerEnd=st.state_timer_end||null;
+    o.fuelRate=combinedRate(o); // Dogma base × hull multiplier, summed over online services (float)
+    if(o.fuel==null) o.fuel=0;
+    // fuel-bay block count from corp assets. Re-anchor the depletion clock ONLY when the count changes
+    // (ESI caches assets ~1h) so the runway keeps counting down between syncs instead of resetting.
+    if(fuelMap[st.structure_id]!=null){
+      const newCount=fuelMap[st.structure_id];
+      if(!o.fuelFromEsi || o.fuel!==newCount || !o.fuelAsOf){ o.fuel=newCount; o.fuelAsOf=new Date().toISOString(); }
+      o.fuelFromEsi=true;
+    } else { o.fuelFromEsi=false; }
+    if(TYPES[typeKey].cat==='refinery'&&exMap[st.structure_id]) o.extractionEnd=exMap[st.structure_id];
+    if(typeKey==='metenox'){
+      if(o.gasRate==null) o.gasRate=TYPES.metenox.gas;
+      // magmatic gas reagent from assets (esi-assets.read_corporation_assets.v1)
+      if(gasMap[st.structure_id]!=null){ o.gas=gasMap[st.structure_id]; o.gasAsOf=new Date().toISOString(); o.gasUnknown=false; o.gasFromEsi=true; }
+      else { o.gasFromEsi=false; if(o.gas==null) o.gas=0; if(o.gasUnknown==null) o.gasUnknown=true; }
+    }
+    if(ex) updated++; else { structures.push(o); added++; }
+  }
+  const before=structures.length; structures=structures.filter(s=>!s.esiId||seen.has(s.esiId)); const removed=before-structures.length;
+  await save(); setSyncDot('ok');
+  const al=alertScan({toastOnChange:silent}); // background sync: toast only when the problem set changes; manual sync: folded into the summary below
+  if(silent) return;
+  const tail=assetsScopeMissing?'Re-authorize to grant asset access for fuel-bay contents.':'Fuel bays read from corp assets.';
+  toast((al.summary?'⚠ '+al.summary+'  —  ':'')+'Synced '+added+' new, updated '+updated+(removed?', removed '+removed:'')+'. '+tail);
+}
+async function syncNow(){ const b=document.getElementById('syncBtn'); if(b){b.disabled=true;b.textContent='Syncing…';}
+  try{ if(!Object.keys(chars).length){ toast('No characters signed in — reconnect.'); showGate(); } else await importAllCorps(); }
+  catch(e){ toast('Sync failed: '+e.message); } finally{ if(b){b.disabled=false;b.textContent='Sync';} } }
+window.syncNow=syncNow; window.showGate=showGate; window.openModal=openModal;
+
+/* ---------- refresh alert scan: low fuel + idle extractors, run on every sync ---------- */
+let _lastAlertKey='';
+function alertScan(opts){ opts=opts||{};
+  const active=structures.filter(s=>{const st=statusOf(s);return st!=='decommissioning'&&st!=='anchoring';});
+  const idle=active.filter(s=>TYPES[s.type].mining && (s.type==='metenox'?statusOf(s)==='idle':(statusOf(s)!=='extracting' && !(s.extractionEnd && new Date(s.extractionEnd).getTime()>now())))); // Tatara/Athanor deemed idle unless an extraction is currently in progress; Metenox by its own gas/fuel status
+  const fuelH=active.map(s=>({s,h:fuelHoursLeft(s)})).filter(x=>isFinite(x.h) && x.h<=HR_WEEK);
+  const depleted=fuelH.filter(x=>x.h<=0);
+  const critical=fuelH.filter(x=>x.h>0 && x.h<=48);
+  const caution=fuelH.filter(x=>x.h>48 && x.h<=HR_WEEK);
+  // colour the tab badges so problems are visible at a glance
+  const ci=document.getElementById('cIdle'); if(ci) ci.style.color=idle.length?'var(--gold)':'';
+  const cf=document.getElementById('cFuel'); if(cf) cf.style.color=(depleted.length||critical.length)?'var(--red)':(caution.length?'var(--gold)':'');
+  const parts=[];
+  if(depleted.length) parts.push(depleted.length+' fuel DEPLETED');
+  if(critical.length) parts.push(critical.length+' fuel <48h');
+  if(caution.length) parts.push(caution.length+' fuel <1wk');
+  if(idle.length) parts.push(idle.length+' idle extractor'+(idle.length!==1?'s':''));
+  const summary=parts.join(' · ');
+  const changed=summary!==_lastAlertKey; _lastAlertKey=summary;
+  if(summary && (opts.toastOnChange && changed)) toast('⚠ '+summary);
+  return {summary,idle:idle.length,depleted:depleted.length,critical:critical.length,caution:caution.length};
+}
+window.alertScan=alertScan;
+
+/* ---------- toast ---------- */
+let toastT; function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('show'),5000); }
+
+/* ---------- init ---------- */
+setInterval(()=>{ if(structures.some(s=>s.extractionEnd||s.unanchorsAt||s.stateTimerEnd||s.fuelExpires||s.type==='metenox')){ renderAll(); alertScan({toastOnChange:true}); } }, 30000);
+let _syncing=false;
+async function backgroundSync(){ if(_syncing) return; if(document.visibilityState&&document.visibilityState!=='visible') return; if(!Object.keys(chars).length) return;
+  _syncing=true; try{ await importAllCorps(true); }catch(e){} finally{ _syncing=false; } }
+setInterval(backgroundSync,30000); // live ESI update every 30 seconds
+
+(async function init(){
+  document.getElementById('footer').textContent='';
+  structures=(await sGet(STORE_KEY))||[];
+  fuelCollapse=(await sGet(COLLAPSE_KEY))||{metenox:false,moon:false,all:false};
+  extractionPlans=(await sGet(PLAN_KEY))||[];
+  const exStr=(await sGet(EXCLUDE_KEY))||''; excludeKeywords=parseExclude(exStr);
+  const exEl=document.getElementById('optExclude'); if(exEl) exEl.value=exStr;
+  chars=(await sGet(TOKEN_KEY))||{};
+  applyCollapse(); renderAll(); alertScan({}); updateAuthView();
+  if(new URLSearchParams(location.search).get('code')){ await resumeEsi(); return; }
+  if(Object.keys(chars).length){
+    try{
+      // resolve corp info for any characters that don't have it cached yet (e.g. added elsewhere)
+      let changed=false;
+      for(const c of Object.values(chars)){ if(!c.corpId){ await resolveCorp(c); changed=true; } }
+      if(changed) await sSet(TOKEN_KEY,chars);
+      await importAllCorps();
+      toast('Synced '+Object.keys(chars).length+' character'+(Object.keys(chars).length>1?'s':'')+' across '+new Set(Object.values(chars).map(c=>c.corpId)).size+' corp(s).');
+    }catch(e){}
+  }
+})();
+
+/* ---------- UI scale ---------- */
+function applyUi(pct){ const v=Math.max(50,Math.min(500,+pct||100))/100; document.documentElement.style.setProperty('--ui',v); try{ localStorage.setItem('sb_ui',Math.round(v*100)); }catch(e){} }
+function metUiSaved(){ try{ return +localStorage.getItem('sb_ui')||100; }catch(e){ return 100; } }
+function openScale(){ const cur=metUiSaved(); document.getElementById('cfgUi').value=cur; document.getElementById('cfgUiRange').value=cur; document.getElementById('setModal').style.display='flex'; }
+applyUi(metUiSaved());
+(function(){ const b=document.getElementById('setBtn'); if(!b) return; b.onclick=openScale;
+  document.getElementById('cfgClose').onclick=()=>{ document.getElementById('setModal').style.display='none'; };
+  document.getElementById('cfgUi').oninput=function(){ document.getElementById('cfgUiRange').value=this.value; applyUi(this.value); };
+  document.getElementById('cfgUiRange').oninput=function(){ document.getElementById('cfgUi').value=this.value; applyUi(this.value); };
+  document.getElementById('setModal').onclick=function(e){ if(e.target.id==='setModal') this.style.display='none'; };
+})();
+</script>
+</body>
+</html>
