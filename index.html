@@ -28,7 +28,7 @@
 
   .stage{flex:1;position:relative;perspective:1500px;perspective-origin:50% 42%;min-height:0}
   .ring{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.33,.12,.18,1)}
-  .card{position:absolute;top:50%;left:50%;width:420px;height:540px;margin:-270px 0 0 -210px;
+  .card{position:absolute;top:50%;left:50%;width:640px;height:760px;margin:-380px 0 0 -320px;
     background:linear-gradient(160deg,#0b1015,#070a0d);border:1px solid var(--line);padding:0 0 18px;
     -webkit-backface-visibility:hidden;backface-visibility:hidden;cursor:pointer;overflow:hidden;
     transition:opacity .55s, filter .55s, border-color .25s, box-shadow .35s;display:flex;flex-direction:column}
@@ -42,19 +42,19 @@
   .card.active:hover .launch-hint{opacity:1}
   .launch-hint span{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);
     border:1px solid var(--gold-dim);padding:10px 20px;background:rgba(10,13,16,.85)}
-  .hero{height:165px;flex:none;border-bottom:1px solid var(--line);position:relative;overflow:hidden;
+  .hero{height:235px;flex:none;border-bottom:1px solid var(--line);position:relative;overflow:hidden;
     background:radial-gradient(130% 120% at 50% 0,#0f171e,#05080b)}
   .hero svg{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .hero .ttl{position:absolute;left:22px;bottom:13px;z-index:2}
-  .hero h2{font-size:21px;margin:0;color:#eaf0f4;font-weight:600;text-shadow:0 2px 8px #000}
-  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-top:4px;text-shadow:0 1px 6px #000}
-  .body{padding:20px 28px 0;display:flex;flex-direction:column;flex:1}
-  .card p{font-size:14.5px;line-height:1.65;color:var(--muted);margin:0 0 18px;flex:1}
-  .feat{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
-  .feat span{font-family:var(--mono);font-size:10.5px;color:var(--cyan);border:1px solid var(--line);padding:3px 9px}
-  .go{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:16px;padding-bottom:18px}
-  .go .lnk{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-bright)}
-  .go .url{font-family:var(--mono);font-size:10px;color:var(--muted2);max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hero .ttl{position:absolute;left:30px;bottom:18px;z-index:2}
+  .hero h2{font-size:30px;margin:0;color:#eaf0f4;font-weight:600;text-shadow:0 2px 8px #000}
+  .tag{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-top:6px;text-shadow:0 1px 6px #000}
+  .body{padding:28px 38px 0;display:flex;flex-direction:column;flex:1}
+  .card p{font-size:17px;line-height:1.7;color:var(--muted);margin:0 0 24px;flex:1}
+  .feat{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
+  .feat span{font-family:var(--mono);font-size:12.5px;color:var(--cyan);border:1px solid var(--line);padding:5px 12px}
+  .go{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:20px;padding-bottom:24px}
+  .go .lnk{font-family:var(--mono);font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-bright)}
+  .go .url{font-family:var(--mono);font-size:12px;color:var(--muted2);max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .nav{position:absolute;bottom:24px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:18px;z-index:5}
   .arw{width:42px;height:42px;border:1px solid var(--line2);background:#05080b;color:var(--gold);cursor:pointer;display:grid;place-items:center;font-size:16px;transition:.18s}
@@ -104,6 +104,16 @@
   .toolbar .ext{font-family:var(--mono);font-size:10px;color:var(--muted2);text-decoration:none;border:1px solid var(--line2);padding:6px 10px}
   .toolbar .ext:hover{color:var(--gold-bright);border-color:var(--gold-dim)}
   .toolframe{flex:1;border:0;width:100%;background:var(--bg)}
+  @media (max-width: 1300px){
+    .card{width:460px;height:580px;margin:-290px 0 0 -230px}
+    .hero{height:175px}
+    .hero h2{font-size:23px}
+    .tag{font-size:11px}
+    .body{padding:22px 30px 0}
+    .card p{font-size:15px;margin:0 0 18px}
+    .feat span{font-size:11px}
+    .go .lnk{font-size:12px}
+  }
   @media (max-width: 900px){
     .card{width:340px;height:460px;margin:-230px 0 0 -170px}
     .hero{height:135px}
