@@ -118,6 +118,29 @@
   .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
   :focus-visible{outline:2px solid var(--cyan) !important;outline-offset:2px !important}
   input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(122,184,200,.22)}
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.55;
+    background-image:
+      radial-gradient(1px 1px at 8% 15%, rgba(200,215,225,.7), transparent 60%),
+      radial-gradient(1px 1px at 22% 68%, rgba(200,215,225,.5), transparent 60%),
+      radial-gradient(1.5px 1.5px at 38% 28%, rgba(200,215,225,.8), transparent 60%),
+      radial-gradient(1px 1px at 55% 82%, rgba(200,215,225,.45), transparent 60%),
+      radial-gradient(1px 1px at 68% 12%, rgba(200,215,225,.6), transparent 60%),
+      radial-gradient(1.5px 1.5px at 78% 55%, rgba(200,215,225,.7), transparent 60%),
+      radial-gradient(1px 1px at 90% 35%, rgba(200,215,225,.5), transparent 60%),
+      radial-gradient(1px 1px at 15% 92%, rgba(200,215,225,.4), transparent 60%),
+      radial-gradient(1px 1px at 48% 5%, rgba(200,215,225,.55), transparent 60%),
+      radial-gradient(1px 1px at 95% 78%, rgba(200,215,225,.4), transparent 60%);
+    background-size:340px 340px,300px 300px,380px 380px,260px 260px,420px 420px,320px 320px,290px 290px,360px 360px,310px 310px,400px 400px;
+    background-repeat:repeat;
+  }
+  body::after{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.022;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat:repeat;
+  }
+  @keyframes hud-reveal{0%{opacity:0;transform:translateY(6px);filter:brightness(1.4)}100%{opacity:1;transform:translateY(0);filter:brightness(1)}}
+  .app{animation:hud-reveal .6s ease-out}
 </style>
 </head>
 <body>
