@@ -6,9 +6,10 @@
 <title>EVE Toolset</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#030507;--panel:#0a0d10;--line:#1a2028;--line2:#2a4050;
+  :root{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--dur-message:.25s;--bg:#030507;--panel:#0a0d10;--line:#1a2028;--line2:#2a4050;
     --gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;
     --green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;
+    --violet:#a48ad6;--violet-soft:#8f78bd;--steel:#6a92c8;--steel-soft:#7a9cd0;
     --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;overflow:hidden;background:
@@ -66,7 +67,7 @@
   .go .url{font-family:var(--mono);font-size:12px;color:var(--muted2);max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .nav{position:absolute;bottom:24px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:18px;z-index:5}
-  .arw{width:42px;height:42px;border:1px solid var(--line2);background:#05080b;color:var(--gold);cursor:pointer;display:grid;place-items:center;font-size:16px;transition:.18s}
+  .arw{width:42px;height:42px;border:1px solid var(--line2);background:#05080b;color:var(--gold);cursor:pointer;display:grid;place-items:center;font-size:16px;transition:.18s;font-family:inherit;padding:0;margin:0}
   .arw:hover{border-color:var(--gold-dim);color:var(--gold-bright);background:rgba(201,168,104,.08)}
   .dots{display:flex;gap:9px}
   .dot{width:8px;height:8px;background:#1c2731;border:1px solid var(--line2);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);cursor:pointer;transition:.2s}
@@ -164,6 +165,8 @@
     padding:5px 4px;cursor:pointer;border-radius:2px}
   .sectionMenu label:hover{background:rgba(122,184,200,.06)}
   .sectionMenu input{accent-color:var(--gold)}
+  :focus-visible{outline:2px solid var(--cyan) !important;outline-offset:2px !important}
+  input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(122,184,200,.22)}
 </style>
 </head>
 <body>
@@ -177,7 +180,7 @@
   </header>
   <div class="stage" id="stage">
     <div class="ring" id="ring"></div>
-    <div class="nav"><div class="arw" id="prev">‹</div><div class="dots" id="dots"></div><div class="arw" id="next">›</div></div>
+    <div class="nav"><button class="arw" id="prev" aria-label="Previous tool">‹</button><div class="dots" id="dots"></div><button class="arw" id="next" aria-label="Next tool">›</button></div>
     <div class="hint">drag · arrow keys · click a side card</div>
   </div>
 </div>
@@ -230,6 +233,7 @@ const SCOPE_INFO=[
   {scope:'esi-planets.manage_planets.v1', tool:'PI Planner', desc:'Read & manage your PI colonies'},
   {scope:'esi-location.read_location.v1', tool:'PI Planner · Jump Freight Planner', desc:'Read your current solar system'},
   {scope:'esi-skills.read_skills.v1', tool:'PI Planner · Fit Manager · Industry Console', desc:'Read trained skills'},
+  {scope:'esi-skills.read_skillqueue.v1', tool:'Fit Manager', desc:'Read what\'s currently training'},
   {scope:'esi-characters.read_standings.v1', tool:'PI Planner', desc:'Read your standings'},
   {scope:'esi-fittings.read_fittings.v1', tool:'Fit Manager', desc:'Read your in-game fittings'},
   {scope:'esi-fittings.write_fittings.v1', tool:'Fit Manager', desc:'Save fittings to your ship'},
@@ -246,7 +250,8 @@ const SCOPE_INFO=[
   {scope:'esi-markets.read_character_orders.v1', tool:'Industry Console', desc:'Read your active market orders'},
   {scope:'esi-markets.structure_markets.v1', tool:'Industry Console', desc:'Read sell/buy prices at a structure market'},
   {scope:'esi-wallet.read_character_wallet.v1', tool:'Industry Console', desc:'Read your wallet balance'},
-  {scope:'esi-planets.read_customs_offices.v1', tool:'Industry Console', desc:'Read corp customs office PI throughput'},
+  {scope:'esi-planets.read_customs_offices.v1', tool:'PI Planner', desc:'Read customs office tax rates near your colonies'},
+  {scope:'esi-structures.read_corporation.v1', tool:'Structure Browser', desc:'Additional corp structure detail'},
 ];
 const SUITE_SCOPES=SCOPE_INFO.map(s=>s.scope).join(' ');
 
@@ -297,7 +302,7 @@ function renderRoster(){
   const r=document.getElementById('roster'); const ids=Object.keys(suiteChars);
   if(!ids.length){ r.innerHTML='<span class="sub" style="margin:0">No characters signed in yet — every tool below will prompt you to add one here.</span>'; return; }
   r.innerHTML=ids.map(id=>{ const c=suiteChars[id];
-    return `<span class="rchip"><img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">${c.charName}<span class="corp">${c.corpName?(' · '+c.corpName):''}</span><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`;
+    return `<span class="rchip"><img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">${c.charName}<span class="corp">${c.corpName?(' · '+c.corpName):''}</span><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`;
   }).join('');
 }
 // =====================================================================
@@ -331,7 +336,7 @@ function renderCharCarousel(){
   el.innerHTML=ids.map(id=>{ const c=suiteChars[id];
     const enabled=charSectionsEnabled(id);
     return `<div class="ccard" data-cid="${id}" onclick="openSectionMenu(event,'${id}')">
-      <img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
+      <img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
       <span><span class="ccname">${esc2(c.charName)}</span><span class="cccorp">${c.corpName?esc2(c.corpName):'corp unknown'}</span></span>
       <span class="ccbadge">${enabled.length}/${APPS.length} tools</span>
     </div>`;

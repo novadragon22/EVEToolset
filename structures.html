@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
+  :root{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--dur-message:.25s;
     --bg:#030507; --panel:#0a0d10; --panel2:#0a0f13; --line:#1a2028; --line2:#2a4050;
     --gold:#c9a868; --gold-bright:#e8d296; --gold-dim:#8a7048; --gold-deep:#6a4828; --gold-soft:#c9b676;
     --cyan:#7ab8c8; --cyan-edge:#2a4050; --cyan-bright:#a0d0e0;
@@ -79,7 +79,7 @@
   .cab{flex-direction:column;gap:4px;padding:8px 14px;background:rgba(216,162,74,.08);border-bottom:1px solid var(--line)}
   .cab-row{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.02em}
   .cab-row b{color:var(--gold-bright)}
-  .cf-bar{align-items:center;gap:10px;padding:8px 14px;background:rgba(122,184,200,.05);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .cf-bar{align-items:center;gap:10px;padding:8px 14px;background:rgba(122,184,200,.05);flex-wrap:wrap}
   .cf-label{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em}
   .cf-select{font-family:var(--mono);font-size:11.5px;color:var(--cyan-bright);border:1px solid var(--line2);padding:6px 10px;
     cursor:pointer;background:#05080b;border-radius:2px;transition:.15s}
@@ -111,7 +111,9 @@
   .sync-btn:disabled{opacity:.5;cursor:not-allowed;font-style:italic}
 
   /* tabs */
-  nav.tabs{flex-shrink:0;display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 12px;background:var(--bg);flex-wrap:wrap}
+  nav.tabs{flex-shrink:0;display:flex;gap:2px;padding:0 12px;background:var(--bg);flex-wrap:wrap}
+  .tabs-row{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
+  .tabs-row .cf-bar{border-bottom:none;background:transparent;padding:8px 12px}
   .tab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;cursor:pointer;color:#8a9ba8;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:8px}
   .tab:hover{color:var(--text)}
   .tab.on{color:var(--gold);border-bottom-color:var(--gold)}
@@ -165,7 +167,7 @@
 
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
   .card{position:relative;background:linear-gradient(165deg,#0d1218,var(--panel2));border:1px solid var(--line);padding:15px 16px 14px 19px;
-    transition:border-color .18s,transform .18s,box-shadow .18s;
+    transition:border-color var(--dur-base),transform var(--dur-base),box-shadow var(--dur-base);
     box-shadow:0 10px 28px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.025) inset,0 -1px 0 rgba(0,0,0,.3) inset}
   .card:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:0 18px 40px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.04) inset,0 0 0 1px rgba(122,184,200,.08)}
   .card-sync-overlay{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .15s;z-index:6;border-radius:inherit;overflow:hidden}
@@ -249,6 +251,14 @@
   .ftile .sub{font-family:var(--mono);font-size:9.5px;color:var(--muted2);margin-top:3px}
 
   .subhead{font-family:var(--mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);margin:24px 0 12px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .compact-toggle{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:none;color:var(--muted);border:1px solid var(--line2);padding:3px 9px;cursor:pointer;transition:.15s}
+  .compact-toggle:hover{border-color:var(--cyan);color:var(--cyan-bright)}
+  .compact-toggle.on{background:rgba(122,184,200,.15);border-color:var(--cyan);color:var(--cyan-bright)}
+  .compact-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))!important;gap:8px!important}
+  .compact-toggle{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:none;color:var(--muted);border:1px solid var(--line2);padding:3px 9px;cursor:pointer;transition:.15s}
+  .compact-toggle:hover{border-color:var(--cyan)}
+  .compact-toggle.on{color:var(--cyan-bright);border-color:var(--cyan);background:rgba(122,184,200,.1)}
+  .grid.compact-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
   .subhead .di{width:8px;height:18px;clip-path:none}
   .subhead.moon .di{background:linear-gradient(180deg,var(--gold),var(--gold-deep))}
   .subhead.metenox .di{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
@@ -320,6 +330,8 @@
   .skel-line{height:11px;border-radius:2px;margin-bottom:8px}
   @keyframes dotshimmer{0%,100%{opacity:.4;box-shadow:0 0 3px currentColor}50%{opacity:1;box-shadow:0 0 8px currentColor}}
   .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
+  :focus-visible{outline:2px solid var(--cyan) !important;outline-offset:2px !important}
+  input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(122,184,200,.22)}
 </style>
 </head>
 <body>
@@ -349,14 +361,16 @@
     </div>
   </div>
   <div class="cab" id="corpAccessBanner" style="display:none"></div>
-  <div class="cf-bar" id="corpFilterBar" style="display:none"></div>
-  <nav class="tabs">
-    <button class="tab on" data-sec="extractions"><span>Extractions</span><span class="cnt" id="cExtract">0</span></button>
-    <button class="tab" data-sec="metcalc"><span>Metenox Calculator</span></button>
-    <button class="tab" data-sec="idle"><span>Idle extractions</span><span class="cnt" id="cIdle">0</span></button>
-    <button class="tab" data-sec="fuel"><span>Structure fuel</span><span class="cnt" id="cFuel">0</span></button>
-    <button class="tab" data-sec="decom"><span>Anchoring/Decommissioning</span><span class="cnt" id="cDec">0</span></button>
-  </nav>
+  <div class="tabs-row">
+    <nav class="tabs">
+      <button class="tab on" data-sec="extractions"><span>Extractions</span><span class="cnt" id="cExtract">0</span></button>
+      <button class="tab" data-sec="metcalc"><span>Metenox Calculator</span></button>
+      <button class="tab" data-sec="idle"><span>Idle extractions</span><span class="cnt" id="cIdle">0</span></button>
+      <button class="tab" data-sec="fuel"><span>Structure fuel</span><span class="cnt" id="cFuel">0</span></button>
+      <button class="tab" data-sec="decom"><span>Anchoring/Decommissioning</span><span class="cnt" id="cDec">0</span></button>
+    </nav>
+    <div class="cf-bar" id="corpFilterBar" style="display:none"></div>
+  </div>
   <main>
     <div class="wrap">
       <section class="sec on" id="sec-extractions">
@@ -480,7 +494,9 @@
         <div id="metenoxFuel" class="fuel-table-wrap"></div>
         <div class="subhead moon" id="moonHead"><span class="di"></span>Moon drilling <small id="moonSub"></small><span class="chev">▾</span></div>
         <div id="moonFuel" class="fuel-table-wrap"></div>
-        <div class="subhead all" id="allHead"><span class="di"></span>All structures <small id="allSub"></small><span class="chev">▾</span></div>
+        <div class="subhead all" id="allHead"><span class="di"></span>All structures <small id="allSub"></small>
+          <span class="compact-toggle" id="compactToggle" onclick="event.stopPropagation();toggleCompactAll()" title="Toggle compact rows">☰ compact</span>
+          <span class="chev">▾</span></div>
         <div id="allFuel" class="fuel-table-wrap"></div>
       </section>
       <section class="sec" id="sec-decom">
@@ -799,9 +815,9 @@ async function syncOneStructure(sid,event){
   }catch(e){ toast('Refresh failed: '+e.message); }
   finally{ const c2=document.querySelector(`.card[data-sid="${CSS.escape(String(sid))}"]`); if(c2) c2.classList.remove('syncing'); }
 }
-function fuelCardGrid(list){
+function fuelCardGrid(list,compact){
   if(!list.length) return emptyBox('No structures match','Structures with fuel data appear here once synced.');
-  return `<div class="grid">${list.map(s=>fuelOnlyCard(s)).join('')}</div>`;
+  return `<div class="grid${compact?' compact-grid':''}">${list.map(s=>fuelOnlyCard(s,{compact})).join('')}</div>`;
 }
 function metenoxCardGrid(list){
   if(!list.length) return emptyBox('No Metenox moon drills found','They appear here once your corp owns one and it\'s returned by ESI.');
@@ -859,6 +875,7 @@ function renderCorpFilterBar(){
     <select class="cf-select" onchange="setCorpFilter(this.value)">${opts.join('')}</select>`;
 }
 function renderAll(){
+  { const t=document.getElementById('compactToggle'); if(t) t.classList.toggle('on',compactAll); }
   renderCorpFilterBar();
   const source=corpFilter?structures.filter(s=>String(s.corpId)===String(corpFilter)):structures;
   const decom=source.filter(s=>{const st=statusOf(s);return st==='decommissioning'||st==='anchoring';})
@@ -885,7 +902,8 @@ function renderAll(){
   document.getElementById('allSub').textContent='citadels, engineering complexes & other';
   document.getElementById('metenoxFuel').innerHTML=metenoxCardGrid(metenox);
   document.getElementById('moonFuel').innerHTML=fuelCardGrid(moon);
-  document.getElementById('allFuel').innerHTML=fuelCardGrid(all);
+  document.getElementById('allFuel').innerHTML=fuelCardGrid(all,compactAll);
+  { const t=document.getElementById('compactToggle'); if(t) t.classList.toggle('on',compactAll); }
   document.getElementById('decomGrid').innerHTML=decom.length?decom.map(s=>card(s,{compact:true})).join(''):emptyBox('No anchoring or unanchoring','Structures your corp is anchoring or decommissioning appear here automatically from ESI, each with its state-timer countdown.');
   refreshOptFilters(active); renderCalendar(); renderPlanList();
   renderPip();
@@ -991,11 +1009,21 @@ document.getElementById('genPatternBtn').onclick=()=>{
       <td>${dayLabel(r.startDate)}</td><td class="dim">${dayLabel(r.nextDate)}</td></tr>`).join('')}</tbody>
   </table></div>`;
 };
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on')); t.classList.add('on');
-  const map={extractions:'sec-extractions',metcalc:'sec-metcalc',idle:'sec-idle',fuel:'sec-fuel',decom:'sec-decom'};
+const SEC_MAP={extractions:'sec-extractions',metcalc:'sec-metcalc',idle:'sec-idle',fuel:'sec-fuel',decom:'sec-decom'};
+function switchSec(key){
+  const tab=document.querySelector(`.tab[data-sec="${key}"]`); if(!tab) return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on')); tab.classList.add('on');
   document.querySelectorAll('section.sec').forEach(s=>s.classList.remove('on'));
-  document.getElementById(map[t.dataset.sec]).classList.add('on'); renderPip(); }));
+  document.getElementById(SEC_MAP[key]).classList.add('on'); renderPip();
+  try{ localStorage.setItem('eve_structures_lastsec',key); }catch(e){}
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchSec(t.dataset.sec)));
+(function(){ try{ const saved=localStorage.getItem('eve_structures_lastsec'); if(saved&&SEC_MAP[saved]) switchSec(saved); }catch(e){} })();
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('input,select,textarea')||e.metaKey||e.ctrlKey||e.altKey) return;
+  const keys=Object.keys(SEC_MAP); const n=+e.key;
+  if(n>=1&&n<=keys.length) switchSec(keys[n-1]);
+});
 
 /* ---------- Metenox Calculator ---------- */
 const MOON_ORES=[
@@ -1221,7 +1249,7 @@ function renderTopbar(){
   const ids=visibleCharIds();
   if(ids.length===1){
     const id=ids[0], c=chars[id];
-    const av=`<img class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">`;
+    const av=`<img alt="" class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">`;
     const corp=c.corpName?` · ${esc(c.corpName)}`:'';
     html+=`<span class="char-chip">${av}<span class="char-name">${esc(c.charName||'capsuleer')}${corp}</span><span class="char-dot" id="syncDot-${id}"></span></span>`;
   } else if(ids.length>1){
@@ -1234,7 +1262,7 @@ function renderTopbar(){
         const multi=c.corpId&&corpCounts[c.corpId]>1;
         const locked=c.corpId&&String(preferredChar[c.corpId])===String(id);
         const lockBtn=multi?`<span class="char-lock ${locked?'on':''}" title="${locked?'Locked — click to unlock':'Multiple characters share this corp — click to use this one for structure reads'}" onclick="event.stopPropagation();toggleCharLock(${c.corpId},'${id}')">${locked?'🔒':'🔓'}</span>`:'';
-        return `<div class="char-menu-row"><img class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">
+        return `<div class="char-menu-row"><img alt="" class="char-av" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.display='none'">
           <span class="char-name">${esc(c.charName||'capsuleer')}${c.corpName?' · '+esc(c.corpName):''}</span>${lockBtn}<span class="char-dot" id="syncDot-${id}"></span></div>`; }).join('')}
       </div></div>`;
   }
@@ -1372,6 +1400,12 @@ async function importAllCorps(silent){
   renderCorpAccessBanner();
 }
 let orphanCorps=[];
+let compactAll=localStorage.getItem('eve_structures_compactall')==='1';
+function toggleCompactAll(){
+  compactAll=!compactAll; localStorage.setItem('eve_structures_compactall',compactAll?'1':'0');
+  const t=document.getElementById('compactToggle'); if(t) t.classList.toggle('on',compactAll);
+  renderAll();
+}
 function renderCorpAccessBanner(){
   const el=document.getElementById('corpAccessBanner'); if(!el) return;
   const bad=Object.values(corpAccess).filter(c=>!c.ok);

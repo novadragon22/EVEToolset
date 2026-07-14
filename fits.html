@@ -6,7 +6,7 @@
 <title>EVE Fit Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#030507;--panel:#0a0d10;--panel2:#0a0f13;--line:#1a2028;--line2:#2a4050;
+  :root{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--dur-message:.25s;--bg:#030507;--panel:#0a0d10;--panel2:#0a0f13;--line:#1a2028;--line2:#2a4050;
     --gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;
     --green:#8cc86a;--red:#d66a5a;--rederr:#e89b8d;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;
     --violet:#a48ad6;--violet-soft:#8f78bd;--steel:#6a92c8;--steel-soft:#7a9cd0;
@@ -39,7 +39,9 @@
   .btn.green{border-color:rgba(140,200,106,.5);color:var(--green)}
   .wrap{flex:1;overflow-y:auto;padding:22px 26px 60px}
   .view{display:none;max-width:1080px;margin:0 auto} .view.on{display:block}
-  h2{font-size:15px;font-weight:600;color:#e7eef3;margin:0 0 14px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase}
+  h2{font-size:12px;font-weight:600;color:var(--gold-bright);margin:0 0 14px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;
+    display:flex;align-items:center;gap:10px;padding:8px 12px;background:linear-gradient(90deg,rgba(201,168,104,.06),transparent 70%);
+    border-left:2px solid var(--gold-dim);border-radius:0 2px 2px 0}
   h2 .diamond{margin-right:10px}
   label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-dim);margin:0 0 5px}
   input,textarea{width:100%;background:#05080b;border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12.5px;padding:9px 11px;outline:none}
@@ -48,13 +50,30 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
   .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px}
   .muted{color:var(--muted)} .hint{font-family:var(--mono);font-size:10px;color:var(--muted2);line-height:1.6}
+  .empty-state{text-align:center;padding:40px 20px}
+  .empty-art{display:block;margin:0 auto 10px;opacity:.8}
   .card{border:1px solid var(--line);background:var(--panel);padding:16px;margin-bottom:14px}
+  .slotgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .slotcol{border:1px solid var(--line);background:var(--panel2);padding:8px}
+  .slotcol.hi{border-top:2px solid var(--red)} .slotcol.mid{border-top:2px solid var(--cyan)}
+  .slotcol.low{border-top:2px solid var(--gold)} .slotcol.rig{border-top:2px solid var(--violet,#a48ad6)}
+  .slotcol.sub{border-top:2px solid var(--steel,#6a92c8)} .slotcol.drn{border-top:2px solid var(--green)}
+  .slotcol-h{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    display:flex;justify-content:space-between;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  .slotcol-h .ct{color:var(--muted2)}
+  .slotrow{font-size:11.5px;padding:4px 0;display:flex;flex-direction:column;gap:1px;border-bottom:1px solid rgba(255,255,255,.03)}
+  .slotrow:last-child{border-bottom:none}
+  .slotrow.empty{color:var(--muted2);font-style:italic}
+  .slotrow .mn{color:var(--text)} .slotrow .mc{color:var(--cyan-bright);font-size:10px;font-family:var(--mono)}
   .fitlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-  .fititem{border:1px solid var(--line);background:linear-gradient(165deg,#0d1218,var(--panel2));padding:13px 15px;cursor:pointer;
-    transition:background .12s,transform .18s,box-shadow .18s,border-color .18s;
+  .fititem{position:relative;border:1px solid var(--line);background:linear-gradient(165deg,#0d1218,var(--panel2));padding:13px 15px;cursor:pointer;
+    transition:background var(--dur-fast),transform var(--dur-base),box-shadow var(--dur-base),border-color var(--dur-base);
     box-shadow:0 8px 22px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.02) inset}
   .fititem:hover{border-color:var(--gold-dim);background:linear-gradient(165deg,#12181f,var(--panel2));transform:translateY(-2px);
     box-shadow:0 14px 32px rgba(0,0,0,.5),0 0 0 1px rgba(201,168,104,.1)}
+  .fititem::before,.fititem::after{content:'';position:absolute;width:10px;height:10px;border:1px solid rgba(201,168,104,.35);filter:drop-shadow(0 0 3px rgba(201,168,104,.2))}
+  .fititem::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
+  .fititem::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
   .fititem .h{display:flex;align-items:center;gap:10px}
   .fititem .h img{width:44px;height:44px;border-radius:4px;object-fit:cover;
     background:radial-gradient(120% 120% at 30% 20%,#1a2530,#05080b);border:1px solid rgba(122,184,200,.25)}
@@ -83,6 +102,7 @@
   .erow:hover{background:rgba(201,168,104,.06)} .erow.on{background:rgba(122,184,200,.1)}
   .erow img{width:24px;height:24px;border:1px solid var(--line);background:#05080b}
   .erow .en{flex:1;font-size:12px;color:var(--text);line-height:1.2}
+  .tqi{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--cyan);opacity:.85}
   .erow .en i{display:block;font-style:normal;font-family:var(--mono);font-size:8.5px;color:var(--muted2)}
   .erow .ex{color:var(--muted2);font-size:11px}.erow .ex:hover{color:var(--red)}
   .efoot{display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:6px;padding:7px 12px}
@@ -96,6 +116,8 @@
   .skel-line{height:11px;border-radius:2px;margin-bottom:8px}
   @keyframes dotshimmer{0%,100%{opacity:.4;box-shadow:0 0 3px currentColor}50%{opacity:1;box-shadow:0 0 8px currentColor}}
   .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
+  :focus-visible{outline:2px solid var(--cyan) !important;outline-offset:2px !important}
+  input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(122,184,200,.22)}
 </style>
 </head>
 <body>
@@ -222,10 +244,25 @@ async function loadChar(id){ const s=chars[id];
   // skills -> commit to repo so the pyfa Action computes per-character accurate stats
   try{ const sk=await eveGet(id,`/characters/${id}/skills/`); const map={}; (sk.skills||[]).forEach(x=>map[x.skill_id]=x.trained_skill_level);
        if(gh()){ try{ await ghPut(`skills/${id}.json`,{charId:id,charName:s.charName,corpId:s.corpId,corpName:s.corpName,skills:map,updated:Date.now()},`skills: ${s.charName}`); }catch(e){} } }catch(e){}
+  try{ s.skillQueue=await eveGet(id,`/characters/${id}/skillqueue/`); }catch(e){ s.skillQueue=null; }
   lastSync=Date.now();
   renderEve(); }
 let lastSync=null;
 
+function trainingText(s){
+  const q=s.skillQueue; if(!q||!q.length) return '<i class="tqi">no active training</i>';
+  const now=Date.now();
+  const cur=q.find(e=>e.finish_date&&new Date(e.finish_date).getTime()>now)||q[0];
+  if(!cur) return '<i class="tqi">no active training</i>';
+  const name=ID2NAME[cur.skill_id]||('#'+cur.skill_id);
+  const lvl=['','I','II','III','IV','V'][cur.finished_level]||cur.finished_level;
+  if(!cur.finish_date) return `<i class="tqi">training ${name} ${lvl} (paused — no active clone/omega?)</i>`;
+  const msLeft=new Date(cur.finish_date).getTime()-now;
+  const days=msLeft/86400000;
+  const when=days<1?Math.round(msLeft/3600000)+'h':days<2?Math.round(days*24)+'h':Math.round(days)+'d';
+  const queuedMore=q.length>1?` · ${q.length-1} more queued`:'';
+  return `<i class="tqi">training ${name} ${lvl} · ${when} left${queuedMore}</i>`;
+}
 function renderEve(){ const a=$("eveAuth");
   if(!eveLoggedIn()){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; refreshSendButtons(); return; }
   const ids=visibleCharIds().map(Number); const act=chars[activeChar]||chars[ids[0]];
@@ -233,8 +270,8 @@ function renderEve(){ const a=$("eveAuth");
   a.innerHTML=`<div class="epick"><button class="btn" id="ePickBtn">▾ ${act?act.charName:ids.length+" pilots"}${syncTxt}</button>
     <div class="emenu" id="eMenu" hidden><div class="esec">Active pilot (skills &amp; sends)</div>
     ${ids.map(id=>`<div class="erow ${id===activeChar?'on':''}" data-act="${id}">
-      <img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
-      <span class="en">${chars[id].charName}<i>${chars[id].corpName||'corp…'}</i></span></div>`).join("")}
+      <img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
+      <span class="en">${chars[id].charName}<i>${chars[id].corpName||'corp…'}</i><br>${trainingText(chars[id])}</span></div>`).join("")}
     <div class="efoot"><a href="index.html" style="color:inherit;text-decoration:none;opacity:.7">Manage in Menu ▸</a></div></div></div>`;
   const menu=$("eMenu"); $("ePickBtn").onclick=()=>menu.hidden=!menu.hidden;
   a.querySelectorAll("[data-act]").forEach(r=>r.onclick=e=>{ activeChar=+r.dataset.act; localStorage.setItem("efm_active",activeChar); renderEve(); refreshSendButtons(); if(sel)renderDetail&&0; });
@@ -264,9 +301,15 @@ function b64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
 function b64dec(s){ return decodeURIComponent(escape(atob(s.replace(/\s/g,"")))); }
 
 // ---------- view switching ----------
-document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>showView(t.dataset.v));
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{ showView(t.dataset.v); try{ localStorage.setItem('eve_fits_lastview',t.dataset.v); }catch(e){} });
 function showView(v){ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x.dataset.v===v));
   document.querySelectorAll(".view").forEach(x=>x.classList.remove("on")); $("v-"+v).classList.add("on"); }
+(function(){ try{ const saved=localStorage.getItem('eve_fits_lastview'); if(saved&&document.querySelector(`.tab[data-v="${saved}"]`)) showView(saved); }catch(e){} })();
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('input,select,textarea')||e.metaKey||e.ctrlKey||e.altKey) return;
+  const views=['library','import','settings']; const n=+e.key;
+  if(n>=1&&n<=views.length){ showView(views[n-1]); try{ localStorage.setItem('eve_fits_lastview',views[n-1]); }catch(err){} }
+});
 
 // ---------- GitHub API ----------
 function gh(){ return cfg.owner&&cfg.repo&&cfg.pat; }
@@ -314,6 +357,19 @@ function getType(tid){ if(!tid) return null; const d=DOGMA[tid]; if(!d) return n
 const av=(t,a,d=0)=>t&&t.attrs[a]!=null?+t.attrs[a]:d;
 function slotOf(t){ if(!t)return null; const e=new Set(t.effects);
   if(e.has(EFF.hi))return"high"; if(e.has(EFF.med))return"mid"; if(e.has(EFF.lo))return"low"; if(e.has(EFF.rig))return"rig"; if(e.has(EFF.sub))return"subsystem"; return null; }
+function slotColumnsHTML(fit){
+  const ids=resolveNames(fit.modules.map(m=>m.name));
+  const buckets={high:[],mid:[],low:[],rig:[],subsystem:[],other:[]};
+  fit.modules.forEach(m=>{ const t=getType(ids[m.name]); const slot=slotOf(t)||"other"; buckets[slot].push(m); });
+  const col=(label,cls,items)=>`<div class="slotcol ${cls}"><div class="slotcol-h">${label}<span class="ct">${items.length}</span></div>
+    ${items.length?items.map(m=>`<div class="slotrow"><span class="mn">${m.name}</span>${m.charge?`<span class="mc">${m.charge}</span>`:""}</div>`).join(""):'<div class="slotrow empty">— empty —</div>'}</div>`;
+  let out=`<div class="slotgrid">${col("High",'hi',buckets.high)}${col("Mid",'mid',buckets.mid)}${col("Low",'low',buckets.low)}${col("Rigs",'rig',buckets.rig)}`;
+  if(buckets.subsystem.length) out+=col("Subsystems",'sub',buckets.subsystem);
+  if(buckets.other.length) out+=col("Other",'other',buckets.other);
+  out+="</div>";
+  if(fit.drones&&fit.drones.length) out+=`<div class="slotcol drn" style="margin-top:8px"><div class="slotcol-h">Drone bay<span class="ct">${fit.drones.length}</span></div>${fit.drones.map(d=>`<div class="slotrow"><span class="mn">${d.name}</span><span class="mc">×${d.qty}</span></div>`).join("")}</div>`;
+  return out;
+}
 function ehpLayer(hp,res,t){ if(hp<=0)return 0; const r=res.map(x=>av(t,x,1)||1); const mean=r.reduce((a,b)=>a+b,0)/r.length; return mean?hp/mean:hp; }
 async function analyze(fit){
   const names=[fit.hull,...fit.modules.flatMap(m=>[m.name,m.charge]),...fit.drones.map(d=>d.name)];
@@ -386,10 +442,14 @@ async function loadLibrary(){
     $("fitlist").innerHTML=fits.map(f=>{ const slug=(f.hull+"__"+f.name).replace(/[^a-zA-Z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
       const sg=suggestionsIdx[slug];
       return `<div class="fititem" data-path="${f.path}" data-hull="${f.hull}" data-name="${f.name}">
-        <div class="h"><img loading="lazy" src="https://images.evetech.net/types/${''}" onerror="this.style.visibility='hidden'" id="ic-${slug}">
+        <div class="h"><img alt="" loading="lazy" src="https://images.evetech.net/types/${''}" onerror="this.style.visibility='hidden'" id="ic-${slug}">
           <div><div class="nm">${f.name}</div><div class="sub">${f.hull}${f.scope?` · <span style="color:${f.scope==='corp'?'var(--amber)':'var(--muted)'}">${f.scope}</span>`:''}</div></div></div>
         <div style="margin-top:8px">${sg?(sg.valid?'<span class="pill ok">valid</span>':'<span class="pill bad">'+sg.issues+' issue'+(sg.issues!==1?'s':'')+'</span>')+(sg.has_pyfa?'<span class="pill" style="color:var(--cyan-bright)">pyfa</span>':'')+(sg.has_llm?'<span class="pill sug">coach</span>':'<span class="pill sug">suggestions</span>'):'<span class="pill" style="color:var(--muted2)">not analyzed yet</span>'}</div>
-      </div>`; }).join("")||"<p class='hint'>No fits yet — import one.</p>";
+      </div>`; }).join("")||`<div class="empty-state"><svg class="empty-art" viewBox="0 0 120 80" width="120" height="80" fill="none">
+        <g opacity=".5"><path d="M60 14l16 10v20l-16 10-16-10V24z" stroke="var(--gold-dim)" stroke-width="1.4"/>
+        <path d="M60 14v-6M60 66v6M44 24l-6-3M76 24l6-3M44 44l-6 3M76 44l6 3" stroke="var(--gold-dim)" stroke-width="1"/></g>
+        <circle cx="60" cy="34" r="3" fill="var(--gold-dim)" opacity=".6"/></svg>
+        <p class="hint">No fits yet — import one.</p></div>`;
     document.querySelectorAll(".fititem").forEach(d=>d.onclick=()=>openFit(d.dataset.path,d.dataset.hull,d.dataset.name));
     // ship icons
     fits.forEach(async f=>{ const id=(await resolveNames([f.hull]))[f.hull]; const slug=(f.hull+"__"+f.name).replace(/[^a-zA-Z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
@@ -422,7 +482,8 @@ async function openFit(path,hull,name){
   let html=`<h2><span class="diamond"></span>${name} <span class="muted" style="font-size:11px">· ${hull}</span></h2>
     <div class="row"><button class="btn" onclick="showView('library')">← Library</button>
       ${canSend?`<button class="btn green" id="sendFit">Send to ${chars[activeChar].charName}'s fittings</button>`:`<button class="btn" disabled title="EVE login required">Send to in-game fittings</button>`}</div>
-    <div class="card"><pre>${eft.replace(/</g,"&lt;")}</pre></div>`;
+    <div class="card">${slotColumnsHTML(fit)}
+      <details style="margin-top:10px"><summary class="hint" style="cursor:pointer">Raw EFT</summary><pre>${eft.replace(/</g,"&lt;")}</pre></details></div>`;
   if(s) html+=`<div class="card"><div class="l mono" style="color:var(--gold-dim);font-size:10px;letter-spacing:.12em;text-transform:uppercase">Local estimate (offline · skills V)</div>${statsHTML(s)}</div>`;
   // Pyfa-accurate, per character (pyfa_by_char) with an all-V baseline (pyfa)
   const variants={}; if(sug&&sug.pyfa) variants["__allv"]={charName:"All skills V",stats:sug.pyfa};

@@ -6,7 +6,7 @@
 <title>EVE PI Planner</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#030507;--panel:#0a0d10;--line:#1a2028;--line2:#2a4050;
+  :root{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--dur-message:.25s;--bg:#030507;--panel:#0a0d10;--line:#1a2028;--line2:#2a4050;
     --gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;
     --green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;
     --violet:#a48ad6;--violet-soft:#8f78bd;--steel:#6a92c8;--steel-soft:#7a9cd0;
@@ -30,7 +30,7 @@
   #mkBody table tbody tr.row:hover{background:rgba(122,184,200,.09)}
   /* reusable table polish for other views (logistics, hub compare, my colonies) */
   table.polish tr:not(.hint):hover{background:rgba(122,184,200,.08)}
-  table.polish tr:not(.hint){transition:background .08s}
+  table.polish tr:not(.hint){transition:background var(--dur-fast)}
   #mkBody td.heat{position:relative}
   #mkBody .heatfill{position:absolute;left:0;top:3px;bottom:3px;border-radius:2px;opacity:.18;pointer-events:none}
   #mkBody .expander{cursor:pointer;color:var(--muted);display:inline-block;width:12px;user-select:none}
@@ -49,10 +49,19 @@
   .btn{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--gold-dim);color:var(--gold-bright);padding:7px 12px;background:rgba(201,168,104,.08);cursor:pointer}
   .btn:hover{background:rgba(201,168,104,.18)}
   .btn.ghost{border-color:var(--line2);color:var(--muted)} .btn.ghost:hover{color:var(--gold-bright)}
-  .main{flex:1;display:flex;min-height:0}
+  .main{flex:1;display:flex;min-height:0;position:relative}
+  .side-collapse-btn{position:absolute;top:8px;left:312px;z-index:20;width:20px;height:32px;border:1px solid var(--line2);
+    background:var(--panel);color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:11px;transition:.2s;border-radius:0 3px 3px 0}
+  .side-collapse-btn:hover{color:var(--gold-bright);border-color:var(--gold-dim)}
+  .side.collapsed{width:0;min-width:0;overflow:hidden;border-right:none}
+  .side{transition:width var(--dur-slow)}
+  body.side-is-collapsed .side-collapse-btn{left:0;transform:rotate(180deg)}
   .side{width:320px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;box-shadow:4px 0 16px rgba(0,0,0,.35);position:relative;z-index:5}
-  .side h3{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:0;padding:13px 14px 8px;font-weight:600}
-  .scroll{overflow-y:auto;min-height:0}
+  .resize-handle{position:absolute;top:0;bottom:0;right:-3px;width:6px;cursor:col-resize;z-index:20}
+  .resize-handle:hover,.resize-handle.dragging{background:rgba(122,184,200,.3)}
+  .side h3{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-bright);margin:8px 10px 0;padding:8px 10px;font-weight:600;
+    display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,rgba(201,168,104,.06),transparent 70%);border-left:2px solid var(--gold-dim);border-radius:0 2px 2px 0}
+  .scroll{overflow-y:auto;overflow-x:auto;min-height:0}
   .tiers{display:flex;gap:4px;padding:0 14px 8px}
   .tier{font-family:var(--mono);font-size:10px;padding:5px 10px;border:1px solid var(--line2);color:var(--muted);cursor:pointer}
   .tier.on{color:var(--gold-bright);border-color:var(--gold-dim);background:rgba(201,168,104,.1)}
@@ -80,11 +89,11 @@
   .side details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
     font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);padding:11px 14px 9px;user-select:none}
   .side details>summary::-webkit-details-marker{display:none}
-  .side details>summary::before{content:'▸';color:var(--gold-dim);transition:transform .15s;font-size:11px}
+  .side details>summary::before{content:'▸';color:var(--gold-dim);transition:transform var(--dur-base);font-size:11px}
   .side details[open]>summary::before{transform:rotate(90deg)}
   .side details>summary:hover{color:var(--gold-bright)}
   .ptpill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;margin:3px 4px 0 0;padding:3px 7px;border:1px solid var(--line2)}
-  .center{flex:1;display:flex;flex-direction:column;min-height:0}
+  .center{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0}
   .mapwrap{flex:none;height:40%;min-height:0;position:relative;background:radial-gradient(700px 400px at 50% 50%,#06090d,#030506);border-bottom:1px solid var(--line)}
   #map{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
   #map:active{cursor:grabbing}
@@ -103,7 +112,7 @@
   td{padding:6px 14px;border-bottom:1px solid #0e141a}
   tr.row{cursor:pointer} tr.row:hover{background:rgba(201,168,104,.06)}
   .r{text-align:right} .full{color:var(--green)} .part{color:var(--amber)} .cy{color:var(--cyan-bright)}
-  .sec-h{color:#6fd06f}.sec-l{color:#e0c060}.sec-n{color:#d66a5a}
+  .sec-h{color:var(--green)}.sec-l{color:var(--amber)}.sec-n{color:var(--red)}
   .empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted2);font-family:var(--mono);font-size:12px}
   .autharea{display:flex;align-items:center;gap:8px;position:relative}
   .chipf{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
@@ -130,6 +139,11 @@
   .skel-line{height:11px;border-radius:2px;margin-bottom:8px}
   @keyframes dotshimmer{0%,100%{opacity:.4;box-shadow:0 0 3px currentColor}50%{opacity:1;box-shadow:0 0 8px currentColor}}
   .dot.loading{animation:dotshimmer 1s ease-in-out infinite}
+  :focus-visible{outline:2px solid var(--cyan) !important;outline-offset:2px !important}
+  input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(122,184,200,.22)}
+  @media (max-width: 900px){
+    .side{width:260px !important}
+  }
 </style>
 </head>
 <body>
@@ -143,7 +157,9 @@
     <button class="btn ghost" id="setBtn">⚏ Scale</button>
   </div>
   <div class="main">
-    <div class="side">
+    <button class="side-collapse-btn" id="sideCollapseBtn" title="Collapse sidebar">◂</button>
+    <div class="side" id="sideMain">
+    <div class="resize-handle" id="resizeHandle"></div>
       <div class="sidetop">
         <details open id="dProd">
           <summary>Target product</summary>
@@ -638,7 +654,7 @@ function buildTiers(){ $('tiers').innerHTML=[1,2,3,4].map(t=>`<span class="tier 
 function buildProducts(){ const ids=Object.keys(PI.recipe).filter(o=>PI.tier[o]===tier).sort((a,b)=>PI.recipe[a].name.localeCompare(PI.recipe[b].name));
   $('prodList').innerHTML=ids.map(o=>`<div class="prod ${target==o?'on':''} ${sel[o]!=null?'sel':''}" data-o="${o}">
     <input type="checkbox" class="psel" data-o="${o}" ${sel[o]!=null?'checked':''} onclick="event.stopPropagation()">
-    <img loading="lazy" src="https://images.evetech.net/types/${o}/icon?size=64" onerror="this.style.visibility='hidden'">
+    <img alt="" loading="lazy" src="https://images.evetech.net/types/${o}/icon?size=64" onerror="this.style.visibility='hidden'">
     <span class="nm">${PI.recipe[o].name}</span><span class="tg">P${PI.tier[o]}</span></div>`).join('');
   $('prodList').querySelectorAll('.psel').forEach(c=>c.onchange=()=>toggleProduct(c.dataset.o));
   $('prodList').querySelectorAll('.prod').forEach(d=>d.onclick=()=>focusProduct(d.dataset.o)); }
@@ -882,7 +898,8 @@ function compute(){ const p0=basketP0(); if(!p0.length){ results=[]; closestSys=
   renderResults(); drawMap();
   if(viewing==='colony'&&chosen&&target) renderColony(); }
 
-function secClass(s){ return s>=0.45?'sec-h':s>0?'sec-l':'sec-n'; }
+function roundSec(s){ if(s>0&&s<0.05) return 0.1; return Math.round(s*10)/10; }
+function secClass(s){ const r=roundSec(s); return r>=0.5?'sec-h':r>=0.1?'sec-l':'sec-n'; }
 function renderResults(){
   const pids=Object.keys(sel); const basket=basketP0();
   const lbl = pids.length>1 ? `${pids.length} products` : (pids.length===1?PI.recipe[pids[0]].name:(target?PI.recipe[target].name:''));
@@ -953,6 +970,9 @@ function renderColony(){ if(!chosen||!target){ viewing='list'; renderResults(); 
   if(autoFit && !_autofitting){ _autofitting=true; const ch=autoFitCrew(plan); _autofitting=false; if(ch) plan=colonyPlan(target,chosen); }
   feederMark = plan.feederInfo ? plan.feederInfo.id : null; drawMap();
   $('resHd').innerHTML=`<span style="cursor:pointer;color:var(--cyan)" id="backList">← candidates</span> &nbsp; Colony plan · <b>${s[0]}</b> (${REG[s[2]]})`;
+  { const tax=taxForSystem(chosen); const taxEl=document.getElementById('customsTax');
+    const taxHtml=tax?`<div id="customsTax" class="hint" style="margin:4px 14px 0;color:var(--gold)">🛃 Your corp has a customs office here · tax ${(tax.rate*100).toFixed(0)}%</div>`:'<div id="customsTax" style="display:none"></div>';
+    if(taxEl) taxEl.outerHTML=taxHtml; else $('resHd').insertAdjacentHTML('afterend',taxHtml); }
   $('closest').innerHTML='';
   const loggedIn=visibleCharIds().length>0;
   $('resHead').innerHTML='';
@@ -1762,13 +1782,38 @@ function updateLocNow(){ const id=Object.keys(charLoc)[0]; const sys=id?charLoc[
 $('locBtn').onclick=()=>{ const sys=Object.values(charLoc).find(s=>SYS[s]); if(!sys){ toast('Sign in from the menu first so I can read your current system.'); return; } $('home').value=SYS[sys][0]; compute(); };
 function logout(id){ delete chars[id]; delete colonies[id]; saveChars(); renderAuth(); drawMap(); }
 let piSyncPending=true;
+(function(){
+  const btn=document.getElementById('sideCollapseBtn'), side=document.getElementById('sideMain');
+  if(!btn||!side) return;
+  const KEY='eve_pi_side_collapsed';
+  function apply(collapsed){
+    side.classList.toggle('collapsed',collapsed);
+    document.body.classList.toggle('side-is-collapsed',collapsed);
+    btn.title=collapsed?'Expand sidebar':'Collapse sidebar';
+  }
+  let collapsed=localStorage.getItem(KEY)==='1';
+  apply(collapsed);
+  btn.onclick=()=>{ collapsed=!collapsed; localStorage.setItem(KEY,collapsed?'1':'0'); apply(collapsed); setTimeout(()=>drawMap&&drawMap(),210); };
+})();
+let customsOffices={};   // corpId -> [{office_id, system_id, tax rates...}]
+async function loadCustomsOffices(corpId,charId){
+  try{ const list=await eGet(charId,`/corporations/${corpId}/customs_offices/`); customsOffices[corpId]=list; }
+  catch(e){ /* needs Station Manager/Director-equivalent role — fine if it fails, tax info just won't show */ }
+}
+function taxForSystem(sysId){
+  for(const corpId in customsOffices){
+    const off=(customsOffices[corpId]||[]).find(o=>o.system_id===sysId);
+    if(off) return {corpId,rate:off.corporation_tax_rate??off.neutral_standing_tax_rate,office:off};
+  }
+  return null;
+}
 function renderAuth(){ const a=$('auth'); const ids=visibleCharIds().map(Number).sort((x,y)=>(((chars[x]&&chars[x].order)??1e9)-((chars[y]&&chars[y].order)??1e9))||(x-y));
   if(!ids.length){ a.innerHTML='<a class="btn" href="index.html" style="text-decoration:none;display:inline-block">Sign in from the menu ▸</a>'; const rb=$('resyncBtn'); if(rb) rb.hidden=true; return; }
   { const rb=$('resyncBtn'); if(rb) rb.hidden=false; }
   const totalCol=Object.values(colonies).flat().length;
   const colTxt=piSyncPending?' · <span class="skeleton" style="display:inline-block;width:70px;height:10px;border-radius:2px;vertical-align:middle">&nbsp;</span>':(totalCol?` · ${totalCol} colonies`:'');
   a.innerHTML=`<div class="picker"><button class="btn" id="pk">▾ ${ids.length} pilot${ids.length>1?'s':''}${colTxt}</button>
-    <div class="emenu" id="em" hidden>${ids.map(id=>`<div class="erow"><img src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
+    <div class="emenu" id="em" hidden>${ids.map(id=>`<div class="erow"><img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
       <span class="en">${chars[id].charName}<i>${chars[id].corpName?chars[id].corpName+' · ':''}${piSyncPending?'loading…':(colonies[id]||[]).length+' colonies'}</i></span></div>`).join('')}
       <div class="efoot"><a href="index.html" style="color:inherit;text-decoration:none;opacity:.7">Manage in Menu ▸</a></div></div></div>`;
   $('pk').onclick=()=>{ const m=$('em'); m.hidden=!m.hidden; };
@@ -1836,9 +1881,20 @@ buildTiers(); buildProducts(); renderResults(); renderAuth();
 (async()=>{ await handleRedirect(); renderAuth();
   loadSov();
   for(const id of visibleCharIds()){ await loadColonies(+id); await loadLocation(+id); await loadSkills(+id); await loadStandings(+id); await loadMyAlliance(+id); }
+  const seenCorps=new Set();
+  for(const id of visibleCharIds()){ const c=chars[id]; if(c&&c.corpId&&!seenCorps.has(c.corpId)){ seenCorps.add(c.corpId); await loadCustomsOffices(c.corpId,+id); } }
   piSyncPending=false;
   if(!$('home').value){ const sys=Object.values(charLoc).find(s=>SYS[s]); if(sys){ $('home').value=SYS[sys][0]; if(target) compute(); } }
   renderAuth(); })();
+(function(){
+  const col=document.getElementById('sideMain'), handle=document.getElementById('resizeHandle');
+  if(!col||!handle) return;
+  const saved=+localStorage.getItem('eve_pi_sidew'); if(saved>=260&&saved<=650) col.style.width=saved+'px';
+  let dragging=false,startX=0,startW=0;
+  handle.addEventListener('pointerdown',e=>{ dragging=true; startX=e.clientX; startW=col.offsetWidth; handle.classList.add('dragging'); col.style.transition='none'; e.preventDefault(); });
+  addEventListener('pointermove',e=>{ if(!dragging) return; const w=Math.max(260,Math.min(650,startW+(e.clientX-startX))); col.style.width=w+'px'; });
+  addEventListener('pointerup',()=>{ if(!dragging) return; dragging=false; handle.classList.remove('dragging'); col.style.transition=''; localStorage.setItem('eve_pi_sidew',col.offsetWidth); });
+})();
 </script>
 </body>
 </html>
