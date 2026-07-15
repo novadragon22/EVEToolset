@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'amarr';}catch(e){}</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EVE Toolset</title>
@@ -35,7 +37,7 @@
     transition:opacity .55s, filter .55s, border-color .25s, box-shadow .35s;display:flex;flex-direction:column}
   .card.active{border-color:var(--gold-dim);box-shadow:0 26px 64px rgba(0,0,0,.62),0 0 0 1px rgba(201,168,104,.16)}
   .card:not(.active){opacity:.72;filter:blur(1.5px) brightness(.8) sepia(.22) saturate(1.15)}
-  .card::before,.card::after{content:"";position:absolute;width:13px;height:13px;border:1px solid var(--gold-dim);opacity:.6;z-index:3}
+  .card::before,.card::after{content:"";position:absolute;width:18px;height:18px;border:1.5px solid var(--gold-dim);opacity:.75;z-index:3;filter:drop-shadow(0 0 4px rgba(201,168,104,.35));box-shadow:0 0 0 4px rgba(201,168,104,.06) inset}
   .card::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
   .card::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
   .card.active .launch-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,5,7,.5);
@@ -85,13 +87,18 @@
   .rchip .x{cursor:pointer;color:var(--muted2);margin-left:2px}
   .rchip .x:hover{color:var(--red)}
   .addchar{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--gold-dim);color:var(--gold-bright);background:rgba(201,168,104,.08);padding:6px 13px;cursor:pointer}
+  .theme-picker{position:relative;z-index:50;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+  .theme-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+  .theme-swatch{width:16px;height:16px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.15);cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
+  .theme-swatch:hover{transform:scale(1.15)}
+  .theme-swatch.on{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--sw),0 0 8px var(--sw)}
   .addchar:hover{background:rgba(201,168,104,.18)}
 
   /* --- scope confirmation modal --- */
   .scopeOverlay{position:fixed;inset:0;background:rgba(3,5,7,.82);z-index:80;display:none;align-items:center;justify-content:center}
   .scopeOverlay.show{display:flex}
   .scopeBox{width:520px;max-width:92vw;max-height:82vh;overflow:auto;background:var(--panel);border:1px solid var(--gold-dim);padding:22px 24px;position:relative}
-  .scopeBox::before,.scopeBox::after{content:"";position:absolute;width:15px;height:15px;border:1px solid var(--gold-dim);opacity:.7;z-index:1}
+  .scopeBox::before,.scopeBox::after{content:"";position:absolute;width:20px;height:20px;border:1.5px solid var(--gold-dim);opacity:.8;z-index:1;filter:drop-shadow(0 0 4px rgba(201,168,104,.35));box-shadow:0 0 0 4px rgba(201,168,104,.06) inset}
   .scopeBox::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
   .scopeBox::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
   .scopeBox h3{margin:0 0 6px;color:var(--gold-bright);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;font-size:14px}
@@ -190,6 +197,34 @@
   }
   @keyframes hud-reveal{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
   .app{animation:hud-reveal .6s ease-out}
+  html[data-theme="caldari"]{
+    --bg:#050a10;--panel:#0a141f;--panel2:#0a1620;--line:#1a2836;--line2:#2a4050;
+    --gold:#4a90c4;--gold-bright:#8ac0e8;--gold-dim:#2a5570;--gold-deep:#1a3550;--gold-soft:#5a9ac8;
+    --cyan:#6a9ac0;--cyan-bright:#9ac8e8;--cyan-edge:#1a3550;
+    --violet:#7a8ad6;--violet-edge:#2a3055;--violet-soft:#8f9cc8;
+    --steel:#6a92c8;--steel-edge:#2a3a55;--steel-soft:#7a9cd0;
+  }
+  html[data-theme="gallente"]{
+    --bg:#040a08;--panel:#0a1512;--panel2:#0a1714;--line:#1a2e26;--line2:#2a4a3e;
+    --gold:#4ac89a;--gold-bright:#7ae8c0;--gold-dim:#2a6850;--gold-deep:#1a4838;--gold-soft:#5ac8a0;
+    --cyan:#4a9ac8;--cyan-bright:#7ac0e8;--cyan-edge:#1a3550;
+    --violet:#6ab8a0;--violet-edge:#1a4838;--violet-soft:#7ac8b0;
+    --steel:#4a9ac8;--steel-edge:#1a3550;--steel-soft:#6ab0d8;
+  }
+  html[data-theme="minmatar"]{
+    --bg:#0a0705;--panel:#150f0a;--panel2:#170f0a;--line:#2e2014;--line2:#4a3020;
+    --gold:#c86a3a;--gold-bright:#e89a6a;--gold-dim:#6a3a20;--gold-deep:#4a2818;--gold-soft:#c8825a;
+    --cyan:#a8905a;--cyan-bright:#c8b080;--cyan-edge:#4a3020;
+    --violet:#b87a5a;--violet-edge:#4a2818;--violet-soft:#c89070;
+    --steel:#8a8478;--steel-edge:#3a3428;--steel-soft:#a09888;
+  }
+  html[data-theme="triglavian"]{
+    --bg:#0a0505;--panel:#150d0a;--panel2:#170f0d;--line:#2a1a14;--line2:#3a2418;
+    --gold:#9ad84a;--gold-bright:#c0f070;--gold-dim:#5a7a30;--gold-deep:#3a5820;--gold-soft:#8ac850;
+    --cyan:#7a9850;--cyan-bright:#a0c070;--cyan-edge:#3a2418;
+    --violet:#c85a4a;--violet-edge:#4a2018;--violet-soft:#d87a6a;
+    --steel:#8a9850;--steel-edge:#3a2418;--steel-soft:#a0b070;
+  }
 </style>
 </head>
 <body>
@@ -200,6 +235,14 @@
     <div class="sub">Spin the ring — the card up front launches inline.</div>
     <div class="roster" id="roster"></div>
     <div class="bar"><button class="addchar" id="addCharBtn">+ Add Character</button></div>
+    <div class="theme-picker" id="themePicker">
+      <span class="theme-label">Faction theme:</span>
+      <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
+      <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
+      <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
+      <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
+      <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
+    </div>
   </header>
   <div class="stage" id="stage">
     <div class="ring" id="ring"></div>
@@ -400,37 +443,37 @@ handleSuiteRedirect(); renderRoster();
 // thematic original SVG art per app
 const ART={
  industry:`<svg viewBox="0 0 342 130" fill="none">
-   <defs><pattern id="bp" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" stroke="#14202b" stroke-width="1"/></pattern></defs>
+   <defs><pattern id="bp" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" stroke="var(--line)" stroke-width="1"/></pattern></defs>
    <rect width="342" height="130" fill="url(#bp)"/>
-   <g stroke="#c9a868" stroke-width="1.7"><circle cx="118" cy="62" r="25"/><circle cx="118" cy="62" r="8"/>
+   <g stroke="var(--gold)" stroke-width="1.7"><circle cx="118" cy="62" r="25"/><circle cx="118" cy="62" r="8"/>
    <g stroke-width="2.4"><path d="M118 31v-8M118 101v-8M87 62h-8M157 62h-8M96 40l-6-6M146 90l-6-6M140 40l6-6M90 90l6-6"/></g></g>
-   <g stroke="#7ab8c8" stroke-width="1.5" opacity=".85"><path d="M188 86l42-17 42 17-42 17z"/><path d="M188 70l42-17 42 17"/><path d="M188 54l42-17 42 17"/></g></svg>`,
+   <g stroke="var(--cyan)" stroke-width="1.5" opacity=".85"><path d="M188 86l42-17 42 17-42 17z"/><path d="M188 70l42-17 42 17"/><path d="M188 54l42-17 42 17"/></g></svg>`,
  fits:`<svg viewBox="0 0 342 130" fill="none">
-   <g stroke="#c9a868" stroke-width="1.8"><path d="M171 22 L206 65 L171 108 L136 65 Z"/><line x1="171" y1="22" x2="171" y2="108"/><line x1="136" y1="65" x2="206" y2="65"/></g>
-   <g stroke="#7ab8c8" stroke-width="1.4" fill="#05080b">
+   <g stroke="var(--gold)" stroke-width="1.8"><path d="M171 22 L206 65 L171 108 L136 65 Z"/><line x1="171" y1="22" x2="171" y2="108"/><line x1="136" y1="65" x2="206" y2="65"/></g>
+   <g stroke="var(--cyan)" stroke-width="1.4" fill="var(--bg)">
    <rect x="70" y="40" width="13" height="13"/><rect x="70" y="78" width="13" height="13"/>
    <rect x="259" y="40" width="13" height="13"/><rect x="259" y="78" width="13" height="13"/>
    <rect x="100" y="20" width="13" height="13"/><rect x="229" y="20" width="13" height="13"/></g>
-   <g stroke="#2a4050" stroke-width="1"><path d="M83 46H136M83 84H140M272 46H206M272 84H202M113 26l30 18M229 26l-30 18"/></g></svg>`,
+   <g stroke="var(--line2)" stroke-width="1"><path d="M83 46H136M83 84H140M272 46H206M272 84H202M113 26l30 18M229 26l-30 18"/></g></svg>`,
  structures:`<svg viewBox="0 0 342 130" fill="none">
-   <g opacity=".5" fill="#7ab8c8"><circle cx="50" cy="28" r="1.3"/><circle cx="300" cy="40" r="1.3"/><circle cx="260" cy="20" r="1"/><circle cx="80" cy="100" r="1"/></g>
-   <ellipse cx="171" cy="110" rx="92" ry="13" stroke="#7ab8c8" stroke-width="1.2" opacity=".55"/>
-   <g stroke="#c9a868" stroke-width="1.8" fill="#0b1015"><path d="M171 14 l26 16 v60 l-26 16 -26-16 v-60 z"/></g>
-   <g stroke="#c9a868" stroke-width="1.2" opacity=".8"><path d="M145 42h52M145 66h52M145 90h52M171 14v-9M158 6h26"/></g>
-   <g stroke="#7ab8c8" stroke-width="1.4"><path d="M197 50l24-10M145 80l-24 10"/></g></svg>`,
+   <g opacity=".5" fill="var(--cyan)"><circle cx="50" cy="28" r="1.3"/><circle cx="300" cy="40" r="1.3"/><circle cx="260" cy="20" r="1"/><circle cx="80" cy="100" r="1"/></g>
+   <ellipse cx="171" cy="110" rx="92" ry="13" stroke="var(--cyan)" stroke-width="1.2" opacity=".55"/>
+   <g stroke="var(--gold)" stroke-width="1.8" fill="var(--panel)"><path d="M171 14 l26 16 v60 l-26 16 -26-16 v-60 z"/></g>
+   <g stroke="var(--gold)" stroke-width="1.2" opacity=".8"><path d="M145 42h52M145 66h52M145 90h52M171 14v-9M158 6h26"/></g>
+   <g stroke="var(--cyan)" stroke-width="1.4"><path d="M197 50l24-10M145 80l-24 10"/></g></svg>`,
  jump:`<svg viewBox="0 0 342 130" fill="none">
-   <g opacity=".6" fill="#7ab8c8"><circle cx="60" cy="30" r="1.3"/><circle cx="120" cy="22" r="1"/><circle cx="250" cy="26" r="1.3"/><circle cx="300" cy="44" r="1"/><circle cx="90" cy="96" r="1"/></g>
-   <path d="M44 98 Q171 8 298 98" stroke="#c9a868" stroke-width="1.5" stroke-dasharray="4 6" opacity=".8"/>
-   <circle cx="44" cy="98" r="4.5" fill="#c9a868"/><circle cx="298" cy="98" r="4.5" fill="#8cc86a"/>
-   <g stroke="#c9a868" stroke-width="1.7" fill="#0b1015"><path d="M150 40 h30 l10 11 -10 11 h-30 l-8-11 z"/></g>
-   <path d="M142 51 h-16" stroke="#d8a24a" stroke-width="3"/><path d="M150 45 h26M150 57 h26" stroke="#2a4050" stroke-width="1"/></svg>`,
+   <g opacity=".6" fill="var(--cyan)"><circle cx="60" cy="30" r="1.3"/><circle cx="120" cy="22" r="1"/><circle cx="250" cy="26" r="1.3"/><circle cx="300" cy="44" r="1"/><circle cx="90" cy="96" r="1"/></g>
+   <path d="M44 98 Q171 8 298 98" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 6" opacity=".8"/>
+   <circle cx="44" cy="98" r="4.5" fill="var(--gold)"/><circle cx="298" cy="98" r="4.5" fill="var(--green)"/>
+   <g stroke="var(--gold)" stroke-width="1.7" fill="var(--panel)"><path d="M150 40 h30 l10 11 -10 11 h-30 l-8-11 z"/></g>
+   <path d="M142 51 h-16" stroke="var(--amber)" stroke-width="3"/><path d="M150 45 h26M150 57 h26" stroke="var(--line2)" stroke-width="1"/></svg>`,
  pi:`<svg viewBox="0 0 342 130" fill="none">
-   <g opacity=".5" fill="#7ab8c8"><circle cx="40" cy="24" r="1.2"/><circle cx="300" cy="30" r="1.2"/><circle cx="270" cy="100" r="1"/></g>
-   <circle cx="118" cy="65" r="30" stroke="#c9a868" stroke-width="1.8" fill="#0b1015"/>
-   <path d="M92 50c10 8 40 8 52 0M88 65h60M92 80c10-8 40-8 52 0" stroke="#8a7048" stroke-width="1.1" opacity=".8"/>
-   <ellipse cx="118" cy="65" rx="52" ry="15" stroke="#7ab8c8" stroke-width="1.4" opacity=".8"/>
-   <circle cx="176" cy="60" r="3.5" fill="#d8a24a"/>
-   <g stroke="#7ab8c8" stroke-width="1.4"><path d="M215 40h95M215 65h80M215 90h95"/><circle cx="215" cy="40" r="3"/><circle cx="295" cy="65" r="3"/><circle cx="215" cy="90" r="3"/></g></svg>`,
+   <g opacity=".5" fill="var(--cyan)"><circle cx="40" cy="24" r="1.2"/><circle cx="300" cy="30" r="1.2"/><circle cx="270" cy="100" r="1"/></g>
+   <circle cx="118" cy="65" r="30" stroke="var(--gold)" stroke-width="1.8" fill="var(--panel)"/>
+   <path d="M92 50c10 8 40 8 52 0M88 65h60M92 80c10-8 40-8 52 0" stroke="var(--gold-dim)" stroke-width="1.1" opacity=".8"/>
+   <ellipse cx="118" cy="65" rx="52" ry="15" stroke="var(--cyan)" stroke-width="1.4" opacity=".8"/>
+   <circle cx="176" cy="60" r="3.5" fill="var(--amber)"/>
+   <g stroke="var(--cyan)" stroke-width="1.4"><path d="M215 40h95M215 65h80M215 90h95"/><circle cx="215" cy="40" r="3"/><circle cx="295" cy="65" r="3"/><circle cx="215" cy="90" r="3"/></g></svg>`,
 };
 // local pages instead of external GitHub Pages URLs
 const APPS=[
@@ -533,6 +576,13 @@ function closeTool(){
 }
 
 buildCards(); render(); renderCharCarousel();
+function setTheme(name){
+  document.documentElement.dataset.theme=name;
+  try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
+  document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
+}
+document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
+setTheme(document.documentElement.dataset.theme||'amarr');
 </script>
 </body>
 </html>

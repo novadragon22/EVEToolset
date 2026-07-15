@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'amarr';}catch(e){}</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EVE Jump Freight Planner</title>
@@ -52,7 +54,8 @@
   .side.collapsed{width:0;min-width:0;overflow:hidden;border-right:none}
   .side{transition:width var(--dur-slow)}
   body.side-is-collapsed .side-collapse-btn{left:0;transform:rotate(180deg)}
-  .side{width:340px;flex-shrink:0;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;background:var(--bg);position:relative}
+  .side{width:340px;flex-shrink:0;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;background:var(--bg);position:relative;
+    box-shadow:1px 0 0 rgba(201,168,104,.12),3px 0 8px rgba(201,168,104,.04)}
   .resize-handle{position:absolute;top:0;bottom:0;right:-3px;width:6px;cursor:col-resize;z-index:20}
   .resize-handle:hover,.resize-handle.dragging{background:rgba(122,184,200,.3)}
   .mapwrap{flex:1;position:relative;min-width:0;background:#02040a}
@@ -60,8 +63,9 @@
   canvas.drag{cursor:grabbing}
 
   .sec{border-bottom:1px solid var(--line);padding:13px 14px}
-  .sec h3{font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:11px;display:flex;align-items:center;gap:8px;
+  .sec h3{position:relative;font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:11px;display:flex;align-items:center;gap:8px;
     padding:8px 12px;background:linear-gradient(90deg,rgba(201,168,104,.06),transparent 70%);border-left:2px solid var(--gold-dim);border-radius:0 2px 2px 0}
+  .sec h3::after{content:'';position:absolute;left:70%;top:20%;bottom:20%;width:1px;background:linear-gradient(180deg,transparent,rgba(201,168,104,.45),transparent)}
   .sec h3 .d{width:7px;height:7px}
   .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px}
   .ships{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -69,7 +73,7 @@
     display:flex;align-items:center;gap:8px;box-shadow:0 6px 16px rgba(0,0,0,.35)}
   .ship:hover{border-color:var(--gold-dim);transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.45)}
   .ship.on{border-color:var(--gold);background:linear-gradient(165deg,rgba(201,168,104,.12),rgba(201,168,104,.06));box-shadow:0 10px 24px rgba(0,0,0,.4),0 0 0 1px rgba(201,168,104,.15)}
-  .ship::before,.ship::after{content:'';position:absolute;width:8px;height:8px;border:1px solid rgba(201,168,104,.35);filter:drop-shadow(0 0 3px rgba(201,168,104,.2))}
+  .ship::before,.ship::after{content:'';position:absolute;width:10px;height:10px;border:1.5px solid rgba(201,168,104,.55);filter:drop-shadow(0 0 4px rgba(201,168,104,.3));box-shadow:0 0 0 2px rgba(201,168,104,.07) inset}
   .ship::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
   .ship::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
   .ship-render{width:36px;height:36px;flex-shrink:0;border-radius:3px;object-fit:cover;
@@ -83,6 +87,9 @@
   .chkrow input{accent-color:var(--gold)}
 
   .srch{position:relative}
+  .gen-panel{margin-top:10px;padding:10px;border:1px solid var(--line2);background:rgba(122,184,200,.03)}
+  .gen-row{display:flex;gap:6px}
+  .gen-row input{flex:1;min-width:0}
   .srch input{width:100%;background:rgba(10,14,20,.8);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px}
   .drop{position:absolute;left:0;right:0;top:100%;z-index:40;background:var(--panel);border:1px solid var(--gold-dim);border-top:none;max-height:230px;overflow-y:auto;display:none}
   .drop.on{display:block}
@@ -97,6 +104,7 @@
   .wp .ord{font-family:var(--mono);font-size:10px;color:var(--muted2);width:16px}
   .wp .nm{font-family:var(--mono);font-size:12px;color:#dfe7ee;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .wp .rg{font-family:var(--mono);font-size:9px;color:var(--muted)}
+  .wp-risk{font-family:var(--mono);font-size:10px;margin-left:6px}
   .wp .x{color:#6c8592;font-family:var(--mono);font-size:12px;padding:0 4px;opacity:.6}
   .wp .x:hover{opacity:1;color:var(--rederr)}
   .wp.hs{border-left-color:var(--red)}
@@ -231,6 +239,34 @@
   }
   @keyframes hud-reveal{0%{opacity:0;transform:translateY(6px);filter:brightness(1.4)}100%{opacity:1;transform:translateY(0);filter:brightness(1)}}
   .app{animation:hud-reveal .6s ease-out}
+  html[data-theme="caldari"]{
+    --bg:#050a10;--panel:#0a141f;--panel2:#0a1620;--line:#1a2836;--line2:#2a4050;
+    --gold:#4a90c4;--gold-bright:#8ac0e8;--gold-dim:#2a5570;--gold-deep:#1a3550;--gold-soft:#5a9ac8;
+    --cyan:#6a9ac0;--cyan-bright:#9ac8e8;--cyan-edge:#1a3550;
+    --violet:#7a8ad6;--violet-edge:#2a3055;--violet-soft:#8f9cc8;
+    --steel:#6a92c8;--steel-edge:#2a3a55;--steel-soft:#7a9cd0;
+  }
+  html[data-theme="gallente"]{
+    --bg:#040a08;--panel:#0a1512;--panel2:#0a1714;--line:#1a2e26;--line2:#2a4a3e;
+    --gold:#4ac89a;--gold-bright:#7ae8c0;--gold-dim:#2a6850;--gold-deep:#1a4838;--gold-soft:#5ac8a0;
+    --cyan:#4a9ac8;--cyan-bright:#7ac0e8;--cyan-edge:#1a3550;
+    --violet:#6ab8a0;--violet-edge:#1a4838;--violet-soft:#7ac8b0;
+    --steel:#4a9ac8;--steel-edge:#1a3550;--steel-soft:#6ab0d8;
+  }
+  html[data-theme="minmatar"]{
+    --bg:#0a0705;--panel:#150f0a;--panel2:#170f0a;--line:#2e2014;--line2:#4a3020;
+    --gold:#c86a3a;--gold-bright:#e89a6a;--gold-dim:#6a3a20;--gold-deep:#4a2818;--gold-soft:#c8825a;
+    --cyan:#a8905a;--cyan-bright:#c8b080;--cyan-edge:#4a3020;
+    --violet:#b87a5a;--violet-edge:#4a2818;--violet-soft:#c89070;
+    --steel:#8a8478;--steel-edge:#3a3428;--steel-soft:#a09888;
+  }
+  html[data-theme="triglavian"]{
+    --bg:#0a0505;--panel:#150d0a;--panel2:#170f0d;--line:#2a1a14;--line2:#3a2418;
+    --gold:#9ad84a;--gold-bright:#c0f070;--gold-dim:#5a7a30;--gold-deep:#3a5820;--gold-soft:#8ac850;
+    --cyan:#7a9850;--cyan-bright:#a0c070;--cyan-edge:#3a2418;
+    --violet:#c85a4a;--violet-edge:#4a2018;--violet-soft:#d87a6a;
+    --steel:#8a9850;--steel-edge:#3a2418;--steel-soft:#a0b070;
+  }
 </style>
 </head>
 <body>
@@ -244,6 +280,10 @@
       <span class="tb-pill" id="killPill"><span class="dot" id="killDot"></span> <span id="killTxt">kill feed</span></span>
       <span class="tb-pill" id="pilotPill" style="display:none"><span class="dot" id="pilotDot"></span> <span id="pilotTxt">pilots</span></span>
       <span id="authArea"></span>
+      <select id="themeSel" title="Faction theme" style="cursor:pointer">
+        <option value="amarr">Amarr</option><option value="caldari">Caldari</option><option value="gallente">Gallente</option>
+        <option value="minmatar">Minmatar</option><option value="triglavian">Triglavian</option>
+      </select>
     </div>
   </div>
   <div class="main">
@@ -269,6 +309,15 @@
         <div class="srch">
           <input id="search" placeholder="Add system by name…" autocomplete="off">
           <div class="drop" id="drop"></div>
+        </div>
+        <div class="gen-panel">
+          <div class="gen-row"><input id="genOrigin" placeholder="Origin system…" autocomplete="off"><input id="genDest" placeholder="Destination system…" autocomplete="off"></div>
+          <div class="chkrow"><input type="checkbox" id="genNeedStation"><label for="genNeedStation">Must have NPC station (every stop)</label></div>
+          <button class="btn" id="genBtn" style="width:100%;margin-top:6px">⚙ Generate route · uses 3mo zkill history</button>
+          <div id="genStatus" class="hint" style="margin-top:6px"></div>
+          <div id="riskFreshness" class="hint" style="margin-top:4px;display:none">
+            <span id="riskFreshTxt"></span> · <span id="riskRefreshBtn" style="cursor:pointer;text-decoration:underline">refresh risk data</span>
+          </div>
         </div>
         <div id="wps" style="margin-top:10px"></div>
       </div>
@@ -516,6 +565,135 @@ async function loadStations(idx){ const id=SYS[idx][1]; if(staCache[id]!=null)re
   }catch(e){ staCache[id]={count:0,names:[]}; return staCache[id]; }
 }
 
+// ---- jump plan generator: shortest-path routing + 3-month zkillboard risk awareness ----
+function resolveSystemByName(text){
+  const q=(text||'').trim().toLowerCase(); if(!q) return null;
+  for(let i=0;i<N;i++) if(nameLower[i]===q) return i;
+  for(let i=0;i<N;i++) if(nameLower[i].startsWith(q)) return i;
+  return null;
+}
+const riskCache={}, riskFetchedAt={};
+async function zkillRisk(idx,forceRefresh){
+  const id=SYS[idx][1];
+  if(!forceRefresh && riskCache[id]!=null) return riskCache[id];
+  try{
+    // zkillboard's per-system stats API — "months" holds a rolling per-month breakdown;
+    // summing the most recent 3 entries approximates a trailing-90-day danger score.
+    // Falls back to a scaled all-time count if the monthly breakdown isn't present, and
+    // to a neutral 0 (not a hard block) if the API is unreachable — a dead API shouldn't
+    // prevent route generation, it just means that system's risk is "unknown".
+    const r=await fetch(`https://zkillboard.com/api/stats/solarSystemID/${id}/`,{headers:{'Accept-Encoding':'gzip'}});
+    if(!r.ok) throw new Error('zkill '+r.status);
+    const d=await r.json();
+    let score=0;
+    if(d&&d.months&&typeof d.months==='object'){
+      const keys=Object.keys(d.months).sort().slice(-3);
+      for(const k of keys){ const m=d.months[k]||{}; score+=(m.shipsDestroyed||0)+(m.shipsLost||0); }
+    } else if(d&&typeof d.shipsDestroyed==='number'){ score=Math.round((d.shipsDestroyed||0)*0.05); }
+    riskCache[id]=score; riskFetchedAt[id]=Date.now();
+  }catch(e){ riskCache[id]=0; riskFetchedAt[id]=Date.now(); }
+  return riskCache[id];
+}
+function dijkstraPath(oIdx,dIdx,mr,requireStation,stationOk){
+  // Fatigue accumulates recursively per jump taken (see the real cooldown/fatigue formula used
+  // elsewhere in this tool), so minimizing raw distance alone can pick a route with many short
+  // hops that's actually worse for fatigue than a route with fewer, longer jumps covering the
+  // same ground. This isn't a full stateful fatigue simulation (that would need re-deriving cost
+  // per path since fatigue depends on jump history, not just the edge) — instead each jump gets a
+  // flat "fatigue-equivalent" penalty added to its distance cost, doubled when the fatigue
+  // reduction skill isn't trained (since untrained fatigue hurts far more per jump taken).
+  const jumpPenalty=mr*0.12*(fatRed?1:2);
+  const dist=new Array(N).fill(Infinity), prev=new Array(N).fill(-1), visited=new Uint8Array(N);
+  dist[oIdx]=0; const pq=[oIdx];
+  while(pq.length){
+    let bi=0; for(let k=1;k<pq.length;k++) if(dist[pq[k]]<dist[pq[bi]]) bi=k;
+    const u=pq.splice(bi,1)[0];
+    if(visited[u]) continue; visited[u]=1;
+    if(u===dIdx) break;
+    for(let v=0;v<N;v++){
+      if(v===u||visited[v]) continue;
+      if(v!==oIdx){ if(!jumpable(v)) continue; if(requireStation&&!stationOk.has(v)) continue; }
+      const d=lyBetween(u,v); if(d>mr) continue;
+      const nd=dist[u]+d+jumpPenalty;
+      if(nd<dist[v]){ dist[v]=nd; prev[v]=u; pq.push(v); }
+    }
+  }
+  if(dist[dIdx]===Infinity) return null;
+  const path=[]; let cur=dIdx; while(cur!==-1){ path.unshift(cur); cur=prev[cur]; }
+  return path;
+}
+async function generateRoute(){
+  const statusEl=document.getElementById('genStatus'); const btn=document.getElementById('genBtn');
+  const oIdx=resolveSystemByName(document.getElementById('genOrigin').value);
+  const dIdx=resolveSystemByName(document.getElementById('genDest').value);
+  if(oIdx==null){ statusEl.textContent='Origin system not found.'; return; }
+  if(dIdx==null){ statusEl.textContent='Destination system not found.'; return; }
+  if(!jumpable(dIdx)){ statusEl.textContent='Destination is '+SYS[dIdx][2].toFixed(1)+' sec — jump freighters can only cyno into 0.4 sec or lower. Pick the low/null-sec system nearest your actual destination as the target; your origin can be any security (including highsec) since that\'s just where you\'re starting from before the first jump.'; return; }
+  {
+    const mrCheck=maxRange();
+    let hasQualifyingHop=jumpable(oIdx);
+    if(!hasQualifyingHop){ for(let v=0;v<N&&!hasQualifyingHop;v++){ if(jumpable(v)&&lyBetween(oIdx,v)<=mrCheck) hasQualifyingHop=true; } }
+    if(!hasQualifyingHop){ statusEl.textContent='No 0.4-sec-or-lower system is within jump range of your origin — you\'ll need to fly or gate closer to low/null-sec before this ship can make its first jump.'; return; }
+  }
+  const needStation=document.getElementById('genNeedStation').checked;
+  const mr=maxRange();
+  btn.disabled=true; statusEl.textContent='Calculating shortest path…';
+  let stationOk=new Set();
+  if(needStation){
+    statusEl.textContent='Checking NPC stations along candidate systems…';
+    // only check stations for systems within a reasonable ly window of the direct line — checking
+    // every low/null system in the game would be thousands of ESI calls
+    const candidates=[]; for(let i=0;i<N;i++){ if(jumpable(i)&&lyBetween(oIdx,i)<lyBetween(oIdx,dIdx)+15) candidates.push(i); }
+    for(const i of candidates){ const s=await loadStations(i); if(s.count>0) stationOk.add(i); }
+    stationOk.add(oIdx); stationOk.add(dIdx);
+  }
+  const path=dijkstraPath(oIdx,dIdx,mr,needStation,stationOk);
+  if(!path){ statusEl.textContent=needStation?'No route found that keeps an NPC station at every stop — try a shorter hop or disable the requirement.':'No route found within jump range.'; btn.disabled=false; return; }
+  statusEl.textContent='Scoring '+path.length+' systems against 3 months of zkillboard history…';
+  const risks=await Promise.all(path.map(i=>zkillRisk(i)));
+  // local rerouting: if a system on the path is meaningfully riskier than its neighbors, see if a
+  // same-or-lower-risk alternative exists within range of both the previous and next stop
+  statusEl.textContent='Checking for safer alternatives…';
+  const finalPath=[path[0]];
+  for(let i=1;i<path.length-1;i++){
+    const cur=path[i], prevSys=finalPath[finalPath.length-1], nextSys=path[i+1], curRisk=risks[i];
+    if(curRisk<=5){ finalPath.push(cur); continue; } // already quiet, keep it
+    let best=cur, bestRisk=curRisk;
+    for(let v=0;v<N;v++){
+      if(v===cur||!jumpable(v)) continue;
+      if(needStation&&!stationOk.has(v)) continue;
+      if(lyBetween(prevSys,v)>mr||lyBetween(v,nextSys)>mr) continue;
+      const r=await zkillRisk(v);
+      if(r<bestRisk){ bestRisk=r; best=v; }
+    }
+    finalPath.push(best);
+  }
+  finalPath.push(path[path.length-1]);
+  waypoints=finalPath.map(i=>({i,char:null}));
+  renderWps(); renderRoute(); draw();
+  const finalRisks=await Promise.all(finalPath.map(i=>zkillRisk(i))); // cached, so this is free for systems already scored
+  const totalRisk=finalRisks.reduce((a,b)=>a+b,0);
+  statusEl.textContent=`Route generated · ${finalPath.length} stops · ${totalRisk} kills across the corridor in the last ~3 months`+(needStation?' · NPC station at every stop':'');
+  updateRiskFreshness();
+  btn.disabled=false;
+}
+document.getElementById('genBtn').onclick=generateRoute;
+function updateRiskFreshness(){
+  const el=document.getElementById('riskFreshness'), txt=document.getElementById('riskFreshTxt');
+  const ids=waypoints.map(w=>SYS[w.i][1]).filter(id=>riskFetchedAt[id]!=null);
+  if(!ids.length){ el.style.display='none'; return; }
+  const oldest=Math.min(...ids.map(id=>riskFetchedAt[id]));
+  const mins=Math.round((Date.now()-oldest)/60000);
+  txt.textContent='risk data '+(mins<1?'checked just now':'oldest check '+mins+'m ago');
+  el.style.display='';
+}
+document.getElementById('riskRefreshBtn').onclick=async()=>{
+  if(!waypoints.length) return;
+  const txt=document.getElementById('riskFreshTxt'); txt.textContent='refreshing…';
+  await Promise.all(waypoints.map(w=>zkillRisk(w.i,true)));
+  renderWps(); updateRiskFreshness();
+};
+
 // ---- search dropdown ----
 const search=document.getElementById('search'), drop=document.getElementById('drop');
 let dropHi=-1, dropItems=[];
@@ -550,8 +728,10 @@ function renderWps(){
     'No waypoints. Search a system, or click one on the map.<br>First waypoint is your origin (any sec); the rest must be low/null-sec.</div>'; return; }
   const charOpts=(sel)=>`<option value="">— assign pilot —</option>`+Object.entries(chars).filter(([cid])=>sectionEnabled(cid)).map(([cid,c])=>`<option value="${cid}" ${sel===cid?'selected':''}>${(c.charName||'pilot')}</option>`).join('');
   el.innerHTML=waypoints.map((w,n)=>{ const i=w.i, hs=n>0&&secClass(SYS[i][2])==='hi';
+    const rid=SYS[i][1]; const risk=riskCache[rid];
+    const riskTxt=risk!=null?`<span class="wp-risk" style="color:${risk===0?'var(--muted2)':risk<=5?'var(--amber)':'var(--red)'}" title="Ship kills+losses here in the last ~3 months (zkillboard)">· ${risk} kill${risk!==1?'s':''}/3mo</span>`:'';
     return `<div class="wp${hs?' hs':''}"><span class="ord">${n===0?'◎':n}</span>
-      <span class="nm">${SYS[i][0]} <span style="color:${secColor(SYS[i][2])}">${roundSec(SYS[i][2]).toFixed(1)}</span><div class="rg">${n===0?'jump start':regionOf(i)}</div></span>
+      <span class="nm">${SYS[i][0]} <span style="color:${secColor(SYS[i][2])}">${roundSec(SYS[i][2]).toFixed(1)}</span>${riskTxt}<div class="rg">${n===0?'jump start':regionOf(i)}</div></span>
       ${(anyChar()&&n>0)?`<select class="wpchar" onchange="assignChar(${n},this.value)">${charOpts(w.char)}</select>`:''}
       <span class="x" onclick="removeWp(${n})"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></div>`; }).join('');
   renderJumpChar();
@@ -912,6 +1092,12 @@ setInterval(()=>{ if(routeConfirmed){ pruneThreat(); renderRoute(); draw(); } },
   handle.addEventListener('pointerdown',e=>{ if(col.classList.contains('collapsed')) return; dragging=true; startX=e.clientX; startW=col.offsetWidth; handle.classList.add('dragging'); col.style.transition='none'; e.preventDefault(); });
   addEventListener('pointermove',e=>{ if(!dragging) return; const w=Math.max(280,Math.min(650,startW+(e.clientX-startX))); col.style.width=w+'px'; });
   addEventListener('pointerup',()=>{ if(!dragging) return; dragging=false; handle.classList.remove('dragging'); col.style.transition=''; localStorage.setItem('eve_jump_sidew',col.offsetWidth); });
+})();
+
+(function(){
+  const sel=document.getElementById('themeSel'); if(!sel) return;
+  sel.value=document.documentElement.dataset.theme||'amarr';
+  sel.onchange=()=>{ document.documentElement.dataset.theme=sel.value; try{ localStorage.setItem('eve_suite_theme',sel.value); }catch(e){} };
 })();
 </script>
 </body>

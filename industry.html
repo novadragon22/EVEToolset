@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'amarr';}catch(e){}</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EVE Industry Console</title>
@@ -43,7 +45,8 @@
 
   /* layout */
   .main{flex:1;display:flex;min-height:0}
-  .listcol{width:340px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel2);position:relative;flex-shrink:0}
+  .listcol{width:340px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel2);position:relative;flex-shrink:0;
+    box-shadow:1px 0 0 rgba(201,168,104,.12),3px 0 8px rgba(201,168,104,.04)}
   .resize-handle{position:absolute;top:0;bottom:0;right:-3px;width:6px;cursor:col-resize;z-index:20}
   .resize-handle:hover,.resize-handle.dragging{background:rgba(122,184,200,.3)}
   .tabs{display:flex;border-bottom:1px solid var(--line)}
@@ -113,7 +116,7 @@
   .dhead h1{margin:0 0 4px;font-size:22px;font-weight:600;color:#e7eef3;letter-spacing:.01em}
   .dhead .sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
   .kpi{position:relative;display:flex;gap:0;margin:0 0 20px;border:1px solid var(--line)}
-  .kpi::before,.kpi::after{content:'';position:absolute;width:10px;height:10px;border:1px solid rgba(201,168,104,.35);filter:drop-shadow(0 0 3px rgba(201,168,104,.2))}
+  .kpi::before,.kpi::after{content:'';position:absolute;width:14px;height:14px;border:1.5px solid rgba(201,168,104,.55);filter:drop-shadow(0 0 4px rgba(201,168,104,.3));box-shadow:0 0 0 3px rgba(201,168,104,.07) inset}
   .kpi::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
   .kpi::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
   .kpi .c{flex:1;padding:11px 14px;border-right:1px solid var(--line)}
@@ -251,6 +254,34 @@
   }
   @keyframes hud-reveal{0%{opacity:0;transform:translateY(6px);filter:brightness(1.4)}100%{opacity:1;transform:translateY(0);filter:brightness(1)}}
   .app{animation:hud-reveal .6s ease-out}
+  html[data-theme="caldari"]{
+    --bg:#050a10;--panel:#0a141f;--panel2:#0a1620;--line:#1a2836;--line2:#2a4050;
+    --gold:#4a90c4;--gold-bright:#8ac0e8;--gold-dim:#2a5570;--gold-deep:#1a3550;--gold-soft:#5a9ac8;
+    --cyan:#6a9ac0;--cyan-bright:#9ac8e8;--cyan-edge:#1a3550;
+    --violet:#7a8ad6;--violet-edge:#2a3055;--violet-soft:#8f9cc8;
+    --steel:#6a92c8;--steel-edge:#2a3a55;--steel-soft:#7a9cd0;
+  }
+  html[data-theme="gallente"]{
+    --bg:#040a08;--panel:#0a1512;--panel2:#0a1714;--line:#1a2e26;--line2:#2a4a3e;
+    --gold:#4ac89a;--gold-bright:#7ae8c0;--gold-dim:#2a6850;--gold-deep:#1a4838;--gold-soft:#5ac8a0;
+    --cyan:#4a9ac8;--cyan-bright:#7ac0e8;--cyan-edge:#1a3550;
+    --violet:#6ab8a0;--violet-edge:#1a4838;--violet-soft:#7ac8b0;
+    --steel:#4a9ac8;--steel-edge:#1a3550;--steel-soft:#6ab0d8;
+  }
+  html[data-theme="minmatar"]{
+    --bg:#0a0705;--panel:#150f0a;--panel2:#170f0a;--line:#2e2014;--line2:#4a3020;
+    --gold:#c86a3a;--gold-bright:#e89a6a;--gold-dim:#6a3a20;--gold-deep:#4a2818;--gold-soft:#c8825a;
+    --cyan:#a8905a;--cyan-bright:#c8b080;--cyan-edge:#4a3020;
+    --violet:#b87a5a;--violet-edge:#4a2818;--violet-soft:#c89070;
+    --steel:#8a8478;--steel-edge:#3a3428;--steel-soft:#a09888;
+  }
+  html[data-theme="triglavian"]{
+    --bg:#0a0505;--panel:#150d0a;--panel2:#170f0d;--line:#2a1a14;--line2:#3a2418;
+    --gold:#9ad84a;--gold-bright:#c0f070;--gold-dim:#5a7a30;--gold-deep:#3a5820;--gold-soft:#8ac850;
+    --cyan:#7a9850;--cyan-bright:#a0c070;--cyan-edge:#3a2418;
+    --violet:#c85a4a;--violet-edge:#4a2018;--violet-soft:#d87a6a;
+    --steel:#8a9850;--steel-edge:#3a2418;--steel-soft:#a0b070;
+  }
 </style>
 </head>
 <body>
@@ -264,6 +295,10 @@
     <div id="authArea" class="autharea"></div>
     <button class="btn" id="jobsBtn" style="display:none">Jobs</button>
     <button class="btn" id="refresh" title="Reload">Refresh</button>
+    <select id="themeSel" class="btn" title="Faction theme" style="cursor:pointer">
+      <option value="amarr">Amarr</option><option value="caldari">Caldari</option><option value="gallente">Gallente</option>
+      <option value="minmatar">Minmatar</option><option value="triglavian">Triglavian</option>
+    </select>
     <button class="btn" id="setBtn" title="UI scale">⚏ Scale</button>
   </div>
   <div class="main">
@@ -1180,6 +1215,12 @@ function setStatus(txt,cls){ document.getElementById('stTxt').textContent=txt; c
   if(loggedIn()){ setStatus('loading characters…','loading'); renderAuth();
     try{ await loadAll(); const n=Object.keys(chars).length; setStatus('ready · '+n+' character'+(n!==1?'s':''),'ok'); }
     catch(e){ setStatus('character load failed','err'); } }
+})();
+
+(function(){
+  const sel=document.getElementById('themeSel'); if(!sel) return;
+  sel.value=document.documentElement.dataset.theme||'amarr';
+  sel.onchange=()=>{ document.documentElement.dataset.theme=sel.value; try{ localStorage.setItem('eve_suite_theme',sel.value); }catch(e){} };
 })();
 </script>
 </body>
