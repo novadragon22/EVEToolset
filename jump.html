@@ -683,6 +683,12 @@ function dijkstraPath(oIdx,dIdx,mr,requireStation,stationOk){
   const path=[]; let cur=dIdx; while(cur!==-1){ path.unshift(cur); cur=prev[cur]; }
   return path;
 }
+async function mapLimit(items,limit,fn){
+  const results=new Array(items.length); let next=0;
+  async function worker(){ while(next<items.length){ const idx=next++; results[idx]=await fn(items[idx],idx); } }
+  await Promise.all(new Array(Math.min(limit,items.length)).fill(0).map(worker));
+  return results;
+}
 async function generateRoute(){
   const statusEl=document.getElementById('genStatus'); const btn=document.getElementById('genBtn');
   const oIdx=resolveSystemByName(document.getElementById('genOrigin').value);
@@ -712,7 +718,8 @@ async function generateRoute(){
     // only check stations for systems within a reasonable ly window of the direct line — checking
     // every low/null system in the game would be thousands of ESI calls
     const candidates=[]; for(let i=0;i<N;i++){ if(jumpable(i)&&lyBetween(oIdx,i)<lyBetween(oIdx,jumpDestIdx)+15) candidates.push(i); }
-    for(const i of candidates){ const s=await loadStations(i); if(s.count>0) stationOk.add(i); }
+    statusEl.textContent='Checking NPC stations across '+candidates.length+' candidate systems…';
+    await mapLimit(candidates,8,async i=>{ const s=await loadStations(i); if(s.count>0) stationOk.add(i); });
     stationOk.add(oIdx); stationOk.add(jumpDestIdx);
   }
   const path=dijkstraPath(oIdx,jumpDestIdx,mr,needStation,stationOk);
@@ -727,16 +734,17 @@ async function generateRoute(){
   const finalPath=[path[0]]; const suggestions=[null]; // suggestions[n] = alternatives considered for waypoint n
   for(let i=1;i<path.length-1;i++){
     const cur=path[i], prevSys=finalPath[finalPath.length-1], nextSys=path[i+1], curRisk=risks[i];
-    let best=cur, bestRisk=curRisk;
-    const candidates=[{idx:cur,risk:curRisk}];
+    const candIdxs=[];
     for(let v=0;v<N;v++){
       if(v===cur||!jumpable(v)) continue;
       if(needStation&&!stationOk.has(v)) continue;
       if(lyBetween(prevSys,v)>mr||lyBetween(v,nextSys)>mr) continue;
-      const r=await zkillRisk(v);
-      candidates.push({idx:v,risk:r});
-      if(r<bestRisk){ bestRisk=r; best=v; }
+      candIdxs.push(v);
     }
+    const candRisks=await mapLimit(candIdxs,8,v=>zkillRisk(v));
+    const candidates=[{idx:cur,risk:curRisk}, ...candIdxs.map((v,k)=>({idx:v,risk:candRisks[k]}))];
+    let best=cur, bestRisk=curRisk;
+    for(const c of candidates){ if(c.risk<bestRisk){ bestRisk=c.risk; best=c.idx; } }
     candidates.sort((a,b)=>a.risk-b.risk);
     suggestions.push(candidates.filter(c=>c.idx!==best).slice(0,3)); // top alternatives, excluding whichever got picked
     finalPath.push(best);
@@ -752,7 +760,7 @@ async function generateRoute(){
       cands.push(v);
     }
     if(cands.length){
-      const scored=await Promise.all(cands.map(async v=>({idx:v,risk:await zkillRisk(v)})));
+      const scored=await mapLimit(cands,8,async v=>({idx:v,risk:await zkillRisk(v)}));
       scored.sort((a,b)=>a.risk-b.risk);
       insertCandidates=scored.slice(0,3);
     }
@@ -1020,17 +1028,6 @@ function draw(){
       for(const i of reachable){ const X=sx(wx(i)),Y=sy(wy(i)); if(X<-10||X>w+10||Y<-10||Y>h+10)continue;
         ctx.beginPath(); ctx.arc(X,Y,Math.max(3,view.zoom*2.4)*DPR,0,7); ctx.stroke(); }
     }
-    ctx.lineWidth=1.6*DPR; ctx.strokeStyle='rgba(var(--gold-rgb),0.85)';
-    ctx.beginPath();
-    for(let n=0;n<waypoints.length;n++){ const i=waypoints[n].i; const X=sx(wx(i)),Y=sy(wy(i)); if(n===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y); }
-    ctx.stroke();
-    // waypoint markers
-    for(let n=0;n<waypoints.length;n++){ const i=waypoints[n].i; const X=sx(wx(i)),Y=sy(wy(i));
-      ctx.fillStyle=n===0?'#e8d296':'#c9a868'; ctx.beginPath(); ctx.arc(X,Y,5*DPR,0,7); ctx.fill();
-      ctx.strokeStyle='#030507'; ctx.lineWidth=1.5*DPR; ctx.stroke();
-      ctx.fillStyle='#e8d296'; ctx.font=`${11*DPR}px IBM Plex Mono`; ctx.textBaseline='middle';
-      ctx.fillText(SYS[i][0], X+8*DPR, Y);
-    }
   }
   // NPC station markers (cached, on-demand) — hollow gold squares
   if(showSta){ ctx.strokeStyle='rgba(var(--gold-rgb),0.9)'; ctx.lineWidth=1.4*DPR;
@@ -1058,6 +1055,37 @@ function draw(){
     const off=(showSov&&view.zoom>=2.2)?Math.min(22,Math.max(13,view.zoom*5))*DPR*0.6:6*DPR;
     for(let i=0;i<N;i++){ if(SYS[i][1]>=31000000)continue; const px=sx(wx(i)),py=sy(wy(i)); if(px<0||px>w||py<0||py>h)continue;
       ctx.fillText(SYS[i][0], px+off, py); }
+  }
+  // route line + waypoint markers — drawn LAST, on top of gates/systems/threat-zone/pilots/labels,
+  // with a real glow so the planned route is unambiguous against a visually dense map
+  if(waypoints.length){
+    const goldBright=getComputedStyle(document.documentElement).getPropertyValue('--gold-bright').trim()||'#e8d296';
+    const bgDark=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||'#030507';
+    ctx.save();
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    // dark outline underneath the bright line so it reads against light backgrounds and busy gate-link areas too
+    ctx.lineWidth=5*DPR; ctx.strokeStyle='rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    for(let n=0;n<waypoints.length;n++){ const i=waypoints[n].i; const X=sx(wx(i)),Y=sy(wy(i)); if(n===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y); }
+    ctx.stroke();
+    ctx.shadowColor=goldBright; ctx.shadowBlur=10*DPR;
+    ctx.lineWidth=3*DPR; ctx.strokeStyle=goldBright;
+    ctx.beginPath();
+    for(let n=0;n<waypoints.length;n++){ const i=waypoints[n].i; const X=sx(wx(i)),Y=sy(wy(i)); if(n===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y); }
+    ctx.stroke();
+    ctx.restore();
+    for(let n=0;n<waypoints.length;n++){ const i=waypoints[n].i; const X=sx(wx(i)),Y=sy(wy(i));
+      ctx.save(); ctx.shadowColor=goldBright; ctx.shadowBlur=8*DPR;
+      ctx.fillStyle=goldBright; ctx.beginPath(); ctx.arc(X,Y,7*DPR,0,7); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle=bgDark; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.arc(X,Y,7*DPR,0,7); ctx.stroke();
+      ctx.fillStyle=bgDark; ctx.font=`bold ${11*DPR}px IBM Plex Mono`; ctx.textBaseline='middle';
+      ctx.fillText(n===0?'◎':String(n), X-3*DPR, Y+0.5*DPR);
+      // label with its own dark backing plate so text never disappears against a bright or busy background
+      const label=SYS[i][0]; ctx.font=`${11*DPR}px IBM Plex Mono`; const tw=ctx.measureText(label).width;
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(X+10*DPR,Y-8*DPR,tw+8*DPR,16*DPR);
+      ctx.fillStyle=goldBright; ctx.fillText(label, X+14*DPR, Y);
+    }
   }
 }
 
