@@ -616,6 +616,42 @@ async function zkillRisk(idx,forceRefresh){
   }catch(e){ riskCache[id]=0; riskFetchedAt[id]=Date.now(); }
   return riskCache[id];
 }
+let _gateAdj=null;
+function gateAdjacency(){
+  if(_gateAdj) return _gateAdj;
+  _gateAdj=new Array(N); for(let i=0;i<N;i++) _gateAdj[i]=[];
+  for(const [a,b] of UNIVERSE.jumps){ _gateAdj[a].push(b); _gateAdj[b].push(a); }
+  return _gateAdj;
+}
+function nearestLowSecViaGates(fromIdx){
+  // BFS outward through real stargates from a highsec system until hitting the first 0.4-or-lower
+  // system — this is "closest place a JF could cyno in near this highsec destination".
+  if(jumpable(fromIdx)) return {idx:fromIdx,path:[fromIdx]};
+  const adj=gateAdjacency();
+  const prev=new Map([[fromIdx,-1]]); const q=[fromIdx]; let qi=0;
+  while(qi<q.length){
+    const u=q[qi++];
+    if(jumpable(u)&&u!==fromIdx){
+      const path=[]; let c=u; while(c!==-1){ path.unshift(c); c=prev.get(c); }
+      return {idx:u,path};
+    }
+    for(const v of adj[u]){ if(!prev.has(v)){ prev.set(v,u); q.push(v); } }
+  }
+  return null;
+}
+function gateRoute(fromIdx,toIdx){
+  // shortest stargate path between two systems (BFS = fewest gate jumps, matching in-game autopilot logic)
+  if(fromIdx===toIdx) return [fromIdx];
+  const adj=gateAdjacency();
+  const prev=new Map([[fromIdx,-1]]); const q=[fromIdx]; let qi=0;
+  while(qi<q.length){
+    const u=q[qi++]; if(u===toIdx) break;
+    for(const v of adj[u]){ if(!prev.has(v)){ prev.set(v,u); q.push(v); } }
+  }
+  if(!prev.has(toIdx)) return null;
+  const path=[]; let c=toIdx; while(c!==-1){ path.unshift(c); c=prev.get(c); }
+  return path;
+}
 function dijkstraPath(oIdx,dIdx,mr,requireStation,stationOk){
   // Fatigue accumulates recursively per jump taken (see the real cooldown/fatigue formula used
   // elsewhere in this tool), so minimizing raw distance alone can pick a route with many short
@@ -650,7 +686,14 @@ async function generateRoute(){
   const dIdx=resolveSystemByName(document.getElementById('genDest').value);
   if(oIdx==null){ statusEl.textContent='Origin system not found.'; return; }
   if(dIdx==null){ statusEl.textContent='Destination system not found.'; return; }
-  if(!jumpable(dIdx)){ statusEl.textContent='Destination is '+SYS[dIdx][2].toFixed(1)+' sec — jump freighters can only cyno into 0.4 sec or lower. Pick the low/null-sec system nearest your actual destination as the target; your origin can be any security (including highsec) since that\'s just where you\'re starting from before the first jump.'; return; }
+  let gateLeg=null; // set if the destination itself is highsec and needs a stargate leg after the last jump
+  let jumpDestIdx=dIdx;
+  if(!jumpable(dIdx)){
+    statusEl.textContent='Destination is '+SYS[dIdx][2].toFixed(1)+' sec — finding the nearest 0.4-or-lower system to cyno into…';
+    const near=nearestLowSecViaGates(dIdx);
+    if(!near){ statusEl.textContent='Destination is '+SYS[dIdx][2].toFixed(1)+' sec and no low/null-sec system could be found connected to it by stargate at all — this route can\'t be planned.'; return; }
+    jumpDestIdx=near.idx; gateLeg=near.path; // path runs FROM the cyno system TO the highsec destination
+  }
   {
     const mrCheck=maxRange();
     let hasQualifyingHop=jumpable(oIdx);
@@ -665,21 +708,22 @@ async function generateRoute(){
     statusEl.textContent='Checking NPC stations along candidate systems…';
     // only check stations for systems within a reasonable ly window of the direct line — checking
     // every low/null system in the game would be thousands of ESI calls
-    const candidates=[]; for(let i=0;i<N;i++){ if(jumpable(i)&&lyBetween(oIdx,i)<lyBetween(oIdx,dIdx)+15) candidates.push(i); }
+    const candidates=[]; for(let i=0;i<N;i++){ if(jumpable(i)&&lyBetween(oIdx,i)<lyBetween(oIdx,jumpDestIdx)+15) candidates.push(i); }
     for(const i of candidates){ const s=await loadStations(i); if(s.count>0) stationOk.add(i); }
-    stationOk.add(oIdx); stationOk.add(dIdx);
+    stationOk.add(oIdx); stationOk.add(jumpDestIdx);
   }
-  const path=dijkstraPath(oIdx,dIdx,mr,needStation,stationOk);
+  const path=dijkstraPath(oIdx,jumpDestIdx,mr,needStation,stationOk);
   if(!path){ statusEl.textContent=needStation?'No route found that keeps an NPC station at every stop — try a shorter hop or disable the requirement.':'No route found within jump range.'; btn.disabled=false; return; }
   statusEl.textContent='Scoring '+path.length+' systems against 3 months of zkillboard history…';
   const risks=await Promise.all(path.map(i=>zkillRisk(i)));
-  // local rerouting: if a system on the path is meaningfully riskier than its neighbors, see if a
-  // same-or-lower-risk alternative exists within range of both the previous and next stop
-  statusEl.textContent='Checking for safer alternatives…';
+  // local rerouting: for every intermediate stop, check whether an equally- or lower-risk alternative
+  // exists within jump range of both the previous and next stop, and prefer it — checked at every hop,
+  // not only when the current stop already looks dangerous, so the route is proactively safest-available
+  // rather than only reactively avoiding known-bad systems.
+  statusEl.textContent='Checking for safer alternatives at every hop…';
   const finalPath=[path[0]];
   for(let i=1;i<path.length-1;i++){
     const cur=path[i], prevSys=finalPath[finalPath.length-1], nextSys=path[i+1], curRisk=risks[i];
-    if(curRisk<=5){ finalPath.push(cur); continue; } // already quiet, keep it
     let best=cur, bestRisk=curRisk;
     for(let v=0;v<N;v++){
       if(v===cur||!jumpable(v)) continue;
@@ -695,7 +739,12 @@ async function generateRoute(){
   renderWps(); renderRoute(); draw();
   const finalRisks=await Promise.all(finalPath.map(i=>zkillRisk(i))); // cached, so this is free for systems already scored
   const totalRisk=finalRisks.reduce((a,b)=>a+b,0);
-  statusEl.textContent=`Route generated · ${finalPath.length} stops · ${totalRisk} kills across the corridor in the last ~3 months`+(needStation?' · NPC station at every stop':'');
+  let msg=`Route generated · ${finalPath.length} stops · ${totalRisk} kills across the corridor in the last ~3 months`+(needStation?' · NPC station at every stop':'');
+  if(gateLeg){
+    const gateNames=gateLeg.slice().reverse().map(i=>SYS[i][0]).join(' → ');
+    msg+=`<br>Then take stargates from ${SYS[jumpDestIdx][0]} to ${SYS[dIdx][0]} (${gateLeg.length-1} gate${gateLeg.length-1!==1?'s':''}): ${gateNames}`;
+  }
+  statusEl.innerHTML=msg;
   updateRiskFreshness();
   btn.disabled=false;
 }

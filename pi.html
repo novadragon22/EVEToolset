@@ -1199,8 +1199,10 @@ function setView(v){ if(v==='mine'){ viewing='mine'; renderMine(); }
 let _l3dData=null, _l3dRAF=null, _l3dRot={yaw:0.6,pitch:-0.35}, _l3dZoom=1, _l3dPan={x:0,y:0}, _l3dDrag=null;
 function build3DGraph(planet, finals){
   const outs=(planet.outs||[]).slice(); const nodes=[]; const links=[];
+  const cs=getComputedStyle(document.documentElement);
+  const cv=n=>cs.getPropertyValue(n).trim();
   const PTC={cc:'var(--gold)',launch:'var(--cyan)',store:'var(--muted)',adv:'var(--cyan-bright)',htech:'var(--gold-bright)',ecu:'var(--amber)',basic:'var(--green)'};
-  const colMap={cc:'#c9a868',launch:'#7ab8c8',store:'#7a8fa0',adv:'#a0d0e0',htech:'#e8d296',ecu:'#d8a24a',basic:'#8cc86a'};
+  const colMap={cc:cv('--gold'),launch:cv('--cyan'),store:cv('--muted'),adv:cv('--cyan-bright'),htech:cv('--gold-bright'),ecu:cv('--amber'),basic:cv('--green')};
   const add=(id,label,type,lat,lon)=>{ const la=lat*Math.PI/180, lo=lon*Math.PI/180;
     const p=[Math.cos(la)*Math.sin(lo), Math.sin(la), Math.cos(la)*Math.cos(lo)];
     const n={id,label,type,p,col:colMap[type]}; nodes.push(n); return n; };
@@ -1218,9 +1220,9 @@ function build3DGraph(planet, finals){
   // links: power backbone + production routes
   links.push({a:cc,b:lp,kind:'net'}); links.push({a:cc,b:st,kind:'net'}); links.push({a:lp,b:st,kind:'net'});
   outs.forEach(o=>{ const f=facById[o]; const r=PI.recipe[o];
-    r.in.forEach(([I])=>{ if(madeSet.has(+I)) links.push({a:facById[I],b:f,kind:'route',col:'#a0d0e0'});
-      else links.push({a:lp,b:f,kind:'route',col:'#7ab8c8'}); });
-    links.push({a:f,b: finalsSet.has(+o)?lp:st, kind:'route', col: finalsSet.has(+o)?'#e8d296':'#8a7048'}); });
+    r.in.forEach(([I])=>{ if(madeSet.has(+I)) links.push({a:facById[I],b:f,kind:'route',col:cv('--cyan-bright')});
+      else links.push({a:lp,b:f,kind:'route',col:cv('--cyan')}); });
+    links.push({a:f,b: finalsSet.has(+o)?lp:st, kind:'route', col: finalsSet.has(+o)?cv('--gold-bright'):cv('--gold-dim')}); });
   return {nodes,links,ptColor:(typeof PT_COLOR!=='undefined'&&PT_COLOR[planet.pcode])||'#4a6070'};
 }
 function rot3(p,yaw,pitch){ let x=p[0]*Math.cos(yaw)+p[2]*Math.sin(yaw), z=-p[0]*Math.sin(yaw)+p[2]*Math.cos(yaw), y=p[1];
@@ -1266,9 +1268,9 @@ function open3D(){ if(!_l3dData) return; let ov=document.getElementById('l3dOver
         <span id="l3dClose" style="cursor:pointer;padding:3px 10px;border:1px solid var(--line2);color:var(--cyan)"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> close</span></div>
       <canvas id="l3dCanvas" style="flex:1;width:100%;touch-action:none"></canvas>
       <div class="hint" style="padding:8px 16px;border-top:1px solid var(--line);display:flex;gap:16px;flex-wrap:wrap">
-        <span style="color:#c9a868">● Command Center</span><span style="color:#7ab8c8">● Launchpad</span><span style="color:#7a8fa0">● Storage</span>
-        <span style="color:#a0d0e0">● Advanced facility</span><span style="color:#e8d296">● High-Tech plant</span>
-        <span style="color:#7ab8c8">→ P1 deposit</span><span style="color:#a0d0e0">→ intermediate</span><span style="color:#e8d296">→ final/export</span></div>`;
+        <span style="color:var(--gold)">● Command Center</span><span style="color:var(--cyan)">● Launchpad</span><span style="color:var(--muted)">● Storage</span>
+        <span style="color:var(--cyan-bright)">● Advanced facility</span><span style="color:var(--gold-bright)">● High-Tech plant</span>
+        <span style="color:var(--cyan)">→ P1 deposit</span><span style="color:var(--cyan-bright)">→ intermediate</span><span style="color:var(--gold-bright)">→ final/export</span></div>`;
     document.body.appendChild(ov);
     document.getElementById('l3dClose').onclick=close3D;
     const cv=document.getElementById('l3dCanvas');
@@ -1801,6 +1803,9 @@ function drawMap(){ if(!ctx) return; ctx.clearRect(0,0,W,H); pts=[];
   const resSet=new Set(results.map(r=>r.id)); const fullSet=new Set(results.filter(r=>r.covered===r.total).map(r=>r.id));
   const goldBright=getComputedStyle(document.documentElement).getPropertyValue('--gold-bright').trim()||'#e8d296';
   const goldDim=getComputedStyle(document.documentElement).getPropertyValue('--gold-dim').trim()||'#8a7048';
+  const cyanBright=getComputedStyle(document.documentElement).getPropertyValue('--cyan-bright').trim()||'#a0d0e0';
+  const bgCol=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||'#030507';
+  const amberCol=getComputedStyle(document.documentElement).getPropertyValue('--amber').trim()||'#d8a24a';
   for(const id of sysIds){ const s=SYS[id]; const [px,py]=proj(s[3],s[4]);
     if(px<-20||px>W+20||py<-20||py>H+20) continue;            // cull offscreen when zoomed
     let c='#1b2630', rad=2.1, glow=0;
@@ -1812,19 +1817,19 @@ function drawMap(){ if(!ctx) return; ctx.clearRect(0,0,W,H); pts=[];
     if(resSet.has(id)) pts.push([px,py,id]); }
   Object.values(colonies).flat().forEach(co=>{ const s=SYS[co.system]; if(!s)return; const [px,py]=proj(s[3],s[4]);
     ctx.strokeStyle=mgreen(); ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(px,py,3.4,0,7); ctx.stroke(); });
-  if(homeId&&SYS[homeId]){ const [px,py]=proj(SYS[homeId][3],SYS[homeId][4]); ctx.strokeStyle='#a0d0e0';ctx.lineWidth=1.6;
-    ctx.beginPath(); ctx.arc(px,py,5,0,7); ctx.stroke(); ctx.fillStyle='#a0d0e0'; ctx.fillRect(px-1,py-1,2,2); }
+  if(homeId&&SYS[homeId]){ const [px,py]=proj(SYS[homeId][3],SYS[homeId][4]); ctx.strokeStyle=cyanBright;ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.arc(px,py,5,0,7); ctx.stroke(); ctx.fillStyle=cyanBright; ctx.fillRect(px-1,py-1,2,2); }
   const dmd=(px,py,r)=>{ ctx.beginPath(); ctx.moveTo(px,py-r); ctx.lineTo(px+r,py); ctx.lineTo(px,py+r); ctx.lineTo(px-r,py); ctx.closePath(); };
   // feeder colony (drawn first, with a dashed link back to the main colony)
   if(viewing==='colony' && feederMark && SYS[feederMark]){ const [fx,fy]=proj(SYS[feederMark][3],SYS[feederMark][4]);
-    if(chosen&&SYS[chosen]){ const [cx,cy]=proj(SYS[chosen][3],SYS[chosen][4]); ctx.save(); ctx.setLineDash([4,3]); ctx.strokeStyle='rgba(216,162,74,0.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(cx,cy); ctx.stroke(); ctx.restore(); }
-    ctx.strokeStyle='#d8a24a'; ctx.lineWidth=1.6; dmd(fx,fy,6); ctx.stroke();
-    ctx.fillStyle='#d8a24a'; ctx.beginPath(); ctx.arc(fx,fy,1.7,0,7); ctx.fill(); }
+    if(chosen&&SYS[chosen]){ const [cx,cy]=proj(SYS[chosen][3],SYS[chosen][4]); ctx.save(); ctx.setLineDash([4,3]); ctx.globalAlpha=0.55; ctx.strokeStyle=amberCol; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(cx,cy); ctx.stroke(); ctx.restore(); }
+    ctx.strokeStyle=amberCol; ctx.lineWidth=1.6; dmd(fx,fy,6); ctx.stroke();
+    ctx.fillStyle=amberCol; ctx.beginPath(); ctx.arc(fx,fy,1.7,0,7); ctx.fill(); }
   // selected colony — filled gold diamond with ring
   if(chosen&&SYS[chosen]){ const [px,py]=proj(SYS[chosen][3],SYS[chosen][4]);
-    ctx.fillStyle='#e8d296'; dmd(px,py,5.5); ctx.fill();
-    ctx.strokeStyle='#030507'; ctx.lineWidth=1.2; dmd(px,py,5.5); ctx.stroke();
-    ctx.strokeStyle='#e8d296'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(px,py,9.5,0,7); ctx.stroke(); }
+    ctx.fillStyle=goldBright; dmd(px,py,5.5); ctx.fill();
+    ctx.strokeStyle=bgCol; ctx.lineWidth=1.2; dmd(px,py,5.5); ctx.stroke();
+    ctx.strokeStyle=goldBright; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(px,py,9.5,0,7); ctx.stroke(); }
   $('legend').innerHTML=`<div><i style="background:#e8d296"></i>full-chain system</div><div><i style="background:#8a7048"></i>partial</div>
     <div><i style="background:${mgreen()}"></i>your colony</div><div><i style="background:#a0d0e0"></i>home</div>
     <div><i style="background:#e8d296;transform:rotate(45deg)"></i>selected colony</div>${(viewing==='colony'&&feederMark)?`<div><i style="border:1px solid #d8a24a;background:transparent;transform:rotate(45deg)"></i>feeder colony</div>`:''}
