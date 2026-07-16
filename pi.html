@@ -106,18 +106,18 @@
   .side details[open]>summary::before{transform:rotate(90deg)}
   .side details>summary:hover{color:var(--gold-bright)}
   .ptpill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;margin:3px 4px 0 0;padding:3px 7px;border:1px solid var(--line2)}
-  .center{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0}
-  .mapwrap{flex:none;height:40%;min-height:0;position:relative;background:radial-gradient(700px 400px at 50% 50%,#06090d,#030506);border-bottom:1px solid var(--line)}
+  .center{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0;position:relative}
+  .mapwrap{position:absolute;inset:0;background:radial-gradient(700px 400px at 50% 50%,#06090d,#030506)}
   #map{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
   #map:active{cursor:grabbing}
   .zoomctl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:5px;z-index:6}
   .zoomctl button{width:28px;height:28px;border:1px solid var(--line2);background:rgba(6,9,13,.8);color:var(--gold);font-family:var(--mono);font-size:15px;cursor:pointer;line-height:1}
   .zoomctl button:hover{border-color:var(--gold-dim);color:var(--gold-bright)}
-  .results{flex:1;min-height:0;display:flex;flex-direction:column}
+  .results{position:absolute;left:0;right:0;bottom:0;max-height:52%;min-height:0;display:flex;flex-direction:column;
+    background:rgba(8,11,15,.88);backdrop-filter:blur(10px);border-top:1px solid rgba(var(--gold-rgb),.25);box-shadow:0 -20px 50px rgba(0,0,0,.5);z-index:4}
   .maptip{position:absolute;pointer-events:none;background:#0c1217;border:1px solid var(--line2);font-family:var(--mono);font-size:10px;padding:5px 8px;color:var(--text);opacity:0;transform:translate(-50%,-130%);white-space:nowrap;z-index:5}
   .legend{position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:9px;color:var(--muted);background:rgba(6,9,13,.7);border:1px solid var(--line);padding:8px 10px;line-height:1.7}
   .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
-  .results{flex:1;min-height:0;border-top:1px solid var(--line);display:flex;flex-direction:column}
   .results .hd{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
   .results .hd b{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
   table{width:100%;border-collapse:collapse;font-size:12px}
