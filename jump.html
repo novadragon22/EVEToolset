@@ -106,6 +106,9 @@
   .wp .nm{font-family:var(--mono);font-size:12px;color:#dfe7ee;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .wp .rg{font-family:var(--mono);font-size:9px;color:var(--muted)}
   .wp-risk{font-family:var(--mono);font-size:10px;margin-left:6px}
+  .wp-sugg{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-top:3px}
+  .wp-sugg-item{cursor:pointer;text-decoration:underline;text-decoration-style:dotted}
+  .wp-sugg-item:hover{color:var(--cyan-bright)}
   .wp .x{color:#6c8592;font-family:var(--mono);font-size:12px;padding:0 4px;opacity:.6}
   .wp .x:hover{opacity:1;color:var(--rederr)}
   .wp.hs{border-left-color:var(--red)}
@@ -721,21 +724,42 @@ async function generateRoute(){
   // not only when the current stop already looks dangerous, so the route is proactively safest-available
   // rather than only reactively avoiding known-bad systems.
   statusEl.textContent='Checking for safer alternatives at every hop…';
-  const finalPath=[path[0]];
+  const finalPath=[path[0]]; const suggestions=[null]; // suggestions[n] = alternatives considered for waypoint n
   for(let i=1;i<path.length-1;i++){
     const cur=path[i], prevSys=finalPath[finalPath.length-1], nextSys=path[i+1], curRisk=risks[i];
     let best=cur, bestRisk=curRisk;
+    const candidates=[{idx:cur,risk:curRisk}];
     for(let v=0;v<N;v++){
       if(v===cur||!jumpable(v)) continue;
       if(needStation&&!stationOk.has(v)) continue;
       if(lyBetween(prevSys,v)>mr||lyBetween(v,nextSys)>mr) continue;
       const r=await zkillRisk(v);
+      candidates.push({idx:v,risk:r});
       if(r<bestRisk){ bestRisk=r; best=v; }
     }
+    candidates.sort((a,b)=>a.risk-b.risk);
+    suggestions.push(candidates.filter(c=>c.idx!==best).slice(0,3)); // top alternatives, excluding whichever got picked
     finalPath.push(best);
   }
-  finalPath.push(path[path.length-1]);
-  waypoints=finalPath.map(i=>({i,char:null}));
+  let insertCandidates=null;
+  if(path.length===2){
+    statusEl.textContent='Direct jump available — checking optional intermediate stops…';
+    const cands=[];
+    for(let v=0;v<N;v++){
+      if(v===path[0]||v===path[1]||!jumpable(v)) continue;
+      if(needStation&&!stationOk.has(v)) continue;
+      if(lyBetween(path[0],v)>mr||lyBetween(v,path[1])>mr) continue;
+      cands.push(v);
+    }
+    if(cands.length){
+      const scored=await Promise.all(cands.map(async v=>({idx:v,risk:await zkillRisk(v)})));
+      scored.sort((a,b)=>a.risk-b.risk);
+      insertCandidates=scored.slice(0,3);
+    }
+  }
+  finalPath.push(path[path.length-1]); suggestions.push(null);
+  waypoints=finalPath.map((i,n)=>({i,char:null,suggestions:suggestions[n]}));
+  window._insertCandidates=insertCandidates;
   renderWps(); renderRoute(); draw();
   const finalRisks=await Promise.all(finalPath.map(i=>zkillRisk(i))); // cached, so this is free for systems already scored
   const totalRisk=finalRisks.reduce((a,b)=>a+b,0);
@@ -834,11 +858,26 @@ function renderWps(){
   el.innerHTML=waypoints.map((w,n)=>{ const i=w.i, hs=n>0&&secClass(SYS[i][2])==='hi';
     const rid=SYS[i][1]; const risk=riskCache[rid];
     const riskTxt=risk!=null?`<span class="wp-risk" style="color:${risk===0?'var(--muted2)':risk<=5?'var(--amber)':'var(--red)'}" title="Ship kills+losses here in the last ~3 months (zkillboard)">· ${risk} kill${risk!==1?'s':''}/3mo</span>`:'';
+    const sugg=w.suggestions&&w.suggestions.length?`<div class="wp-sugg">alt: ${w.suggestions.map(c=>`<span class="wp-sugg-item" onclick="swapWaypoint(${n},${c.idx})" title="Swap in this system instead">${SYS[c.idx][0]} (${c.risk})</span>`).join(' · ')}</div>`:'';
+    const insertRow=(n===0&&waypoints.length===2&&window._insertCandidates&&window._insertCandidates.length)?
+      `<div class="wp-sugg">this is a direct jump — optional stop in between: ${window._insertCandidates.map(c=>`<span class="wp-sugg-item" onclick="insertWaypoint(1,${c.idx})" title="Insert this system between origin and destination">${SYS[c.idx][0]} (${c.risk})</span>`).join(' · ')}</div>`:'';
     return `<div class="wp${hs?' hs':''}"><span class="ord">${n===0?'◎':n}</span>
-      <span class="nm">${SYS[i][0]} <span style="color:${secColor(SYS[i][2])}">${roundSec(SYS[i][2]).toFixed(1)}</span>${riskTxt}<div class="rg">${n===0?'jump start':regionOf(i)}</div></span>
+      <span class="nm">${SYS[i][0]} <span style="color:${secColor(SYS[i][2])}">${roundSec(SYS[i][2]).toFixed(1)}</span>${riskTxt}<div class="rg">${n===0?'jump start':regionOf(i)}</div>${sugg}${insertRow}</span>
       ${(anyChar()&&n>0)?`<select class="wpchar" onchange="assignChar(${n},this.value)">${charOpts(w.char)}</select>`:''}
       <span class="x" onclick="removeWp(${n})"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></div>`; }).join('');
   renderJumpChar();
+}
+function swapWaypoint(n,newIdx){
+  if(!waypoints[n]) return;
+  waypoints[n]={i:newIdx,char:waypoints[n].char,suggestions:null}; // clear stale suggestions — they described the old system's neighbors, not this one's
+  renderWps(); renderRoute(); draw();
+  toast('Swapped in '+SYS[newIdx][0]+' for this stop.');
+}
+function insertWaypoint(atIndex,newIdx){
+  waypoints.splice(atIndex,0,{i:newIdx,char:null,suggestions:null});
+  window._insertCandidates=null; // the route is no longer direct, so this offer no longer applies
+  renderWps(); renderRoute(); draw();
+  toast('Added '+SYS[newIdx][0]+' as an extra stop.');
 }
 
 // ---- route computation ----
