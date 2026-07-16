@@ -417,6 +417,7 @@ function jumpable(i){ const c=secClass(SYS[i][2]); const rg=regionOf(i); return 
 // ---- state ----
 let ship='anshar', JDC=5, JFC=5, JF=5, fatRed=true;
 let waypoints=[]; // [{i:sysIndex, char:charId|null}]
+let gateLeg=null; // stargate-only leg (after the last cyno jump) when the actual destination is highsec
 let killmap={}; // id -> {s,p,n}
 let showGates=true, showHeat=false;
 let maxKill=1;
@@ -695,7 +696,7 @@ async function generateRoute(){
   const dIdx=resolveSystemByName(document.getElementById('genDest').value);
   if(oIdx==null){ statusEl.textContent='Origin system not found.'; return; }
   if(dIdx==null){ statusEl.textContent='Destination system not found.'; return; }
-  let gateLeg=null; // set if the destination itself is highsec and needs a stargate leg after the last jump
+  gateLeg=null; // set if the destination itself is highsec and needs a stargate leg after the last jump; module-level so draw() can render it
   let jumpDestIdx=dIdx;
   if(!jumpable(dIdx)){
     statusEl.textContent='Destination is '+SYS[dIdx][2].toFixed(1)+' sec — finding the nearest 0.4-or-lower system to cyno into…';
@@ -1055,6 +1056,26 @@ function draw(){
     const off=(showSov&&view.zoom>=2.2)?Math.min(22,Math.max(13,view.zoom*5))*DPR*0.6:6*DPR;
     for(let i=0;i<N;i++){ if(SYS[i][1]>=31000000)continue; const px=sx(wx(i)),py=sy(wy(i)); if(px<0||px>w||py<0||py>h)continue;
       ctx.fillText(SYS[i][0], px+off, py); }
+  }
+  // gate-leg — stargate travel after the last cyno jump (when the real destination is highsec).
+  // Drawn distinctly from the jump-drive route: thin, dashed, cyan — a different travel mode entirely,
+  // so it must never be mistaken for another cyno hop.
+  if(gateLeg && gateLeg.length>1){
+    const cyanBright=getComputedStyle(document.documentElement).getPropertyValue('--cyan-bright').trim()||'#a0d0e0';
+    ctx.save();
+    ctx.setLineDash([5*DPR,4*DPR]); ctx.lineWidth=1.8*DPR; ctx.strokeStyle=cyanBright; ctx.lineCap='round';
+    ctx.beginPath();
+    for(let n=0;n<gateLeg.length;n++){ const X=sx(wx(gateLeg[n])),Y=sy(wy(gateLeg[n])); if(n===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }
+    ctx.stroke();
+    ctx.restore();
+    for(let n=0;n<gateLeg.length;n++){ const idx=gateLeg[n]; const X=sx(wx(idx)),Y=sy(wy(idx));
+      ctx.fillStyle=cyanBright; ctx.beginPath(); ctx.arc(X,Y,3*DPR,0,7); ctx.fill();
+      if(n===0||n===gateLeg.length-1){ // label only the two ends to avoid clutter along a long gate chain
+        ctx.font=`${9.5*DPR}px IBM Plex Mono`; ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(0,0,0,0.55)'; const tw=ctx.measureText(SYS[idx][0]).width; ctx.fillRect(X+7*DPR,Y-7*DPR,tw+6*DPR,14*DPR);
+        ctx.fillStyle=cyanBright; ctx.fillText(SYS[idx][0], X+10*DPR, Y);
+      }
+    }
   }
   // route line + waypoint markers — drawn LAST, on top of gates/systems/threat-zone/pilots/labels,
   // with a real glow so the planned route is unambiguous against a visually dense map

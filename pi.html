@@ -76,6 +76,9 @@
   .tier-link.on::after{content:'';position:absolute;left:-40%;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:tierflow 1.6s linear infinite}
   @keyframes tierflow{to{left:140%}}
   .prod{display:flex;align-items:center;gap:9px;padding:7px 14px;border-bottom:1px solid #0e141a;cursor:pointer}
+  .prod.qty-pending{background:rgba(var(--gold-rgb),.06);cursor:default}
+  .prod.qty-pending .use{cursor:pointer;padding:3px 7px;border:1px solid var(--gold-dim);color:var(--gold-bright);font-size:12px}
+  .prod.qty-pending .use:hover{border-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
   .prod input.psel{flex:none;width:13px;height:13px;accent-color:var(--gold);cursor:pointer;margin:0}
   .prod.sel{box-shadow:inset 3px 0 0 var(--gold)}
   .prod:hover{background:rgba(var(--gold-rgb),.06)} .prod.on{background:rgba(var(--cyan-rgb),.1)}
@@ -261,6 +264,7 @@
         <details open id="dProd">
           <summary>Target product</summary>
           <div class="tiers" id="tiers"></div>
+          <input id="prodSearch" placeholder="Search this tier's products…" style="margin:6px 0" autocomplete="off">
           <div class="scroll" id="prodList"></div>
         </details>
         <details open id="dMkt">
@@ -752,19 +756,36 @@ function buildTiers(){
     return i<3?node+`<span class="tier-link${t<tier?' on':''}"></span>`:node;
   }).join('');
   $('tiers').querySelectorAll('.tier').forEach(x=>x.onclick=()=>{ tier=+x.dataset.t; saveSettings(); buildTiers(); buildProducts(); }); }
-function buildProducts(){ const ids=Object.keys(PI.recipe).filter(o=>PI.tier[o]===tier).sort((a,b)=>PI.recipe[a].name.localeCompare(PI.recipe[b].name));
-  $('prodList').innerHTML=ids.map(o=>`<div class="prod ${target==o?'on':''} ${sel[o]!=null?'sel':''}" data-o="${o}">
+let prodSearchTerm=''; let pendingQty=null; // pendingQty = product id currently showing its inline quantity prompt
+function buildProducts(){ const ids=Object.keys(PI.recipe).filter(o=>PI.tier[o]===tier && (!prodSearchTerm || PI.recipe[o].name.toLowerCase().includes(prodSearchTerm))).sort((a,b)=>PI.recipe[a].name.localeCompare(PI.recipe[b].name));
+  $('prodList').innerHTML=ids.map(o=>{
+    if(pendingQty===o){
+      return `<div class="prod qty-pending" data-o="${o}">
+        <img alt="" loading="lazy" src="https://images.evetech.net/types/${o}/icon?size=64" onerror="this.style.visibility='hidden'">
+        <span class="nm">${PI.recipe[o].name}</span>
+        <span onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:4px">
+          <input id="qtyInput" type="number" value="${lastQty}" min="1" style="width:80px" onclick="event.stopPropagation()">
+          <span class="use" onclick="event.stopPropagation();confirmAddProduct('${o}')" title="Add at this quantity">✓</span>
+          <span class="use" onclick="event.stopPropagation();pendingQty=null;buildProducts()" title="Cancel">✕</span>
+        </span></div>`;
+    }
+    return `<div class="prod ${target==o?'on':''} ${sel[o]!=null?'sel':''}" data-o="${o}">
     <input type="checkbox" class="psel" data-o="${o}" ${sel[o]!=null?'checked':''} onclick="event.stopPropagation()">
     <img alt="" loading="lazy" src="https://images.evetech.net/types/${o}/icon?size=64" onerror="this.style.visibility='hidden'">
-    <span class="nm">${PI.recipe[o].name}</span><span class="tg">P${PI.tier[o]}</span></div>`).join('');
+    <span class="nm">${PI.recipe[o].name}</span><span class="tg">P${PI.tier[o]}</span></div>`;
+  }).join('');
   $('prodList').querySelectorAll('.psel').forEach(c=>c.onchange=()=>toggleProduct(c.dataset.o));
   $('prodList').querySelectorAll('.prod').forEach(d=>d.onclick=()=>focusProduct(d.dataset.o)); }
+function confirmAddProduct(o){ o=String(o); const q=Math.max(1,+($('qtyInput').value)||lastQty);
+  sel[o]=q; lastQty=q; localStorage.setItem('pi_weekly',q); target=o; pendingQty=null;
+  saveSel(); buildProducts(); renderReq(); compute(); loadHubPrices(); fitSide(); }
+const _prodSearchEl=document.getElementById('prodSearch');
+if(_prodSearchEl) _prodSearchEl.addEventListener('input',()=>{ prodSearchTerm=_prodSearchEl.value.trim().toLowerCase(); buildProducts(); });
 
 function toggleProduct(o){ o=String(o);
-  if(sel[o]!=null){ delete sel[o]; if(target==o){ const k=Object.keys(sel); target=k.length?k[0]:null; } }
-  else { sel[o]=lastQty; target=o; }
-  saveSel(); buildProducts(); renderReq(); compute(); loadHubPrices(); fitSide(); }
-function focusProduct(o){ o=String(o); if(sel[o]==null){ sel[o]=lastQty; saveSel(); } target=o;
+  if(sel[o]!=null){ delete sel[o]; if(target==o){ const k=Object.keys(sel); target=k.length?k[0]:null; } saveSel(); buildProducts(); renderReq(); compute(); loadHubPrices(); fitSide(); }
+  else { pendingQty=o; buildProducts(); } } // adding — ask for quantity first, instead of silently defaulting
+function focusProduct(o){ o=String(o); if(sel[o]==null){ pendingQty=o; buildProducts(); return; } target=o;
   buildProducts(); renderReq(); compute(); loadHubPrices(); fitSide(); }
 // size the two top sections so the open one(s) fill the space and scroll internally (Target product gets the slack when both are open)
 function fitSide(){ try{
