@@ -193,7 +193,6 @@
   .rail.anchoring{background:var(--cyan);box-shadow:0 0 10px rgba(var(--cyan-rgb),.45)}
   .rail.support{background:var(--muted2)}
   .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
-  .arc-dial{flex-shrink:0;display:flex;align-items:center}
   .struct-render{width:64px;height:64px;flex-shrink:0;border-radius:4px;object-fit:cover;
     background:radial-gradient(120% 120% at 30% 20%,#1a2530,#05080b);
     border:1px solid rgba(var(--cyan-rgb),.25);box-shadow:0 4px 12px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.3) inset;}
@@ -554,7 +553,6 @@
         <div class="subhead moon" id="moonHead"><span class="di"></span>Moon drilling <small id="moonSub"></small><span class="chev">▾</span></div>
         <div id="moonFuel" class="fuel-table-wrap"></div>
         <div class="subhead all" id="allHead"><span class="di"></span>All structures <small id="allSub"></small>
-          <span class="compact-toggle" id="compactToggle" onclick="event.stopPropagation();toggleCompactAll()" title="Toggle compact rows">☰ compact</span>
           <span class="chev">▾</span></div>
         <div id="allFuel" class="fuel-table-wrap"></div>
       </section>
@@ -858,19 +856,6 @@ function card(s,opts){
     ${body}${actions}</div>`;
 }
 
-function arcGauge(pct,color,size){
-  size=size||44; const r=(size/2)-4, cx=size/2, cy=size/2;
-  const sweep=270; // 270° dial, 90° gap at the bottom (cockpit-instrument convention)
-  const startA=135, p=Math.max(0,Math.min(100,pct))/100;
-  const toXY=(deg)=>{ const rad=(deg-90)*Math.PI/180; return [cx+r*Math.cos(rad), cy+r*Math.sin(rad)]; };
-  const endA=startA+sweep, fillA=startA+sweep*p;
-  const arcPath=(a1,a2)=>{ const [x1,y1]=toXY(a1),[x2,y2]=toXY(a2); const large=(a2-a1)>180?1:0;
-    return `M${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large} 1 ${x2.toFixed(2)},${y2.toFixed(2)}`; };
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="arc-gauge">
-    <path d="${arcPath(startA,endA)}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3" stroke-linecap="round"/>
-    ${p>0?`<path d="${arcPath(startA,fillA)}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" style="filter:drop-shadow(0 0 3px ${color})"/>`:''}
-  </svg>`;
-}
 function fuelOnlyCard(s,opts){
   const compact=opts&&opts.compact;
   const t=TYPES[s.type];
@@ -898,13 +883,11 @@ function fuelOnlyCard(s,opts){
   const secTag=(s.sec!=null)?`<span class="sec-tag" style="color:${secColor(s.sec)}">${s.sec.toFixed(1)}</span>`:'';
   const age=syncAge(s);
   const ageTag=s.esiId?`<span class="esi-tag" style="color:${age.color}" title="Last confirmed by ESI">${age.label}</span>`:'';
-  const fuelPct=fh===Infinity?100:Math.max(0,Math.min(100,(fh/HR_MONTH)*100));
-  const dial=compact?'':`<div class="arc-dial" title="Fuel: ${fLeft} remaining">${arcGauge(fuelPct,fCol,40)}</div>`;
   return `<div class="card${compact?' compact':''}" data-sid="${s.id}" onclick="syncOneStructure('${s.id}',event)" title="Click to refresh this structure's data from ESI" style="cursor:pointer;background:linear-gradient(165deg,#0d1218,var(--panel2)),radial-gradient(160% 140% at 100% 0%,${secWash(s.sec)},transparent 60%);border-top:2px solid color-mix(in srgb, ${accent} 65%, transparent)">
     <div class="card-sync-overlay"><span class="skeleton" style="display:inline-block;width:100%;height:100%"></span></div>
     <div class="card-head">${img}<div><div class="card-name">${esc(s.name)||'Unnamed'}</div>
       <div class="card-loc">${secTag}${esc(s.system||s.loc)||'— no location —'}${ageTag}</div></div>
-      ${dial}<span class="badge ${t.cls}">${t.short}</span></div>
+      <span class="badge ${t.cls}">${t.short}</span></div>
     <div class="meter-block"><div class="meter-row"><span class="meter-label">Fuel blocks · ${held}</span><span class="meter-val" style="color:${fCol}">${fLeft}</span></div>${fuelBar}
       <div class="runway" style="margin-top:4px"><span>burn ${fmtRate(fb)}/hr</span><span>${fmt(fb*HR_WEEK)}/wk · ${fmt(fb*HR_MONTH)}/mo</span></div></div>
     ${gasBlock}</div>`;
@@ -990,7 +973,7 @@ function renderCorpFilterBar(){
     <select class="cf-select" onchange="setCorpFilter(this.value)">${opts.join('')}</select>`;
 }
 function renderAll(){
-  { const t=document.getElementById('compactToggle'); if(t) t.classList.toggle('on',compactAll); }
+  // compact toggle removed
   renderCorpFilterBar();
   const source=corpFilter?structures.filter(s=>String(s.corpId)===String(corpFilter)):structures;
   const decom=source.filter(s=>{const st=statusOf(s);return st==='decommissioning'||st==='anchoring';})
@@ -1018,7 +1001,7 @@ function renderAll(){
   document.getElementById('metenoxFuel').innerHTML=metenoxCardGrid(metenox);
   document.getElementById('moonFuel').innerHTML=fuelCardGrid(moon);
   document.getElementById('allFuel').innerHTML=fuelCardGrid(all,compactAll);
-  { const t=document.getElementById('compactToggle'); if(t) t.classList.toggle('on',compactAll); }
+  // compact toggle removed
   document.getElementById('decomGrid').innerHTML=decom.length?decom.map(s=>card(s,{compact:true})).join(''):emptyBox('No anchoring or unanchoring','Structures your corp is anchoring or decommissioning appear here automatically from ESI, each with its state-timer countdown.');
   refreshOptFilters(active); renderCalendar(); renderPlanList();
   renderPip();
@@ -1547,12 +1530,7 @@ async function importAllCorps(silent){
   renderCorpAccessBanner();
 }
 let orphanCorps=[];
-let compactAll=localStorage.getItem('eve_structures_compactall')==='1';
-function toggleCompactAll(){
-  compactAll=!compactAll; localStorage.setItem('eve_structures_compactall',compactAll?'1':'0');
-  const t=document.getElementById('compactToggle'); if(t) t.classList.toggle('on',compactAll);
-  renderAll();
-}
+const compactAll=false; // single fixed card density — the compact/full toggle was removed
 function renderCorpAccessBanner(){
   const el=document.getElementById('corpAccessBanner'); if(!el) return;
   const bad=Object.values(corpAccess).filter(c=>!c.ok);
