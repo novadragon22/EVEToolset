@@ -30,6 +30,10 @@
   button{background:none;border:none;color:inherit;font:inherit;cursor:pointer}
   input,select{font:inherit;outline:none}
   select{appearance:none;background:rgba(10,14,20,.8);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 8px;border-radius:var(--radius-btn)}
+  .theme-picker{display:flex;align-items:center;gap:7px}
+  .theme-swatch{width:21px;height:21px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
+  .theme-swatch:hover{transform:scale(1.15)}
+  .theme-swatch.on{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--sw),0 0 8px var(--sw)}
   select:focus,input:focus{border-color:var(--gold)}
   .diamond{background:linear-gradient(135deg,var(--gold),var(--gold-deep));clip-path:var(--bullet-clip)}
 
@@ -300,10 +304,13 @@
       <span class="tb-pill" id="killPill"><span class="dot" id="killDot"></span> <span id="killTxt">kill feed</span></span>
       <span class="tb-pill" id="pilotPill" style="display:none"><span class="dot" id="pilotDot"></span> <span id="pilotTxt">pilots</span></span>
       <span id="authArea"></span>
-      <select id="themeSel" title="Faction theme" style="cursor:pointer">
-        <option value="amarr">Amarr</option><option value="caldari">Caldari</option><option value="gallente">Gallente</option>
-        <option value="minmatar">Minmatar</option><option value="triglavian">Triglavian</option>
-      </select>
+      <div class="theme-picker" id="themePicker">
+        <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
+        <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
+        <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
+        <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
+        <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
+      </div>
     </div>
   </div>
   <div class="main">
@@ -1287,9 +1294,13 @@ setInterval(()=>{ if(routeConfirmed){ pruneThreat(); renderRoute(); draw(); } },
 })();
 
 (function(){
-  const sel=document.getElementById('themeSel'); if(!sel) return;
-  sel.value=document.documentElement.dataset.theme||'amarr';
-  sel.onchange=()=>{ document.documentElement.dataset.theme=sel.value; try{ localStorage.setItem('eve_suite_theme',sel.value); }catch(e){} };
+  function setTheme(name){
+    document.documentElement.dataset.theme=name;
+    try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
+    document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
+  }
+  document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
+  setTheme(document.documentElement.dataset.theme||'amarr');
 })();
 </script>
 </body>

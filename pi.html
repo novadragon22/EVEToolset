@@ -49,6 +49,10 @@
   .brand{font-family:var(--mono);font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-bright);white-space:nowrap}
   .brand b{color:var(--gold)}
   .sp{flex:1}
+  .theme-picker{display:flex;align-items:center;gap:7px}
+  .theme-swatch{width:21px;height:21px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
+  .theme-swatch:hover{transform:scale(1.15)}
+  .theme-swatch.on{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--sw),0 0 8px var(--sw)}
   .btn{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--gold-dim);color:var(--gold-bright);padding:7px 12px;background:rgba(var(--gold-rgb),.08);cursor:pointer;border-radius:var(--radius-btn)}
   .btn:hover{background:rgba(var(--gold-rgb),.18)}
   .btn.ghost{border-color:var(--line2);color:var(--muted)} .btn.ghost:hover{color:var(--gold-bright)}
@@ -276,10 +280,13 @@
     <div class="sp"></div>
     <div id="auth" class="autharea"></div>
     <button class="btn ghost" id="resyncBtn" title="Re-sync all ESI scopes (colonies, skills, location, standings, alliance) for every signed-in pilot" hidden>⟳ Resync</button>
-    <select id="themeSel" class="btn ghost" title="Faction theme" style="cursor:pointer">
-      <option value="amarr">Amarr</option><option value="caldari">Caldari</option><option value="gallente">Gallente</option>
-      <option value="minmatar">Minmatar</option><option value="triglavian">Triglavian</option>
-    </select>
+    <div class="theme-picker" id="themePicker">
+      <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
+      <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
+      <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
+      <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
+      <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
+    </div>
     <button class="btn ghost" id="setBtn">⚏ Scale</button>
   </div>
   <div class="main">
@@ -2086,9 +2093,13 @@ buildTiers(); buildProducts(); renderResults(); renderAuth();
 })();
 
 (function(){
-  const sel=document.getElementById('themeSel'); if(!sel) return;
-  sel.value=document.documentElement.dataset.theme||'amarr';
-  sel.onchange=()=>{ document.documentElement.dataset.theme=sel.value; try{ localStorage.setItem('eve_suite_theme',sel.value); }catch(e){} };
+  function setTheme(name){
+    document.documentElement.dataset.theme=name;
+    try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
+    document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
+  }
+  document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
+  setTheme(document.documentElement.dataset.theme||'amarr');
 })();
 </script>
 </body>

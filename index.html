@@ -15,8 +15,11 @@
     --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;overflow:hidden;background:
-    radial-gradient(1100px 620px at 50% -10%, rgba(var(--gold-rgb),.07), transparent 60%),
-    radial-gradient(900px 520px at 88% 112%, rgba(var(--cyan-rgb),.05), transparent 55%), var(--bg);
+    radial-gradient(1400px 900px at 50% 45%,
+      rgba(var(--gold-rgb),.12) 0%, rgba(var(--gold-rgb),.11) 8%, rgba(var(--gold-rgb),.095) 16%,
+      rgba(var(--gold-rgb),.078) 25%, rgba(var(--gold-rgb),.06) 34%, rgba(var(--gold-rgb),.044) 43%,
+      rgba(var(--gold-rgb),.03) 53%, rgba(var(--gold-rgb),.018) 63%, rgba(var(--gold-rgb),.009) 74%,
+      rgba(var(--gold-rgb),.003) 86%, var(--bg) 100%), var(--bg);
     color:var(--text);font-family:var(--sans)}
   .diamond{width:8px;height:8px;background:var(--gold);clip-path:var(--bullet-clip);display:inline-block;vertical-align:middle}
   .app{height:100vh;display:flex;flex-direction:column;position:relative}
@@ -33,15 +36,15 @@
   .stage{flex:1;position:relative;min-height:0}
   .constellation-links{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
   .constellation{position:absolute;inset:0}
-  .tool-star{position:absolute;width:150px;text-align:center;cursor:pointer;transform:translate(-50%,-50%);transition:transform .25s}
-  .tool-star:hover{transform:translate(-50%,-50%) scale(1.08)}
-  .star-core{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;position:relative}
-  .star-core::after{content:'';position:absolute;inset:-14px;border-radius:50%;border:1px solid currentColor;opacity:.25}
+  .tool-star{position:absolute;width:190px;text-align:center;cursor:pointer;transform:translate(-50%,-50%);transition:transform .25s}
+  .tool-star:hover{transform:translate(-50%,-50%) scale(1.05)}
+  .star-core{width:160px;height:160px;border-radius:50%;margin:0 auto 10px;position:relative}
+  .star-core::after{content:'';position:absolute;inset:-20px;border-radius:50%;border:1.5px solid currentColor;opacity:.25}
   /* signature accent per tool, matching the mockup exactly — not every star looks the same */
-  .star-core.sig-pi::before{content:'';position:absolute;inset:-22px;border-radius:50%;border:1px dashed currentColor;opacity:.3}
-  .star-core.sig-industry::before{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:10px;height:16px;
-    background:radial-gradient(circle at 50% 0%,#ffb050,#e85a1a 70%);border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;filter:blur(1px)}
-  .rivet{position:absolute;width:4px;height:4px;border-radius:50%;background:currentColor}
+  .star-core.sig-pi::before{content:'';position:absolute;inset:-32px;border-radius:50%;border:1.5px dashed currentColor;opacity:.3}
+  .star-core.sig-industry::before{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:17px;height:27px;
+    background:radial-gradient(circle at 50% 0%,#ffb050,#e85a1a 70%);border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;filter:blur(1.5px)}
+  .rivet{position:absolute;width:7px;height:7px;border-radius:50%;background:currentColor}
   .tool-star .nm{font-family:var(--mono);font-size:12px;color:#f0dcc0;font-weight:600}
   .tool-star .tag{font-family:var(--mono);font-size:8.5px;color:#8a7458;margin-top:2px;letter-spacing:.05em}
   .tool-star .dash-row{margin-top:6px;display:flex;justify-content:center}
@@ -98,17 +101,20 @@
   .roster:empty,.roster:has(> span.sub){justify-content:center}
   .roster::-webkit-scrollbar{height:5px}
   .roster::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
-  .rchip{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);background:#05080b;padding:4px 10px 4px 4px;font-family:var(--mono);font-size:10.5px;color:var(--text);flex-shrink:0;white-space:nowrap}
-  .add-chip{width:34px;height:34px;flex-shrink:0;border-radius:8px;border:1px dashed rgba(var(--gold-rgb),.35);display:flex;align-items:center;justify-content:center;color:var(--gold-dim);font-size:16px;cursor:pointer}
+  .rchip{position:relative;width:51px;height:51px;flex-shrink:0;border-radius:12px;
+    background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);border:1.5px solid rgba(var(--gold-rgb),.35);
+    box-shadow:0 0 18px rgba(var(--gold-rgb),.3);cursor:default}
+  .add-chip{width:51px;height:51px;flex-shrink:0;border-radius:12px;border:1px dashed rgba(var(--gold-rgb),.35);display:flex;align-items:center;justify-content:center;color:var(--gold-dim);font-size:24px;cursor:pointer}
   .add-chip:hover{border-color:var(--gold-dim);color:var(--gold-bright)}
-  .rchip img{width:20px;height:20px;border:1px solid var(--line)}
-  .rchip .corp{color:var(--muted2)}
-  .rchip .x{cursor:pointer;color:var(--muted2);margin-left:2px}
-  .rchip .x:hover{color:var(--red)}
+  .rchip img{position:absolute;inset:4.5px;width:42px;height:42px;border-radius:9px;object-fit:cover}
+  .rchip .x{position:absolute;top:-9px;right:-9px;width:24px;height:24px;border-radius:50%;background:var(--bg);border:1px solid var(--line2);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);opacity:0;transition:opacity var(--dur-base)}
+  .rchip:hover .x{opacity:1}
+  .rchip .x:hover{color:var(--red);border-color:var(--red)}
   .addchar{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--gold-dim);color:var(--gold-bright);background:rgba(var(--gold-rgb),.08);padding:6px 13px;cursor:pointer}
   .theme-picker{position:absolute;top:36px;left:32px;z-index:50;display:flex;align-items:center;gap:7px}
   .theme-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
-  .theme-swatch{width:14px;height:14px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
+  .theme-swatch{width:21px;height:21px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
   .theme-swatch:hover{transform:scale(1.15)}
   .theme-swatch.on{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--sw),0 0 8px var(--sw)}
   .addchar:hover{background:rgba(var(--gold-rgb),.18)}
@@ -374,7 +380,8 @@ function renderRoster(){
   const r=document.getElementById('roster'); const ids=Object.keys(suiteChars);
   const addChip='<span class="add-chip" id="addCharBtn" title="Add character">+</span>';
   r.innerHTML=ids.length? ids.map(id=>{ const c=suiteChars[id];
-    return `<span class="rchip"><img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">${c.charName}<span class="corp">${c.corpName?(' · '+c.corpName):''}</span><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`;
+    const label=c.charName+(c.corpName?' · '+c.corpName:'');
+    return `<span class="rchip" title="${label.replace(/"/g,'&quot;')}"><img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=64" onerror="this.style.visibility='hidden'"><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')"><svg width="12" height="12" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`;
   }).join('')+addChip : addChip;
   document.getElementById('addCharBtn').onclick=()=>{ renderScopeList(); document.getElementById('scopeOverlay').classList.add('show'); };
 }
@@ -447,7 +454,7 @@ function dashBadge(key){
   const ageTxt=ageMin<1?'just now':ageMin<60?Math.round(ageMin)+'m ago':Math.round(ageMin/60)+'h ago';
   return `<span class="dash-badge ${d.level}"><span class="dash-dot"></span>${d.text} · ${ageTxt}</span>`;
 }
-const STAR_POS={ industry:[38,22], pi:[28,44], jump:[38,66], fits:[58,34], structures:[58,56] };
+const STAR_POS={ pi:[32,50], industry:[49,23], jump:[49,77], fits:[77,36], structures:[77,64] };
 const STAR_LINKS=[['industry','pi'],['pi','jump'],['industry','fits'],['jump','structures']];
 const STAR_ACCENT={ industry:'#e8a850', pi:'#4ac89a', jump:'#4a90c4', fits:'#c86a3a', structures:'#9ad84a' };
 const STAR_BG={
@@ -455,16 +462,16 @@ const STAR_BG={
   pi:'radial-gradient(circle at 35% 30%,#1a3428,#0a0f0c)',
   jump:'radial-gradient(circle at 35% 30%,#1a2838,#0a0e14)',
   fits:'radial-gradient(circle at 35% 30%,#3a2418,#0f0a06)',
-  structures:'repeating-linear-gradient(0deg,rgba(154,216,74,.08) 0 1px,transparent 1px 8px),repeating-linear-gradient(90deg,rgba(154,216,74,.08) 0 1px,transparent 1px 8px),radial-gradient(circle at 35% 30%,#1c2a10,#0a0f06)'
+  structures:'repeating-linear-gradient(0deg,rgba(154,216,74,.08) 0 1px,transparent 1px 11px),repeating-linear-gradient(90deg,rgba(154,216,74,.08) 0 1px,transparent 1px 11px),radial-gradient(circle at 35% 30%,#1c2a10,#0a0f06)'
 };
 const STAR_SUB={ industry:'manufacturing · planner', pi:'planetary interaction', jump:'capital logistics', fits:'ship fittings', structures:'fuel & fleet assets' };
 function buildCards(){
   const cont=document.getElementById('constellation');
   cont.innerHTML=APPS.map((a,i)=>{ const [top,left]=STAR_POS[a.key]||[50,50]; const accent=STAR_ACCENT[a.key]||'#e8a850';
     const bg=STAR_BG[a.key]||'radial-gradient(circle at 35% 30%,var(--panel2),var(--panel))';
-    const rivets=a.key==='fits'?'<span class="rivet" style="top:6px;left:6px"></span><span class="rivet" style="bottom:6px;right:6px"></span>':'';
+    const rivets=a.key==='fits'?'<span class="rivet" style="top:13px;left:13px"></span><span class="rivet" style="bottom:13px;right:13px"></span>':'';
     return `<div class="tool-star" data-i="${i}" style="top:${top}%;left:${left}%;color:${accent}">
-      <div class="star-core sig-${a.key}" style="background:${bg};box-shadow:0 0 22px ${accent}59">${rivets}</div>
+      <div class="star-core sig-${a.key}" style="background:${bg};box-shadow:0 0 35px ${accent}59">${rivets}</div>
       <div class="nm">${a.name}</div><div class="tag">${STAR_SUB[a.key]||a.tag}</div>
       <div class="dash-row">${dashBadge(a.key)}</div></div>`; }).join('');
   cont.querySelectorAll('.tool-star').forEach(c=>c.onclick=()=>openTool(+c.dataset.i));
