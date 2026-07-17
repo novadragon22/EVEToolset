@@ -121,6 +121,7 @@
   nav.tabs{flex-shrink:0;display:flex;gap:2px;padding:0 12px;background:var(--bg);flex-wrap:wrap}
   .tabs-row{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
   .tabs-row .cf-bar{border-bottom:none;background:transparent;padding:8px 12px}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:4px}
   .tab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;cursor:pointer;color:#8a9ba8;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:8px}
   .tab:hover{color:var(--text)}
   .tab.on{color:var(--gold);border-bottom-color:var(--gold)}
@@ -166,7 +167,8 @@
   main{flex:1;overflow:auto;padding:20px}
   .wrap{max-width:1200px;margin:0 auto}
   section.sec{display:none}
-  section.sec.on{display:block}
+  section.sec.on{display:block;background:linear-gradient(165deg,rgba(255,255,255,.015),transparent);
+    border:1px solid var(--line);border-radius:var(--radius-card);padding:18px 20px 20px;margin-top:2px}
 
   .panel-title{position:relative;font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:2px 0 14px;display:flex;align-items:center;gap:10px;
     padding:8px 12px;background:var(--hdr-bg);border-left:var(--hdr-border-left);border-radius:var(--hdr-radius);clip-path:var(--hdr-clip)}
