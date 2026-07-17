@@ -20,17 +20,28 @@
     color:var(--text);font-family:var(--sans)}
   .diamond{width:8px;height:8px;background:var(--gold);clip-path:var(--bullet-clip);display:inline-block;vertical-align:middle}
   .app{height:100vh;display:flex;flex-direction:column}
-  header{text-align:center;padding:30px 20px 4px;flex:none}
+  header{text-align:center;padding:22px 20px 6px;flex:none;position:relative}
   .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.5em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:11px}
   h1{font-family:var(--mono);font-weight:600;letter-spacing:.28em;text-transform:uppercase;font-size:23px;color:var(--gold-bright);margin:0;cursor:pointer}
   h1 .diamond{margin:0 13px;transform:translateY(-3px)}
   .sub{color:var(--muted);font-size:12.5px;margin-top:9px}
-  .bar{display:flex;justify-content:center;gap:10px;margin-top:14px}
+  .bar{display:flex;justify-content:center;gap:10px;margin-top:10px}
   .btn{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line2);color:var(--muted);padding:7px 13px;background:#05080b;cursor:pointer;border-radius:var(--radius-btn)}
   .btn:hover{color:var(--gold-bright);border-color:var(--gold-dim)}
 
-  .stage{flex:1;position:relative;perspective:1500px;perspective-origin:50% 42%;min-height:0}
-  .ring{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.33,.12,.18,1)}
+  .stage{flex:1;position:relative;min-height:0}
+  .constellation-links{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
+  .constellation{position:absolute;inset:0}
+  .tool-star{position:absolute;width:150px;text-align:center;cursor:pointer;transform:translate(-50%,-50%);transition:transform var(--dur-base)}
+  .tool-star:hover{transform:translate(-50%,-50%) scale(1.06)}
+  .star-core{width:70px;height:70px;border-radius:var(--radius-card,50%);margin:0 auto 10px;position:relative;
+    background:radial-gradient(circle at 35% 30%,var(--panel2),var(--panel));border:1.5px solid var(--line2);
+    box-shadow:0 8px 24px rgba(0,0,0,.5);transition:border-color var(--dur-base),box-shadow var(--dur-base)}
+  .tool-star:hover .star-core{border-color:var(--gold-dim)}
+  .star-core::after{content:'';position:absolute;inset:-16px;border-radius:50%;border:1px dashed currentColor;opacity:.25}
+  .tool-star .nm{font-family:var(--mono);font-size:12px;color:var(--gold-bright);font-weight:600}
+  .tool-star .tag{font-family:var(--mono);font-size:8.5px;color:var(--muted2);margin-top:2px;letter-spacing:.05em}
+  .tool-star .dash-row{margin-top:6px;display:flex;justify-content:center}
   .card{position:absolute;top:50%;left:50%;width:640px;height:760px;margin:-380px 0 0 -320px;
     background:linear-gradient(160deg,#0b1015,#070a0d);border:1px solid var(--line);padding:0 0 18px;
     border-radius:var(--radius-card);clip-path:var(--card-clip);
@@ -78,7 +89,7 @@
   .hint{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.06em}
 
   /* --- character roster --- */
-  .roster{display:flex;justify-content:flex-start;gap:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;margin-top:14px;max-width:820px;margin-left:auto;margin-right:auto;padding-bottom:4px;scrollbar-width:thin}
+  .roster{position:absolute;top:6px;right:20px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-width:280px;padding-bottom:4px;scrollbar-width:thin}
   .roster:empty,.roster:has(> span.sub){justify-content:center}
   .roster::-webkit-scrollbar{height:5px}
   .roster::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
@@ -88,7 +99,7 @@
   .rchip .x{cursor:pointer;color:var(--muted2);margin-left:2px}
   .rchip .x:hover{color:var(--red)}
   .addchar{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--gold-dim);color:var(--gold-bright);background:rgba(var(--gold-rgb),.08);padding:6px 13px;cursor:pointer}
-  .theme-picker{position:relative;z-index:50;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+  .theme-picker{position:absolute;top:10px;left:20px;z-index:50;display:flex;align-items:center;gap:7px}
   .theme-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
   .theme-swatch{width:16px;height:16px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.15);cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
   .theme-swatch:hover{transform:scale(1.15)}
@@ -247,24 +258,22 @@
 <body>
 <div class="app" id="menuApp">
   <header>
-    <div class="kicker">New Eden Industrial Suite</div>
-    <h1 id="titleHome">EVE<span class="diamond"></span>Toolset</h1>
-    <div class="sub">Spin the ring — the card up front launches inline.</div>
-    <div class="roster" id="roster"></div>
-    <div class="bar"><button class="addchar" id="addCharBtn">+ Add Character</button></div>
     <div class="theme-picker" id="themePicker">
-      <span class="theme-label">Faction theme:</span>
       <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
       <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
       <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
       <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
       <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
     </div>
+    <div class="roster" id="roster"></div>
+    <div class="bar"><button class="addchar" id="addCharBtn">+ Add Character</button></div>
+    <div class="kicker">New Eden Industrial Suite</div>
+    <h1 id="titleHome">EVE<span class="diamond"></span>Toolset</h1>
+    <div class="sub">Click a star to launch its tool.</div>
   </header>
   <div class="stage" id="stage">
-    <div class="ring" id="ring"></div>
-    <div class="nav"><button class="arw" id="prev" aria-label="Previous tool">‹</button><div class="dots" id="dots"></div><button class="arw" id="next" aria-label="Next tool">›</button></div>
-    <div class="hint">drag · arrow keys · click a side card</div>
+    <svg class="constellation-links" id="constLinks"></svg>
+    <div class="constellation" id="constellation"></div>
   </div>
 </div>
 
@@ -523,55 +532,27 @@ function dashBadge(key){
   const ageTxt=ageMin<1?'just now':ageMin<60?Math.round(ageMin)+'m ago':Math.round(ageMin/60)+'h ago';
   return `<span class="dash-badge ${d.level}"><span class="dash-dot"></span>${d.text} · ${ageTxt}</span>`;
 }
+const STAR_POS={ industry:[38,22], pi:[26,44], jump:[38,66], fits:[60,34], structures:[60,56] };
+const STAR_LINKS=[['industry','pi'],['pi','jump'],['industry','fits'],['jump','structures']];
 function buildCards(){
-  ring.innerHTML=APPS.map((a,i)=>`<div class="card" data-i="${i}">
-      <div class="launch-hint"><span>Click to launch ▸</span></div>
-      <div class="hero">${ART[a.key]||''}<div class="ttl"><h2>${a.name}</h2><div class="tag">${a.tag}</div></div></div>
-      <div class="body">
-        <p>${a.desc}</p>
-        <div class="feat">${a.feats.map(f=>`<span>${f}</span>`).join('')}</div>
-        <div class="dash-row">${dashBadge(a.key)}</div>
-        <div class="go"><span class="lnk">Launch ▸</span><span class="url">${a.url}</span></div>
-      </div></div>`).join('');
-  ring.querySelectorAll('.card').forEach(c=>{ const i=+c.dataset.i;
-    c.onclick=e=>{ if(i!==((current%n)+n)%n){ goTo(i); return; } openTool(i); }; });
-  place();
+  const cont=document.getElementById('constellation');
+  cont.innerHTML=APPS.map((a,i)=>{ const [top,left]=STAR_POS[a.key]||[50,50];
+    return `<div class="tool-star" data-i="${i}" style="top:${top}%;left:${left}%;color:var(--gold-dim)">
+      <div class="star-core"></div>
+      <div class="nm">${a.name}</div><div class="tag">${a.tag}</div>
+      <div class="dash-row">${dashBadge(a.key)}</div></div>`; }).join('');
+  cont.querySelectorAll('.tool-star').forEach(c=>c.onclick=()=>openTool(+c.dataset.i));
+  drawLinks();
 }
-function place(){ const sample=ring.querySelector('.card'); const hw=sample?sample.offsetWidth/2:210;
-  R=Math.round(hw/Math.tan(Math.PI/n))+hw*0.9; ring.querySelectorAll('.card').forEach(c=>{ const i=+c.dataset.i;
-  c.style.transform=`rotateY(${i*theta}deg) translateZ(${R}px)`; }); }
-function render(){ ring.style.transform=`translateZ(${-R}px) rotateY(${-current*theta}deg)`;
-  const act=((current%n)+n)%n;
-  ring.querySelectorAll('.card').forEach(c=>c.classList.toggle('active',+c.dataset.i===act));
-  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===act)); }
-function goTo(i){ const act=((current%n)+n)%n; let d=i-act; if(d>n/2)d-=n; if(d<-n/2)d+=n; current+=d; render(); }
-function step(d){ current+=d; render(); }
-
-document.getElementById('dots').innerHTML=APPS.map((_,i)=>`<span class="dot" data-i="${i}"></span>`).join('');
-document.querySelectorAll('.dot').forEach(d=>d.onclick=()=>goTo(+d.dataset.i));
-document.getElementById('next').onclick=()=>step(1);
-document.getElementById('prev').onclick=()=>step(-1);
+function drawLinks(){
+  const svg=document.getElementById('constLinks'); const stageEl=document.getElementById('stage');
+  const idx=k=>APPS.findIndex(a=>a.key===k);
+  svg.innerHTML=STAR_LINKS.map(([a,b])=>{ const [ay,ax]=STAR_POS[a], [by,bx]=STAR_POS[b];
+    return `<line x1="${ax}%" y1="${ay}%" x2="${bx}%" y2="${by}%" stroke="rgba(var(--gold-rgb),.18)" stroke-width="1"/>`; }).join('');
+}
+addEventListener('resize',drawLinks);
 document.getElementById('titleHome').onclick=closeTool;
-addEventListener('keydown',e=>{
-  if(toolwrap.classList.contains('show')){ if(e.key==='Escape') closeTool(); return; }
-  if(e.key==='ArrowRight')step(1); if(e.key==='ArrowLeft')step(-1);
-  if(e.key==='Enter')openTool(((current%n)+n)%n);
-});
-addEventListener('resize',()=>{ place(); render(); });
-let dragging=false,sx=0,moved=0,downOnNav=false;
-stage.addEventListener('pointerdown',e=>{ downOnNav=!!e.target.closest('.nav'); dragging=true; sx=e.clientX; moved=0; ring.style.transition='none'; });
-addEventListener('pointermove',e=>{ if(!dragging)return; moved=e.clientX-sx; ring.style.transform=`translateZ(${-R}px) rotateY(${-current*theta+moved*0.25}deg)`; });
-addEventListener('pointerup',e=>{ if(!dragging)return; dragging=false; ring.style.transition='';
-  if(Math.abs(moved)>60){ step(moved<0?1:-1); return; }
-  render();
-  if(downOnNav) return; // arrows/dots already handle themselves via their own onclick
-  // Reliable click-to-launch/navigate: 3D-transformed cards can fail native hit-testing in some
-  // browsers once the ring has rotated (clicks land on #stage instead of the card), so figure out
-  // intent from horizontal click position relative to stage center instead of relying on it.
-  const rect=stage.getBoundingClientRect(); const dx=e.clientX-(rect.left+rect.width/2);
-  const sample=ring.querySelector('.card'); const half=sample?sample.offsetWidth/2:210;
-  if(Math.abs(dx)<half) openTool(((current%n)+n)%n); else step(dx<0?-1:1);
-});
+addEventListener('keydown',e=>{ if(toolwrap.classList.contains('show') && e.key==='Escape') closeTool(); });
 
 // --- inline tool switching ---
 const toolwrap=document.getElementById('toolwrap');
@@ -592,7 +573,7 @@ function closeTool(){
   toolFrame.src='about:blank';
 }
 
-buildCards(); render(); renderCharCarousel();
+buildCards(); renderCharCarousel();
 function setTheme(name){
   document.documentElement.dataset.theme=name;
   try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
