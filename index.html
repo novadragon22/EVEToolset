@@ -22,8 +22,8 @@
   .app{height:100vh;display:flex;flex-direction:column;position:relative}
   header{position:absolute;top:0;left:0;right:0;z-index:3;pointer-events:none;text-align:center;padding:22px 20px 6px}
   header>*{pointer-events:auto}
-  .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.5em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:11px}
-  h1{font-family:var(--mono);font-weight:600;letter-spacing:.28em;text-transform:uppercase;font-size:23px;color:var(--gold-bright);margin:0;cursor:pointer}
+  .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.35em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:11px}
+  h1{font-family:var(--mono);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:26px;color:var(--gold-bright);margin:0;cursor:pointer}
   h1 .diamond{margin:0 13px;transform:translateY(-3px)}
   .sub{color:var(--muted);font-size:12.5px;margin-top:9px}
   .bar{display:flex;justify-content:center;gap:10px;margin-top:10px}
@@ -94,19 +94,21 @@
   .hint{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.06em}
 
   /* --- character roster --- */
-  .roster{position:absolute;top:6px;right:20px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-width:280px;padding-bottom:4px;scrollbar-width:thin}
+  .roster{position:absolute;top:36px;right:32px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-width:280px;padding-bottom:4px;scrollbar-width:thin}
   .roster:empty,.roster:has(> span.sub){justify-content:center}
   .roster::-webkit-scrollbar{height:5px}
   .roster::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
   .rchip{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);background:#05080b;padding:4px 10px 4px 4px;font-family:var(--mono);font-size:10.5px;color:var(--text);flex-shrink:0;white-space:nowrap}
+  .add-chip{width:34px;height:34px;flex-shrink:0;border-radius:8px;border:1px dashed rgba(var(--gold-rgb),.35);display:flex;align-items:center;justify-content:center;color:var(--gold-dim);font-size:16px;cursor:pointer}
+  .add-chip:hover{border-color:var(--gold-dim);color:var(--gold-bright)}
   .rchip img{width:20px;height:20px;border:1px solid var(--line)}
   .rchip .corp{color:var(--muted2)}
   .rchip .x{cursor:pointer;color:var(--muted2);margin-left:2px}
   .rchip .x:hover{color:var(--red)}
   .addchar{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--gold-dim);color:var(--gold-bright);background:rgba(var(--gold-rgb),.08);padding:6px 13px;cursor:pointer}
-  .theme-picker{position:absolute;top:10px;left:20px;z-index:50;display:flex;align-items:center;gap:7px}
+  .theme-picker{position:absolute;top:36px;left:32px;z-index:50;display:flex;align-items:center;gap:7px}
   .theme-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
-  .theme-swatch{width:16px;height:16px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.15);cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
+  .theme-swatch{width:14px;height:14px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
   .theme-swatch:hover{transform:scale(1.15)}
   .theme-swatch.on{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--sw),0 0 8px var(--sw)}
   .addchar:hover{background:rgba(var(--gold-rgb),.18)}
@@ -271,7 +273,6 @@
       <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
     </div>
     <div class="roster" id="roster"></div>
-    <div class="bar"><button class="addchar" id="addCharBtn">+ Add Character</button></div>
     <div class="kicker">New Eden Industrial Suite</div>
     <h1 id="titleHome">EVE<span class="diamond"></span>Toolset</h1>
   </header>
@@ -365,7 +366,6 @@ let suiteChars=loadSuiteChars();
 
 function renderScopeList(){ document.getElementById('scopeList').innerHTML=SCOPE_INFO.map(s=>
   `<li><b>${s.scope}</b><span class="sd">${s.desc} — <i>${s.tool}</i></span></li>`).join(''); }
-document.getElementById('addCharBtn').onclick=()=>{ renderScopeList(); document.getElementById('scopeOverlay').classList.add('show'); };
 document.getElementById('scopeCancel').onclick=()=>document.getElementById('scopeOverlay').classList.remove('show');
 document.getElementById('scopeConfirm').onclick=()=>{ document.getElementById('scopeOverlay').classList.remove('show'); beginLogin(); };
 
@@ -397,10 +397,11 @@ function removeSuiteChar(charId){ delete suiteChars[charId]; saveSuiteChars(suit
 window.removeSuiteChar=removeSuiteChar;
 function renderRoster(){
   const r=document.getElementById('roster'); const ids=Object.keys(suiteChars);
-  if(!ids.length){ r.innerHTML='<span class="sub" style="margin:0">No characters signed in yet — every tool below will prompt you to add one here.</span>'; return; }
-  r.innerHTML=ids.map(id=>{ const c=suiteChars[id];
+  const addChip='<span class="add-chip" id="addCharBtn" title="Add character">+</span>';
+  r.innerHTML=ids.length? ids.map(id=>{ const c=suiteChars[id];
     return `<span class="rchip"><img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">${c.charName}<span class="corp">${c.corpName?(' · '+c.corpName):''}</span><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`;
-  }).join('');
+  }).join('')+addChip : addChip;
+  document.getElementById('addCharBtn').onclick=()=>{ renderScopeList(); document.getElementById('scopeOverlay').classList.add('show'); };
 }
 // =====================================================================
 // PER-CHARACTER SECTION VISIBILITY — which tools ("sections") a
