@@ -37,8 +37,17 @@
   .star-core{width:70px;height:70px;border-radius:var(--radius-card,50%);margin:0 auto 10px;position:relative;
     background:radial-gradient(circle at 35% 30%,var(--panel2),var(--panel));border:1.5px solid var(--line2);
     box-shadow:0 8px 24px rgba(0,0,0,.5);transition:border-color var(--dur-base),box-shadow var(--dur-base)}
-  .tool-star:hover .star-core{border-color:var(--gold-dim)}
-  .star-core::after{content:'';position:absolute;inset:-16px;border-radius:50%;border:1px dashed currentColor;opacity:.25}
+  .tool-star:hover .star-core{border-color:currentColor;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 22px currentColor}
+  /* signature accent per tool, matching the mockup — not every star looks the same */
+  .star-core.sig-pi::after{content:'';position:absolute;inset:-16px;border-radius:50%;border:1px dashed currentColor;opacity:.3}
+  .star-core.sig-industry::before{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:10px;height:16px;
+    background:radial-gradient(circle at 50% 0%,#ffb050,#e85a1a 70%);border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;filter:blur(1px)}
+  .star-core.sig-fits::after,.star-core.sig-fits::before{content:'';position:absolute;width:4px;height:4px;border-radius:50%;background:currentColor}
+  .star-core.sig-fits::after{top:8px;left:8px} .star-core.sig-fits::before{bottom:8px;right:8px}
+  .star-core.sig-structures{background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 9px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 9px),
+    radial-gradient(circle at 35% 30%,var(--panel2),var(--panel))}
   .tool-star .nm{font-family:var(--mono);font-size:12px;color:var(--gold-bright);font-weight:600}
   .tool-star .tag{font-family:var(--mono);font-size:8.5px;color:var(--muted2);margin-top:2px;letter-spacing:.05em}
   .tool-star .dash-row{margin-top:6px;display:flex;justify-content:center}
@@ -534,11 +543,12 @@ function dashBadge(key){
 }
 const STAR_POS={ industry:[38,22], pi:[26,44], jump:[38,66], fits:[60,34], structures:[60,56] };
 const STAR_LINKS=[['industry','pi'],['pi','jump'],['industry','fits'],['jump','structures']];
+const STAR_ACCENT={ industry:'#e8a850', pi:'#4ac89a', jump:'#4a90c4', fits:'#c86a3a', structures:'#9ad84a' };
 function buildCards(){
   const cont=document.getElementById('constellation');
-  cont.innerHTML=APPS.map((a,i)=>{ const [top,left]=STAR_POS[a.key]||[50,50];
-    return `<div class="tool-star" data-i="${i}" style="top:${top}%;left:${left}%;color:var(--gold-dim)">
-      <div class="star-core"></div>
+  cont.innerHTML=APPS.map((a,i)=>{ const [top,left]=STAR_POS[a.key]||[50,50]; const accent=STAR_ACCENT[a.key]||'var(--gold)';
+    return `<div class="tool-star" data-i="${i}" style="top:${top}%;left:${left}%;color:${accent}">
+      <div class="star-core sig-${a.key}"></div>
       <div class="nm">${a.name}</div><div class="tag">${a.tag}</div>
       <div class="dash-row">${dashBadge(a.key)}</div></div>`; }).join('');
   cont.querySelectorAll('.tool-star').forEach(c=>c.onclick=()=>openTool(+c.dataset.i));
