@@ -124,8 +124,9 @@
   .tab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;cursor:pointer;color:#8a9ba8;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:8px}
   .tab:hover{color:var(--text)}
   .tab.on{color:var(--gold);border-bottom-color:var(--gold)}
-  .tab .cnt{font-family:var(--mono);font-size:10px;background:rgba(var(--gold-rgb),.08);border:1px solid rgba(var(--gold-rgb),.25);padding:1px 6px;color:var(--gold-dim)}
-  .tab.on .cnt{color:var(--gold)}
+  .tab .cnt{font-family:var(--mono);font-size:10px;font-weight:600;background:rgba(var(--gold-rgb),.1);border:1px solid rgba(var(--gold-rgb),.25);
+    border-radius:20px;padding:1px 8px;color:var(--gold-dim);min-width:8px;text-align:center;display:inline-block}
+  .tab.on .cnt{color:var(--bg);background:var(--gold);border-color:var(--gold)}
 
   /* subtabs nested inside a section (e.g. Extractions: Active / Optimised) */
   .subtabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap}
@@ -495,66 +496,44 @@
       </section>
       <section class="sec" id="sec-metcalc">
         <div class="panel-title"><span class="di diamond"></span>Metenox Calculator — moon-drill value @ 40% efficiency</div>
-        <p class="hint" style="max-width:900px">Metenox Moon Drills passively extract <b>12,000 m&sup3; of moon ore per hour</b> (40% of a moon's full 30,000 m&sup3;/hr rate — the drill's fixed efficiency). All moon ore is <b>10 m&sup3; per unit</b> &rarr; <b>1,200 units/hour</b> at 100% composition, split by the moon's makeup. The drill hold is <b>500,000 m&sup3;</b>. Enter the composition (paste a survey or use the dropdowns) and pull live prices from ESI for the selected hub.</p>
+        <p class="hint" style="max-width:900px">Metenox Moon Drills passively extract <b>12,000 m&sup3; of moon ore per hour</b> (40% of a moon's full 30,000 m&sup3;/hr rate — the drill's fixed efficiency). All moon ore is <b>10 m&sup3; per unit</b> &rarr; <b>1,200 units/hour</b> at 100% composition, split by the moon's makeup. The drill hold is <b>500,000 m&sup3;</b>. Each drill below is one real Metenox — enter its own composition (paste a survey or use the dropdowns) and pull live prices from ESI for the selected hub.</p>
 
         <div class="fuel-controls">
           <span class="opt-lbl">Trade hub</span>
           <select id="metHub"><option>Jita</option><option>Amarr</option><option>Dodixie</option><option>Rens</option><option>Hek</option></select>
-          <span class="opt-lbl">· Metenox drills</span><input id="metCount" type="number" min="1" step="1" value="1" style="width:60px">
-          <span class="opt-lbl">· Reprocess yield</span><input id="metYield" type="number" min="1" max="100" step="1" value="85" style="width:56px"><span class="opt-lbl">%</span>
           <button class="btn" id="metFetch">&#8635; Fetch ESI prices</button>
           <span class="opt-lbl" id="metFetchMsg"></span>
         </div>
 
-        <div style="margin:12px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
-          <textarea id="metSurvey" placeholder="Optional: paste moon survey composition (e.g.  Zeolites 34%   Sylvite 22% ...) then Parse." style="flex:1;min-width:280px;height:64px;background:var(--panel2);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:11px;padding:8px;resize:vertical"></textarea>
-          <button class="btn" id="metParse">Parse survey</button>
+        <div id="metDrills"></div>
+        <div style="margin:14px 0"><button class="btn" id="metAddDrill">+ Add moon drill</button></div>
+
+        <div class="ftile" style="margin-top:8px">
+          <div class="panel-title" style="margin:0 0 10px">Total — all moon drills (<span id="metDrillCount">0</span>)</div>
+          <div style="display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono)">
+            <div><div class="opt-lbl">per hour</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerHr">0</b></div></div>
+            <div><div class="opt-lbl">per day</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerDay">0</b></div></div>
+            <div><div class="opt-lbl">per 30 days</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerMo">0</b></div></div>
+          </div>
+          <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:9px">
+            <div class="opt-lbl" style="margin-bottom:6px">Profit — yield minus fuel, across all drills</div>
+            <table style="width:100%;font-family:var(--mono);font-size:13px;border-collapse:collapse">
+              <tr><td></td><td class="opt-lbl" style="text-align:right;padding-left:14px">per day</td><td class="opt-lbl" style="text-align:right;padding-left:14px">per week</td><td class="opt-lbl" style="text-align:right;padding-left:14px">per 30 days</td></tr>
+              <tr><td class="opt-lbl" style="text-align:left">Profit</td><td style="text-align:right;padding-left:14px"><b id="metRProfDay">0</b></td><td style="text-align:right;padding-left:14px"><b id="metRProfWk">0</b></td><td style="text-align:right;padding-left:14px"><b id="metRProfMo">0</b></td></tr>
+            </table>
+          </div>
         </div>
 
-        <table style="width:100%">
-          <thead><tr>
-            <th style="text-align:left">Moon ore</th><th>Composition %</th><th>Price ISK/unit @ <span id="metHubLbl">Jita</span></th><th>Units/hr</th><th>Value/hr</th><th></th>
-          </tr></thead>
-          <tbody id="metRows"></tbody>
-          <tfoot><tr>
-            <td style="text-align:left">Total</td><td id="metPctTot">0%</td><td style="text-align:right" id="metM3Tot">0 m&sup3;/hr</td><td id="metUnitTot" style="text-align:right">0</td><td id="metValTot" style="text-align:right">0</td><td></td>
-          </tr></tfoot>
-        </table>
-        <div style="margin:10px 0"><button class="btn" id="metAddRow">+ Add moon ore</button> <button class="btn" id="metClear">Clear</button></div>
-
-        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:14px">
-          <div class="ftile" style="flex:1 1 330px;min-width:290px">
-            <div class="panel-title" style="margin:0 0 10px">Metenox yield (&times; <span id="metCountOut">1</span> drill)</div>
-            <div style="display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono)">
-              <div><div class="opt-lbl">per hour</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerHr">0</b></div></div>
-              <div><div class="opt-lbl">per day</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerDay">0</b></div></div>
-              <div><div class="opt-lbl">per 30 days</div><div style="font-size:17px;color:var(--gold-bright)"><b id="metPerMo">0</b></div></div>
-            </div>
-            <div class="hint" style="margin-top:8px">Reprocessed (moon materials @ <span id="metYieldOut">85</span>% yield): <b id="metRValHr">0</b>/hr · <b id="metRValDay">0</b>/day · <b id="metRValMo">0</b>/30d</div>
-            <div class="hint" style="margin-top:4px">Hold (500,000 m&sup3;) fills in <b id="metHold">0</b> per drill.</div>
-            <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:9px">
-              <div class="opt-lbl" style="margin-bottom:6px">Profit — yield minus fuel</div>
-              <table style="width:100%;font-family:var(--mono);font-size:13px;border-collapse:collapse">
-                <tr><td></td><td class="opt-lbl" style="text-align:right;padding-left:14px">per day</td><td class="opt-lbl" style="text-align:right;padding-left:14px">per week</td><td class="opt-lbl" style="text-align:right;padding-left:14px">per 30 days</td></tr>
-                <tr><td class="opt-lbl" style="text-align:left">Raw ore</td><td style="text-align:right;padding-left:14px"><b id="metProfDay">0</b></td><td style="text-align:right;padding-left:14px"><b id="metProfWk">0</b></td><td style="text-align:right;padding-left:14px"><b id="metProfMo">0</b></td></tr>
-                <tr><td class="opt-lbl" style="text-align:left">Reprocessed</td><td style="text-align:right;padding-left:14px"><b id="metRProfDay">0</b></td><td style="text-align:right;padding-left:14px"><b id="metRProfWk">0</b></td><td style="text-align:right;padding-left:14px"><b id="metRProfMo">0</b></td></tr>
-              </table>
-            </div>
+        <div class="ftile" style="margin-top:10px">
+          <div class="panel-title" style="margin:0 0 10px">Fuel cost <span class="hint" style="font-weight:400">(5 blocks + 200 gas /hr, per drill)</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:9px">
+            <span class="opt-lbl">Fuel block</span><input id="metFbPrice" type="number" min="0" step="100" style="width:96px;text-align:right"><span class="opt-lbl">ISK</span>
+            <span class="opt-lbl">Magmatic gas</span><input id="metGasPrice" type="number" min="0" step="10" style="width:96px;text-align:right"><span class="opt-lbl">ISK</span>
           </div>
-
-          <div class="ftile" style="flex:1 1 330px;min-width:290px">
-            <div class="panel-title" style="margin:0 0 10px">Fuel cost</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:9px">
-              <span class="opt-lbl">Fuel block</span><input id="metFbPrice" type="number" min="0" step="100" style="width:96px;text-align:right"><span class="opt-lbl">ISK</span>
-              <span class="opt-lbl">Magmatic gas</span><input id="metGasPrice" type="number" min="0" step="10" style="width:96px;text-align:right"><span class="opt-lbl">ISK</span>
-            </div>
-            <div class="hint" style="margin-bottom:9px">Consumes <b>5 fuel blocks</b> + <b>200 magmatic gas</b> per hour, per drill.</div>
-            <div style="display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono)">
-              <div><div class="opt-lbl">per day</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelDay">0</b></div></div>
-              <div><div class="opt-lbl">per week</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelWk">0</b></div></div>
-              <div><div class="opt-lbl">per 30 days</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelMo">0</b></div></div>
-            </div>
-            <div class="hint" style="margin-top:8px">Prices auto-fill from ESI for the selected hub; editable.</div>
+          <div style="display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono)">
+            <div><div class="opt-lbl">per day</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelDay">0</b></div></div>
+            <div><div class="opt-lbl">per week</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelWk">0</b></div></div>
+            <div><div class="opt-lbl">per 30 days</div><div style="font-size:16px;color:var(--rederr)"><b id="metFuelMo">0</b></div></div>
           </div>
         </div>
       </section>
@@ -1187,67 +1166,91 @@ const metMatPrice={}; // material -> ISK/unit from ESI
 const MET_REGION={Jita:10000002,Amarr:10000043,Dodixie:10000032,Rens:10000030,Hek:10000042};
 const MET_HUB={ Jita:{fb:16000,gas:1500}, Amarr:{fb:17000,gas:1700}, Dodixie:{fb:17500,gas:1800}, Rens:{fb:18000,gas:1900}, Hek:{fb:18000,gas:1900} };
 const MET_M3_HR=12000, MET_ORE_M3=10, MET_HOLD=500000, MET_UNITS_HR=MET_M3_HR/MET_ORE_M3; // 1200 units/hr @100% (fixed 40% efficiency)
-const metPrice={}; // ore -> ISK/unit, last fetched from ESI for the selected hub
+// (raw ore price tracking removed — a Metenox always yields reprocessed materials, never sellable raw ore)
 const metCurHub=()=>{ const h=document.getElementById('metHub'); return h?h.value:'Jita'; };
 const metFmt=n=>{ n=Math.round(n||0); const s=n<0?'-':''; n=Math.abs(n);
   if(n>=1e9)return s+(n/1e9).toFixed(2)+'b'; if(n>=1e6)return s+(n/1e6).toFixed(2)+'m'; if(n>=1e3)return s+(n/1e3).toFixed(1)+'k'; return s+n; };
 const metDur=hrs=>{ if(!isFinite(hrs)||hrs<=0)return '—'; const d=Math.floor(hrs/24), h=Math.round(hrs%24); return (d?d+'d ':'')+h+'h'; };
 function metOreOptions(sel){ return MOON_ORES.map(o=>`<option value="${o.n}" ${o.n===sel?'selected':''}>${o.n} (${o.r})</option>`).join(''); }
-function metAddRow(ore,pct){ const tb=document.getElementById('metRows'); if(!tb)return; const oreN=ore||MOON_ORES[0].n;
-  const price=metPrice[oreN]!=null?Math.round(metPrice[oreN]):'';
-  const tr=document.createElement('tr');
-  tr.innerHTML=`<td style="text-align:left"><select class="metOre">${metOreOptions(oreN)}</select></td>`+
+let metDrillSeq=0;
+function metOreRowHtml(oreN,pct){
+  return `<td style="text-align:left"><select class="metOre">${metOreOptions(oreN)}</select></td>`+
     `<td><input class="metPct" type="number" min="0" step="0.1" value="${pct!=null?pct:''}" style="width:78px;text-align:right"></td>`+
-    `<td><input class="metUP" type="number" min="0" step="1" value="${price}" style="width:130px;text-align:right"></td>`+
     `<td class="metUnits" style="text-align:right;font-family:var(--mono)">0</td>`+
     `<td class="metValHr" style="text-align:right;font-family:var(--mono)">0</td>`+
     `<td style="text-align:right"><span class="metRm" title="Remove" style="cursor:pointer;color:var(--red)">&#10005;</span></td>`;
-  tb.appendChild(tr);
-  tr.querySelector('.metPct').addEventListener('input',metRecompute);
-  tr.querySelector('.metUP').addEventListener('input',()=>{ metPrice[tr.querySelector('.metOre').value]=+tr.querySelector('.metUP').value||0; metRecompute(); });
-  tr.querySelector('.metOre').addEventListener('change',()=>{ const o=tr.querySelector('.metOre').value; if(metPrice[o]!=null) tr.querySelector('.metUP').value=Math.round(metPrice[o]); metRecompute(); });
-  tr.querySelector('.metRm').onclick=()=>{ tr.remove(); metRecompute(); };
-  metRecompute();
 }
-function metRecompute(){ if(!document.getElementById('metCount'))return;
-  const count=Math.max(1,+document.getElementById('metCount').value||1);
-  const yieldPct=Math.max(0,Math.min(100,+((document.getElementById('metYield')||{}).value)||85))/100;
-  let pctTot=0, unitTot=0, valHr=0, reproHr=0;
-  document.querySelectorAll('#metRows tr').forEach(tr=>{ const ore=tr.querySelector('.metOre').value; const pct=+tr.querySelector('.metPct').value||0; const up=+tr.querySelector('.metUP').value||0;
-    const units=MET_UNITS_HR*count*(pct/100); const v=units*up; pctTot+=pct; unitTot+=units; valHr+=v;
-    const rec=MET_REPROCESS[ore]; let perU=0; if(rec) rec.forEach(([m,q])=>{ perU+=(q/100)*(metMatPrice[m]||0); });
-    reproHr+=units*yieldPct*perU;
-    tr.querySelector('.metUnits').textContent=Math.round(units).toLocaleString();
-    tr.querySelector('.metValHr').textContent=metFmt(v); });
-  // fuel (per hub)
+function metAddRow(drillEl,ore,pct){ const tb=drillEl.querySelector('.metRows'); if(!tb)return; const oreN=ore||MOON_ORES[0].n;
+  const tr=document.createElement('tr'); tr.innerHTML=metOreRowHtml(oreN,pct);
+  tb.appendChild(tr);
+  tr.querySelector('.metPct').addEventListener('input',metRecomputeAll);
+  tr.querySelector('.metOre').addEventListener('change',metRecomputeAll);
+  tr.querySelector('.metRm').onclick=()=>{ tr.remove(); metRecomputeAll(); };
+  metRecomputeAll();
+}
+function metAddDrill(){
+  const id=++metDrillSeq;
+  const wrap=document.getElementById('metDrills');
+  const div=document.createElement('div'); div.className='met-drill'; div.dataset.drillId=id;
+  div.style.cssText='border:1px solid var(--line);padding:12px 14px;margin-bottom:12px';
+  div.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b class="mono">Drill ${id}</b><span class="metRmDrill" title="Remove this drill" style="cursor:pointer;color:var(--red);font-size:12px">&#10005; Remove drill</span></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px">
+      <textarea class="metSurvey" placeholder="Optional: paste moon survey composition (e.g.  Zeolites 34%   Sylvite 22% ...) then Parse." style="flex:1;min-width:280px;height:56px;background:var(--panel2);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:11px;padding:8px;resize:vertical"></textarea>
+      <button class="btn metParseBtn">Parse survey</button>
+    </div>
+    <table style="width:100%">
+      <thead><tr><th style="text-align:left">Moon ore</th><th>Composition %</th><th>Units/hr</th><th>Reprocessed value/hr</th><th></th></tr></thead>
+      <tbody class="metRows"></tbody>
+      <tfoot><tr><td style="text-align:left">Drill total</td><td class="metPctTot">0%</td><td style="text-align:right" class="metM3Tot">0 m&sup3;/hr</td><td class="metValTot" style="text-align:right">0</td><td></td></tr></tfoot>
+    </table>
+    <div style="margin-top:8px"><button class="btn metAddOreBtn">+ Add moon ore</button> <button class="btn metClearBtn">Clear</button></div>`;
+  wrap.appendChild(div);
+  div.querySelector('.metParseBtn').onclick=()=>metParseSurvey(div);
+  div.querySelector('.metAddOreBtn').onclick=()=>metAddRow(div);
+  div.querySelector('.metClearBtn').onclick=()=>{ div.querySelector('.metRows').innerHTML=''; metRecomputeAll(); };
+  div.querySelector('.metRmDrill').onclick=()=>{ div.remove(); metRecomputeAll(); };
+  metAddRow(div);
+}
+function metRecomputeAll(){
+  let grandVal=0;
+  const drills=[...document.querySelectorAll('.met-drill')];
+  drills.forEach(div=>{
+    let pctTot=0, unitTot=0, drillVal=0;
+    div.querySelectorAll('.metRows tr').forEach(tr=>{ const ore=tr.querySelector('.metOre').value; const pct=+tr.querySelector('.metPct').value||0;
+      const units=MET_UNITS_HR*(pct/100); pctTot+=pct; unitTot+=units;
+      const rec=MET_REPROCESS[ore]; let perU=0; if(rec) rec.forEach(([m,q])=>{ perU+=(q/100)*(metMatPrice[m]||0); });
+      const rowVal=units*perU; drillVal+=rowVal;
+      tr.querySelector('.metUnits').textContent=Math.round(units).toLocaleString();
+      tr.querySelector('.metValHr').textContent=metFmt(rowVal); });
+    div.querySelector('.metPctTot').textContent=pctTot.toFixed(1)+'%';
+    div.querySelector('.metM3Tot').textContent=Math.round(unitTot*MET_ORE_M3).toLocaleString()+' m³/hr';
+    div.querySelector('.metValTot').textContent=metFmt(drillVal);
+    grandVal+=drillVal;
+  });
+  const count=drills.length;
   const hub=metCurHub(); const fb=+document.getElementById('metFbPrice').value||0, gas=+document.getElementById('metGasPrice').value||0;
   MET_HUB[hub]={fb,gas};
-  const fuelHr=(5*fb+200*gas)*count, profHr=valHr-fuelHr;
-  // hold fill (per drill) at actual m3/hr
-  const perDrillM3=(unitTot/count)*MET_ORE_M3; const holdHr=perDrillM3>0?MET_HOLD/perDrillM3:Infinity;
+  const fuelHr=(5*fb+200*gas)*count;
   const set=(id,v)=>{ const el=document.getElementById(id); if(el)el.textContent=v; };
-  set('metPctTot',pctTot.toFixed(1)+'%'); set('metM3Tot',Math.round(unitTot*MET_ORE_M3).toLocaleString()+' m³/hr');
-  set('metUnitTot',Math.round(unitTot).toLocaleString()); set('metValTot',metFmt(valHr));
-  set('metCountOut',count); set('metHold',metDur(holdHr));
-  set('metPerHr',metFmt(valHr)); set('metPerDay',metFmt(valHr*24)); set('metPerMo',metFmt(valHr*720));
+  set('metDrillCount',count);
+  set('metPerHr',metFmt(grandVal)); set('metPerDay',metFmt(grandVal*24)); set('metPerMo',metFmt(grandVal*720));
   set('metFuelDay',metFmt(fuelHr*24)); set('metFuelWk',metFmt(fuelHr*168)); set('metFuelMo',metFmt(fuelHr*720));
   const setP=(id,v)=>{ const el=document.getElementById(id); if(!el)return; el.textContent=metFmt(v); el.style.color=v>=0?'var(--green)':'var(--rederr)'; };
-  setP('metProfDay',profHr*24); setP('metProfWk',profHr*168); setP('metProfMo',profHr*720);
-  const rProfHr=reproHr-fuelHr;
+  const rProfHr=grandVal-fuelHr;
   setP('metRProfDay',rProfHr*24); setP('metRProfWk',rProfHr*168); setP('metRProfMo',rProfHr*720);
-  set('metRValHr',metFmt(reproHr)); set('metRValDay',metFmt(reproHr*24)); set('metRValMo',metFmt(reproHr*720));
 }
-function metParseSurvey(){ const el=document.getElementById('metSurvey'); const txt=el?el.value:''; if(!txt.trim())return;
-  document.getElementById('metRows').innerHTML=''; const lines=txt.split(/[\n\r]+/); let added=0;
+function metParseSurvey(drillEl){ const el=drillEl.querySelector('.metSurvey'); const txt=el?el.value:''; if(!txt.trim())return;
+  drillEl.querySelector('.metRows').innerHTML=''; const lines=txt.split(/[\n\r]+/); let added=0;
   MOON_ORES.forEach(o=>{ const re=new RegExp(o.n+'\\D*?([0-9]+(?:\\.[0-9]+)?)\\s*%?','i');
-    for(const ln of lines){ const m=re.exec(ln); if(m){ let p=parseFloat(m[1]); if(p<=1)p*=100; metAddRow(o.n,+p.toFixed(1)); added++; break; } } });
-  if(!added){ metAddRow(); alert('No moon ores recognised in that text — add them with the dropdowns instead.'); }
-  metRecompute();
+    for(const ln of lines){ const m=re.exec(ln); if(m){ let p=parseFloat(m[1]); if(p<=1)p*=100; metAddRow(drillEl,o.n,+p.toFixed(1)); added++; break; } } });
+  if(!added){ metAddRow(drillEl); alert('No moon ores recognised in that text — add them with the dropdowns instead.'); }
+  metRecomputeAll();
 }
 async function metFetchEsi(){ const msg=document.getElementById('metFetchMsg'), btn=document.getElementById('metFetch');
   const hub=metCurHub(), region=MET_REGION[hub]||10000002; btn.disabled=true; msg.textContent='resolving type IDs…';
   try{
-    const names=MOON_ORES.map(o=>o.n).concat(MET_MATERIALS,['Magmatic Gas','Nitrogen Fuel Block']);
+    const names=MET_MATERIALS.concat(['Magmatic Gas','Nitrogen Fuel Block']);
     const idr=await fetch('https://esi.evetech.net/latest/universe/ids/?datasource=tranquility',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(names)});
     const ij=await idr.json(); const nameId={}; (ij.inventory_types||[]).forEach(t=>nameId[t.name]=t.id);
     msg.textContent='fetching '+hub+' sell prices…';
@@ -1255,30 +1258,24 @@ async function metFetchEsi(){ const msg=document.getElementById('metFetchMsg'), 
     await Promise.all(names.filter(n=>nameId[n]).map(async n=>{ try{
       const r=await fetch(`https://esi.evetech.net/latest/markets/${region}/orders/?datasource=tranquility&order_type=sell&type_id=${nameId[n]}`);
       const os=await r.json(); if(Array.isArray(os)&&os.length) priceOf[n]=Math.min.apply(null,os.map(o=>o.price)); }catch(e){} }));
-    MOON_ORES.forEach(o=>{ if(priceOf[o.n]!=null) metPrice[o.n]=priceOf[o.n]; });
     MET_MATERIALS.forEach(m=>{ if(priceOf[m]!=null) metMatPrice[m]=priceOf[m]; });
-    document.querySelectorAll('#metRows tr').forEach(tr=>{ const o=tr.querySelector('.metOre').value; if(metPrice[o]!=null) tr.querySelector('.metUP').value=Math.round(metPrice[o]); });
     if(priceOf['Magmatic Gas']!=null) document.getElementById('metGasPrice').value=Math.round(priceOf['Magmatic Gas']);
     if(priceOf['Nitrogen Fuel Block']!=null) document.getElementById('metFbPrice').value=Math.round(priceOf['Nitrogen Fuel Block']);
     MET_HUB[hub]={fb:+document.getElementById('metFbPrice').value||0,gas:+document.getElementById('metGasPrice').value||0};
     const got=Object.keys(priceOf).length; msg.textContent=got?('✓ '+hub+' · '+got+' prices · '+new Date().toLocaleTimeString()):'no prices returned';
-    metRecompute();
+    metRecomputeAll();
   }catch(e){ msg.textContent='fetch failed — is ESI reachable?'; }
   btn.disabled=false;
 }
 function metLoadHub(){ const h=metCurHub(); const p=MET_HUB[h]||MET_HUB.Jita;
-  const fbEl=document.getElementById('metFbPrice'), gasEl=document.getElementById('metGasPrice');
-  if(fbEl&&!fbEl.value) fbEl.value=p.fb; if(gasEl&&!gasEl.value) gasEl.value=p.gas;
-  const lbl=document.getElementById('metHubLbl'); if(lbl) lbl.textContent=h;
-  metRecompute();
+  document.getElementById('metFbPrice').value=p.fb; document.getElementById('metGasPrice').value=p.gas;
+  metRecomputeAll();
 }
-['metCount','metFbPrice','metGasPrice','metYield'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input',()=>{ const y=document.getElementById('metYieldOut'); if(y)y.textContent=Math.round(+((document.getElementById('metYield')||{}).value)||85); metRecompute(); }); });
-{ const hb=document.getElementById('metHub'); if(hb) hb.addEventListener('change',()=>{ const p=MET_HUB[metCurHub()]; document.getElementById('metFbPrice').value=p.fb; document.getElementById('metGasPrice').value=p.gas; document.getElementById('metHubLbl').textContent=metCurHub(); metRecompute(); }); }
-{ const a=document.getElementById('metAddRow'); if(a) a.onclick=()=>metAddRow(); }
-{ const c=document.getElementById('metClear'); if(c) c.onclick=()=>{ document.getElementById('metRows').innerHTML=''; metRecompute(); }; }
-{ const p=document.getElementById('metParse'); if(p) p.onclick=metParseSurvey; }
+['metFbPrice','metGasPrice'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input',metRecomputeAll); });
+{ const hb=document.getElementById('metHub'); if(hb) hb.addEventListener('change',()=>{ const p=MET_HUB[metCurHub()]; document.getElementById('metFbPrice').value=p.fb; document.getElementById('metGasPrice').value=p.gas; metRecomputeAll(); }); }
+{ const a=document.getElementById('metAddDrill'); if(a) a.onclick=metAddDrill; }
 { const f=document.getElementById('metFetch'); if(f) f.onclick=metFetchEsi; }
-if(document.getElementById('metRows')){ metLoadHub(); metAddRow(); }
+if(document.getElementById('metDrills')){ metLoadHub(); metAddDrill(); }
 
 /* ---------- collapse ---------- */
 function applyCollapse(){ ['metenox','moon','all'].forEach(k=>{ const h=document.getElementById(k+'Head'); const f=document.getElementById(k+'Fuel'); if(h)h.classList.toggle('collapsed',fuelCollapse[k]); if(f)f.classList.toggle('collapsed',fuelCollapse[k]); }); }
