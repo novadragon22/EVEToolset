@@ -114,9 +114,10 @@
   .addchar:hover{background:rgba(var(--gold-rgb),.18)}
 
   /* --- scope confirmation modal --- */
-  .scopeOverlay{position:fixed;inset:0;background:rgba(3,5,7,.82);z-index:80;display:none;align-items:center;justify-content:center}
+  .scopeOverlay{position:fixed;inset:0;background:rgba(2,1,3,.75);backdrop-filter:blur(3px);z-index:80;display:none;align-items:center;justify-content:center}
   .scopeOverlay.show{display:flex}
-  .scopeBox{width:520px;max-width:92vw;max-height:82vh;overflow:auto;background:var(--panel);border:1px solid var(--gold-dim);padding:22px 24px;position:relative;border-radius:var(--radius-card);clip-path:var(--card-clip)}
+  .scopeBox{width:520px;max-width:92vw;max-height:82vh;overflow:auto;background:rgba(8,11,15,.92);backdrop-filter:blur(12px);
+    border:1px solid rgba(var(--gold-rgb),.3);padding:26px 28px;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.6)}
   .scopeBox::before,.scopeBox::after{content:"";display:var(--card-bracket-display);position:absolute;width:20px;height:20px;border:1.5px solid var(--gold-dim);opacity:.8;z-index:1;filter:drop-shadow(0 0 4px rgba(var(--gold-rgb),.35));box-shadow:0 0 0 4px rgba(var(--gold-rgb),.06) inset}
   .scopeBox::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
   .scopeBox::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
@@ -167,30 +168,6 @@
     .feat span{font-size:9px;padding:2px 6px}
     .go .lnk{font-size:10px}
   }
-  .charCarousel{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;
-    padding:12px 18px;background:linear-gradient(0deg,rgba(5,8,11,.96),rgba(5,8,11,.85));border-top:1px solid var(--line);
-    z-index:40;scrollbar-width:thin}
-  .charCarousel:empty{display:none}
-  body.with-carousel .app{padding-bottom:66px}
-  .charCarousel::-webkit-scrollbar{height:5px}
-  .charCarousel::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
-  .ccard{flex-shrink:0;display:flex;align-items:center;gap:8px;border:1px solid var(--line2);background:#0a0d10;
-    padding:6px 12px 6px 6px;cursor:pointer;transition:border-color .15s,background .15s;white-space:nowrap}
-  .ccard:hover{border-color:var(--gold-dim);background:rgba(var(--gold-rgb),.06)}
-  .ccard.open{border-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
-  .ccard img{width:26px;height:26px;border:1px solid var(--line)}
-  .ccard .ccname{font-family:var(--mono);font-size:11px;color:var(--text)}
-  .ccard .cccorp{font-family:var(--mono);font-size:9px;color:var(--muted2);display:block}
-  .ccard .ccbadge{font-family:var(--mono);font-size:8.5px;color:var(--cyan);border:1px solid var(--line);padding:1px 5px;margin-left:2px}
-  .sectionMenu{position:fixed;display:none;flex-direction:column;gap:2px;background:var(--panel);border:1px solid var(--gold-dim);
-    padding:10px;z-index:9600;min-width:220px;box-shadow:0 14px 40px rgba(0,0,0,.6)}
-  .sectionMenu.show{display:flex}
-  .sectionMenu .smhead{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dim);
-    padding:2px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
-  .sectionMenu label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--text);
-    padding:5px 4px;cursor:pointer;border-radius:2px}
-  .sectionMenu label:hover{background:rgba(var(--cyan-rgb),.06)}
-  .sectionMenu input{accent-color:var(--gold)}
   :focus-visible{outline:2px solid var(--cyan) !important;outline-offset:2px !important}
   input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(var(--cyan-rgb),.22)}
   body::before{
@@ -283,8 +260,6 @@
   </div>
 </div>
 
-<div class="charCarousel" id="charCarousel"></div>
-<div class="sectionMenu" id="sectionMenu"></div>
 
 <div class="scopeOverlay" id="scopeOverlay">
   <div class="scopeBox">
@@ -390,10 +365,10 @@ async function handleSuiteRedirect(){
     const entry={access:t.access_token,refresh:t.refresh_token,expires:Date.now()+(t.expires_in||1200)*1000,charId,charName:pl.name||('Char '+charId),corpId:null,corpName:''};
     try{ const ch=await esiPub('/characters/'+charId+'/'); entry.corpId=ch.corporation_id;
       const co=await esiPub('/corporations/'+entry.corpId+'/'); entry.corpName=co.name||''; }catch(e){}
-    suiteChars[charId]=entry; saveSuiteChars(suiteChars); renderRoster(); renderCharCarousel();
+    suiteChars[charId]=entry; saveSuiteChars(suiteChars); renderRoster();
   }catch(e){ alert('Sign-in failed: '+e.message); }
 }
-function removeSuiteChar(charId){ delete suiteChars[charId]; saveSuiteChars(suiteChars); delete sectionPrefs[charId]; saveSectionPrefs(sectionPrefs); renderRoster(); renderCharCarousel(); }
+function removeSuiteChar(charId){ delete suiteChars[charId]; saveSuiteChars(suiteChars); renderRoster(); }
 window.removeSuiteChar=removeSuiteChar;
 function renderRoster(){
   const r=document.getElementById('roster'); const ids=Object.keys(suiteChars);
@@ -403,72 +378,6 @@ function renderRoster(){
   }).join('')+addChip : addChip;
   document.getElementById('addCharBtn').onclick=()=>{ renderScopeList(); document.getElementById('scopeOverlay').classList.add('show'); };
 }
-// =====================================================================
-// PER-CHARACTER SECTION VISIBILITY — which tools ("sections") a
-// character should appear in. Stored separately from auth so it
-// survives independently of sign-in/out. Tools can read SECTION_KEY
-// to filter which of the shared characters they show/use.
-// =====================================================================
-const SECTION_KEY='eve_suite_char_sections';
-function loadSectionPrefs(){ try{ return JSON.parse(localStorage.getItem(SECTION_KEY)||'{}'); }catch(e){ return {}; } }
-function saveSectionPrefs(p){ localStorage.setItem(SECTION_KEY,JSON.stringify(p)); }
-let sectionPrefs=loadSectionPrefs();
-function charSectionsEnabled(charId){
-  const p=sectionPrefs[charId];
-  if(!p) return APPS.map(a=>a.key); // default: enabled everywhere until the person narrows it down
-  return APPS.filter(a=>p[a.key]!==false).map(a=>a.key);
-}
-function toggleCharSection(charId,key,checked){
-  sectionPrefs[charId]=sectionPrefs[charId]||{};
-  APPS.forEach(a=>{ if(sectionPrefs[charId][a.key]===undefined) sectionPrefs[charId][a.key]=true; }); // materialize defaults on first edit
-  sectionPrefs[charId][key]=checked;
-  saveSectionPrefs(sectionPrefs);
-  renderCharCarousel();
-}
-window.toggleCharSection=toggleCharSection;
-
-function renderCharCarousel(){
-  const el=document.getElementById('charCarousel'); if(!el) return;
-  const ids=Object.keys(suiteChars);
-  document.body.classList.toggle('with-carousel',ids.length>0);
-  el.innerHTML=ids.map(id=>{ const c=suiteChars[id];
-    const enabled=charSectionsEnabled(id);
-    return `<div class="ccard" data-cid="${id}" onclick="openSectionMenu(event,'${id}')">
-      <img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=32" onerror="this.style.visibility='hidden'">
-      <span><span class="ccname">${esc2(c.charName)}</span><span class="cccorp">${c.corpName?esc2(c.corpName):'corp unknown'}</span></span>
-      <span class="ccbadge">${enabled.length}/${APPS.length} tools</span>
-    </div>`;
-  }).join('');
-}
-function esc2(s){ return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
-
-function openSectionMenu(e,charId){
-  e.stopPropagation();
-  const menu=document.getElementById('sectionMenu');
-  const wasOpenForThis=menu.classList.contains('show')&&menu.dataset.cid===charId;
-  document.querySelectorAll('.ccard').forEach(c=>c.classList.remove('open'));
-  if(wasOpenForThis){ menu.classList.remove('show'); return; }
-  const c=suiteChars[charId]; if(!c) return;
-  const p=sectionPrefs[charId]||{};
-  menu.dataset.cid=charId;
-  menu.innerHTML=`<div class="smhead">${esc2(c.charName)} — appears in</div>`+
-    APPS.map(a=>{ const on=p[a.key]!==false;
-      return `<label><input type="checkbox" ${on?'checked':''} onchange="toggleCharSection('${charId}','${a.key}',this.checked)">${esc2(a.name)}</label>`;
-    }).join('');
-  const card=e.currentTarget.getBoundingClientRect();
-  menu.style.left=Math.min(card.left,window.innerWidth-240)+'px';
-  menu.style.top=(card.top-8)+'px';
-  menu.style.transform='translateY(-100%)';
-  menu.classList.add('show');
-  e.currentTarget.classList.add('open');
-}
-document.addEventListener('click',(e)=>{
-  const menu=document.getElementById('sectionMenu');
-  if(menu.classList.contains('show') && !menu.contains(e.target) && !e.target.closest('.ccard')){
-    menu.classList.remove('show'); document.querySelectorAll('.ccard').forEach(c=>c.classList.remove('open'));
-  }
-});
-
 handleSuiteRedirect(); renderRoster();
 </script>
 <script>
@@ -590,7 +499,7 @@ function closeTool(){
   toolFrame.src='about:blank';
 }
 
-buildCards(); renderCharCarousel();
+buildCards();
 function setTheme(name){
   document.documentElement.dataset.theme=name;
   try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
