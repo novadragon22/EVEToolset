@@ -174,6 +174,13 @@
     box-shadow:inset -10px -8px 20px rgba(0,0,0,.7),0 0 14px color-mix(in srgb,var(--red) 20%,transparent)}
   .my-planet.idle .ring{border-color:color-mix(in srgb,var(--red) 35%,transparent)}
   .my-colony .sysname{font-family:var(--mono);font-size:12px;color:var(--gold-bright);font-weight:600}
+  .logi-flow-summary{display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:8px 14px 4px}
+  .flow-node{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    background:radial-gradient(circle at 35% 30%,var(--panel2),var(--panel));border:1.5px solid var(--line2)}
+  .flow-node.extract{border-color:color-mix(in srgb,var(--cyan) 55%,transparent);box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 25%,transparent)}
+  .flow-node.factory{border-color:color-mix(in srgb,var(--gold) 55%,transparent);box-shadow:0 0 10px rgba(var(--gold-rgb),.25)}
+  .flow-node .fn-des{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text)}
+  .flow-link{width:20px;height:2px;background:var(--line2);flex-shrink:0}
   .hero-orb.dormant{margin:0 auto;opacity:.6}
   .hero-orb.dormant .hero-planet{background:radial-gradient(circle at 35% 30%,#232a30,#0a0d10 75%);box-shadow:inset -14px -10px 24px rgba(0,0,0,.7)}
   a{color:var(--cyan)}
@@ -1526,8 +1533,13 @@ function renderLogistics(){ renderNav(); $('resHd').innerHTML='Colony logistics 
   const p4banner = hasP4 ? `<div class="hint" style="padding:2px 14px 4px;color:var(--gold-dim)">Only the High-Tech Production Plant (P4 step) must sit on a Barren or Temperate planet; the Advanced Industry Facilities for P1→P2→P3 can be on any planet type.</div>` : '';
   const p4warn = plan.p4overflow ? `<div style="padding:4px 14px;color:var(--amber)">⚠ A P4 product has no free Barren/Temperate planet here — free one up, move P4 to another character, or use a second system.</div>` : '';
   const p4out = (plan.p4outpostInfo&&plan.p4outpostInfo.length) ? `<div class="hint" style="padding:2px 14px 4px;color:var(--amber)">P4 overflow: home Barren/Temperate planets full — extra High-Tech plants build in ${plan.p4outpostInfo.map(o=>sn(o.id)+' ('+o.jumps+'j)').join(', ')}; haul P3 there.</div>` : '';
+  const flowSummary=(()=>{ const nodes=plan.planets.map(p=>{ const role=isExtractor(p)?'extract':'factory';
+      const desTxt=des(p).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+      const who=p.who?` · ${p.who}`:'';
+      return `<div class="flow-node ${role}" title="${desTxt}${who}"><span class="fn-des">${desTxt}</span></div>`; }).join('<div class="flow-link"></div>');
+    return `<div class="logi-flow-summary">${nodes}</div>`; })();
   const head=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px 4px"><b>${sn(sysL)} route</b><span class="hint">${plan.planets.length} planets${consolidate?' · consolidated':''}</span>
-    <span style="margin-left:auto;display:flex;gap:8px"><span id="logiExp" class="navbtn" style="cursor:pointer;padding:3px 8px;border:1px solid var(--gold-dim);color:var(--gold-bright)">⭳ Export route</span><span id="logiImp" class="navbtn" style="cursor:pointer;padding:3px 8px;border:1px solid var(--line2);color:var(--muted)">⭱ Import route</span></span></div>${p4banner}${p4out}${p4warn}`;
+    <span style="margin-left:auto;display:flex;gap:8px"><span id="logiExp" class="navbtn" style="cursor:pointer;padding:3px 8px;border:1px solid var(--gold-dim);color:var(--gold-bright)">⭳ Export route</span><span id="logiImp" class="navbtn" style="cursor:pointer;padding:3px 8px;border:1px solid var(--line2);color:var(--muted)">⭱ Import route</span></span></div>${flowSummary}${p4banner}${p4out}${p4warn}`;
   const exTbl=`<div class="mono" style="font-size:10px;letter-spacing:.1em;color:var(--gold);padding:6px 14px 2px">PRODUCTION · EXTRACTORS</div>
     <table class="mono polish" style="font-size:11px;width:100%;border-collapse:collapse"><tr class="hint"><td style="padding:4px 10px">Planet</td><td>Products made</td><td>Crew</td><td>Destination</td></tr>${exRows||'<tr><td colspan="4" class="hint" style="padding:6px 10px">none</td></tr>'}</table>`;
   const facTbl=`<div class="mono" style="font-size:10px;letter-spacing:.1em;color:var(--gold);padding:10px 14px 2px;display:flex;align-items:center;gap:8px">PRODUCTION · FACTORY <span class="hint" style="font-weight:400">· ${facAll.length} planet${facAll.length!==1?'s':''} · ${facTotalCnt} facilit${facTotalCnt!==1?'ies':'y'} (throughput-balanced) · ×qty = units for your basket amounts · click a ${consolidate?'planet':'product'} for its build layout</span><span id="bldSheet" class="navbtn" style="margin-left:auto;cursor:pointer;padding:2px 9px;border:1px solid var(--gold-dim);color:var(--gold-bright);white-space:nowrap" title="Download importable EVE PI colony template files (native .json) — one per planet. Drop them in your PlanetaryInteractionTemplates folder and refresh the in-game template list.">⎘ colony templates</span></div>
