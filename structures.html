@@ -729,6 +729,10 @@ function renderCorpAccessBanner(){
   el.style.display='flex';
   el.innerHTML=rows.join('');
 }
+function setSyncDot(state,id){
+  if(id){ const d=document.getElementById('syncDot-'+id); if(d) d.className='char-dot'+(state==='busy'?' busy':''); return; }
+  Object.keys(chars).forEach(cid=>{ const d=document.getElementById('syncDot-'+cid); if(d) d.className='char-dot'+(state==='busy'?' busy':''); });
+}
 async function importFromEsi(token,silent,charIdForDot){
   setSyncDot('busy',charIdForDot);
   const charId=jwtPayload(token).sub.split(':').pop();
@@ -908,6 +912,7 @@ setInterval(()=>{ if(structures.length) renderAll(); }, 120000);
     }).join('');
     const gate=document.getElementById('gateAuth'); if(gate) gate.style.display=ids.length?'none':'inline-block';
   }
+  function updateAuthView(){ renderRoster(); } // v4 has no separate gate overlay — this just keeps the roster/sign-in button current
   document.getElementById('gateAuth').onclick=()=>{ // login happens once, in the launcher, shared by every tool
     if(window.top!==window.self){ window.top.location.href='index.html'; return; }
     location.href='index.html';
