@@ -5,6 +5,12 @@
 <meta charset="utf-8">
 <title>EVE Structure Browser</title>
 <style>
+  :root{ --accent:#c9a868; --accent-rgb:201,168,104; }
+  [data-theme="amarr"]{ --accent:#c9a868; --accent-rgb:201,168,104; }
+  [data-theme="caldari"]{ --accent:#4a90c4; --accent-rgb:74,144,196; }
+  [data-theme="gallente"]{ --accent:#4ac89a; --accent-rgb:74,200,154; }
+  [data-theme="minmatar"]{ --accent:#c86a3a; --accent-rgb:200,106,58; }
+  [data-theme="triglavian"]{ --accent:#c8395a; --accent-rgb:200,57,90; }
   *{box-sizing:border-box}
   body{margin:0;background:#0d0f14;font-family:-apple-system,'Inter',sans-serif;color:#e4e6ea}
   .page{max-width:1200px;margin:0 auto;padding:32px 36px}
@@ -21,12 +27,12 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .cal-strip{display:flex;gap:3px}
   .cal-tile{flex:1;text-align:center;padding:6px 2px;border:1px solid #232631;border-radius:6px;font-size:9px;position:relative}
-  .cal-tile.today{border-color:#6a8aff}
+  .cal-tile.today{border-color:var(--accent)}
   .cal-tile.lo{background:rgba(90,216,90,.1)}
   .cal-tile.hi{background:rgba(224,168,96,.18)}
   .cal-dow{display:block;color:#6a707c;font-size:8px}
   .cal-dom{display:block;color:#e4e6ea;font-weight:600;margin-top:1px}
-  .cal-count{position:absolute;top:2px;right:3px;font-size:7px;color:#6a8aff}
+  .cal-count{position:absolute;top:2px;right:3px;font-size:7px;color:var(--accent)}
   .cal-list{margin-top:10px;font-size:11px}
   .cal-day-row{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #1c1f28}
   .cal-day-date{color:#8a8f9a;width:100px;flex-shrink:0}
@@ -102,14 +108,14 @@
   .tabs-row{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid #232631;padding-bottom:0}
   .tab-btn{background:none;border:none;color:#8a8f9a;font-size:13px;font-weight:500;padding:10px 16px;cursor:pointer;
     border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;font-family:inherit}
-  .tab-btn.on{color:#e4e6ea;border-bottom-color:#6a8aff}
+  .tab-btn.on{color:#e4e6ea;border-bottom-color:var(--accent)}
   .tab-btn .cnt{background:#232631;color:#8a8f9a;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:10px}
-  .tab-btn.on .cnt{background:#6a8aff;color:#0d0f14}
+  .tab-btn.on .cnt{background:var(--accent);color:#0d0f14}
   .tab-page{display:none}
   .tab-page.on{display:block}
   .subtabs-row{display:flex;gap:8px;margin-bottom:16px}
   .subtab-btn{background:#161920;border:1px solid #232631;color:#8a8f9a;font-size:11.5px;padding:6px 14px;border-radius:20px;cursor:pointer;font-family:inherit}
-  .subtab-btn.on{background:#6a8aff;color:#0d0f14;border-color:#6a8aff;font-weight:600}
+  .subtab-btn.on{background:var(--accent);color:#0d0f14;border-color:var(--accent);font-weight:600}
   .subtab-page{display:none}
   .subtab-page.on{display:block}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -131,7 +137,7 @@
         <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="background:#c86a3a"></button>
         <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="background:#9ad84a"></button>
       </div>
-      <button class="btn" id="gateAuth" style="display:none;background:#6a8aff;border:1px solid #6a8aff;color:#0d0f14;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer">Sign in</button>
+      <button class="btn" id="gateAuth" style="display:none;background:var(--accent);border:1px solid var(--accent);color:#0d0f14;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer">Sign in</button>
       <button class="btn" id="syncBtn" style="background:#232631;border:1px solid #33384a;color:#e4e6ea;border-radius:8px;padding:7px 14px;font-size:12.5px;cursor:pointer">Sync</button>
     </div>
   </div>
@@ -140,10 +146,10 @@
   <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);opacity:0;transition:all .25s;background:#161920;border:1px solid #232631;border-radius:10px;padding:10px 18px;font-size:12.5px;color:#e4e6ea;z-index:50;pointer-events:none"></div>
 
   <div class="card-grid">
-    <div class="kcard"><div class="l">Extracting</div><div class="n">3</div></div>
-    <div class="kcard"><div class="l">Idle</div><div class="n">4</div></div>
-    <div class="kcard"><div class="l">Tracked for fuel</div><div class="n">11</div></div>
-    <div class="kcard alert"><div class="l">Decommissioning</div><div class="n">1</div></div>
+    <div class="kcard"><div class="l">Extracting</div><div class="n" id="kExtract">0</div></div>
+    <div class="kcard"><div class="l">Idle</div><div class="n" id="kIdle">0</div></div>
+    <div class="kcard"><div class="l">Tracked for fuel</div><div class="n" id="kFuel">0</div></div>
+    <div class="kcard alert"><div class="l">Decommissioning</div><div class="n" id="kDec">0</div></div>
   </div>
 
   <div class="tabs-row">
@@ -202,7 +208,7 @@
           <label style="font-size:11.5px;color:#8a8f9a">Gap between starts</label>
           <input id="optDuration" type="number" value="7" min="0.5" step="0.5" style="width:60px;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:5px 8px;font-size:12px">
           <span style="font-size:11.5px;color:#8a8f9a">days</span>
-          <button class="btn" id="genPatternBtn" style="margin-left:auto;background:#6a8aff;color:#0d0f14;border:none">Generate optimal pattern</button>
+          <button class="btn" id="genPatternBtn" style="margin-left:auto;background:var(--accent);color:#0d0f14;border:none">Generate optimal pattern</button>
         </div>
         <div id="patternResult"></div>
       </div>
@@ -294,25 +300,16 @@
 
   <div class="tab-page" data-page="fuel">
     <div class="panel">
-      <div class="panel-head"><h2>Metenox Drills</h2><span class="c">fuel blocks &amp; magmatic gas</span></div>
-      <div class="struct-grid" id="fuelGrid">
-        <div class="struct-card flagged">
-          <div class="top-row"><div class="avatar"></div><div><div class="nm">Siseide Metenox</div><div class="type-sub">Metenox</div></div><span class="esi-age">3m</span></div>
-          <div class="mid-row"><span class="loc-txt">0.5 Siseide</span><span class="status-txt mining">Auto-mining</span></div>
-          <div class="fuel-row"><div class="bar-track" style="flex:1"><div class="bar-fill amber" style="width:54%"></div></div><span class="fuel-n">54% fuel</span></div>
-          <div class="fuel-row" style="margin-top:6px"><div class="bar-track" style="flex:1"><div class="bar-fill red" style="width:14%"></div></div><span class="fuel-n" style="color:#f0796a">14% gas</span><span class="pill red">low</span></div>
-        </div>
-        <div class="struct-card">
-          <div class="top-row"><div class="avatar"></div><div><div class="nm">Vard Metenox</div><div class="type-sub">Metenox</div></div><span class="esi-age">3m</span></div>
-          <div class="mid-row"><span class="loc-txt">0.3 Vard</span><span class="status-txt mining">Auto-mining</span></div>
-          <div class="fuel-row"><div class="bar-track" style="flex:1"><div class="bar-fill" style="width:82%"></div></div><span class="fuel-n">82% fuel</span></div>
-          <div class="fuel-row" style="margin-top:6px"><div class="bar-track" style="flex:1"><div class="bar-fill" style="width:76%"></div></div><span class="fuel-n">76% gas</span></div>
-        </div>
-      </div>
+      <div class="panel-head"><h2>Metenox Drills</h2><span class="c" id="metenoxSub">fuel blocks &amp; magmatic gas</span></div>
+      <div class="struct-grid" id="metenoxFuelGrid"></div>
     </div>
-    <div class="panel" style="padding:18px;margin-top:16px">
-      <div class="panel-head" style="border:none;padding:0 0 14px"><h2>Fuel distribution across tracked structures</h2></div>
-      <div style="font-size:11.5px;color:#8a8f9a">Covers Metenox drills, moon refineries, and all other citadels &amp; engineering complexes — 11 structures tracked for fuel in total.</div>
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-head"><h2>Moon Refineries</h2><span class="c" id="moonSub">refineries · fuel blocks</span></div>
+      <div class="struct-grid" id="moonFuelGrid"></div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-head"><h2>Other Structures</h2><span class="c" id="allSub">citadels, engineering complexes &amp; other</span></div>
+      <div class="struct-grid" id="allFuelGrid"></div>
     </div>
   </div>
 
@@ -847,21 +844,32 @@ function structCardHtml(s){
 function emptyState(msg){ return `<div style="grid-column:1/-1;padding:30px;text-align:center;color:#6a707c;font-size:13px">${msg}</div>`; }
 
 function renderAll(){
-  const extracting=structures.filter(s=>['extracting','ready'].includes(statusOf(s)));
-  const idle=structures.filter(s=>statusOf(s)==='idle');
+  const active=structures.filter(s=>!['anchoring','decommissioning'].includes(statusOf(s)));
+  const extracting=active.filter(s=>['extracting','ready'].includes(statusOf(s)));
+  const idle=active.filter(s=>statusOf(s)==='idle');
   const decom=structures.filter(s=>['anchoring','decommissioning'].includes(statusOf(s)));
-  const fuelTracked=structures.filter(s=>TYPES[s.type].mining && !['anchoring','decommissioning'].includes(statusOf(s)));
+  const metenox=active.filter(s=>s.type==='metenox');
+  const moon=active.filter(s=>TYPES[s.type].mining && s.type!=='metenox');
+  const other=active.filter(s=>!TYPES[s.type].mining);
+  const fuelTrackedCount=metenox.length+moon.length+other.length;
 
-  const set=(id,html,list,msg)=>{ const el=document.getElementById(id); if(el) el.innerHTML=list.length?list.map(structCardHtml).join(''):emptyState(msg); };
-  set('extractGrid',null,extracting,structures.length?'No structures currently extracting.':'No structures synced yet — sign in and sync to see your corp\'s structures here.');
-  set('idleGrid',null,idle,'No idle structures.');
-  set('fuelGrid',null,fuelTracked,'No structures tracked for fuel.');
-  set('decomGrid',null,decom,'Nothing anchoring or decommissioning.');
+  const set=(id,list,msg)=>{ const el=document.getElementById(id); if(el) el.innerHTML=list.length?list.map(structCardHtml).join(''):emptyState(msg); };
+  set('extractGrid',extracting,structures.length?'No structures currently extracting.':'No structures synced yet — sign in and sync to see your corp\'s structures here.');
+  set('idleGrid',idle,'No idle structures.');
+  set('metenoxFuelGrid',metenox,'No Metenox drills tracked.');
+  set('moonFuelGrid',moon,'No moon refineries tracked.');
+  set('allFuelGrid',other,'No other structures tracked for fuel.');
+  set('decomGrid',decom,'Nothing anchoring or decommissioning.');
 
+  const mSub=document.getElementById('metenoxSub'); if(mSub) mSub.textContent=`${metenox.length} drill${metenox.length!==1?'s':''} · fuel blocks & magmatic gas`;
   const cE=document.getElementById('cExtract'); if(cE) cE.textContent=extracting.length;
   const cI=document.getElementById('cIdle'); if(cI) cI.textContent=idle.length;
-  const cF=document.getElementById('cFuel'); if(cF) cF.textContent=fuelTracked.length;
+  const cF=document.getElementById('cFuel'); if(cF) cF.textContent=fuelTrackedCount;
   const cD=document.getElementById('cDec'); if(cD) cD.textContent=decom.length;
+  const kE=document.getElementById('kExtract'); if(kE) kE.textContent=extracting.length;
+  const kI=document.getElementById('kIdle'); if(kI) kI.textContent=idle.length;
+  const kF=document.getElementById('kFuel'); if(kF) kF.textContent=fuelTrackedCount;
+  const kD=document.getElementById('kDec'); if(kD) kD.textContent=decom.length;
 
   const pillE=document.querySelector('[data-page="extractions"] .pill.green'); if(pillE) pillE.textContent=extracting.length+' mining';
   const pillD=document.querySelector('[data-page="decom"] .pill'); if(pillD) pillD.textContent=decom.length+' flagged';
