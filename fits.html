@@ -194,8 +194,13 @@
     --steel:#7a2838;--steel-edge:#3a1218;--steel-soft:#9a4858;
   }
 </style>
+<style>
+.pilot-strip{position:fixed;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:5px;z-index:9999;max-width:480px}
+.pilot-chip{width:22px;height:22px;border-radius:6px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);border:1.5px solid rgba(220,160,90,.35)}
+</style>
 </head>
 <body>
+<div class="pilot-strip"></div>
 <div class="toast" id="toast"></div>
 <div class="app">
   <div class="topbar">
@@ -294,6 +299,16 @@ const SHARED_KEY='eve_suite_chars';
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5'; // must match index.html's SUITE_CLIENT_ID
 let toastT; function toast(m){ const e=document.getElementById("toast"); e.textContent=m; e.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove("show"),5000); }
 let chars=JSON.parse(localStorage.getItem(SHARED_KEY)||"{}");   // {charId:{access,refresh,expires,charId,charName,corpId,corpName}}
+function renderPilotStrip(){
+  const ids=Object.keys(chars);
+  document.querySelectorAll('.pilot-strip').forEach(el=>{
+    if(!ids.length){ el.style.display='none'; el.innerHTML=''; return; }
+    el.style.display='flex';
+    el.innerHTML=ids.map((id,i)=>`<div class="pilot-chip${i===0?' on':''}" title="${chars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>`).join('');
+  });
+}
+renderPilotStrip();
+window.addEventListener('storage', e=>{ if(e.key===SHARED_KEY){ chars=JSON.parse(localStorage.getItem(SHARED_KEY)||"{}"); renderPilotStrip(); } });
 // section-visibility: which signed-in characters the launcher's carousel has enabled for THIS tool
 const SECTION_KEY='eve_suite_char_sections', MY_SECTION='fits';
 function sectionEnabled(charId){ try{ const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[charId]; return !p||p[MY_SECTION]!==false; }catch(e){ return true; } }

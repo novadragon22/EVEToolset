@@ -244,8 +244,13 @@
     --steel:#7a2838;--steel-edge:#3a1218;--steel-soft:#9a4858;
   }
 </style>
+<style>
+.pilot-strip{position:fixed;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:5px;z-index:9999;max-width:480px}
+.pilot-chip{width:22px;height:22px;border-radius:6px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);border:1.5px solid rgba(220,160,90,.35)}
+</style>
 </head>
 <body>
+<div class="pilot-strip"></div>
 <div class="app" id="menuApp">
   <header>
     <div class="theme-picker" id="themePicker">
@@ -314,6 +319,8 @@ const SCOPE_INFO=[
   {scope:'esi-skills.read_skills.v1', tool:'PI Planner · Fit Manager · Industry Console', desc:'Read trained skills'},
   {scope:'esi-skills.read_skillqueue.v1', tool:'Fit Manager', desc:'Read what\'s currently training'},
   {scope:'esi-characters.read_standings.v1', tool:'PI Planner', desc:'Read your standings'},
+  {scope:'esi-alliances.read_contacts.v1', tool:'PI Planner', desc:'Read your alliance standings toward other alliances/corps'},
+  {scope:'esi-corporations.read_contacts.v1', tool:'PI Planner', desc:'Read your corp standings toward other alliances/corps'},
   {scope:'esi-fittings.read_fittings.v1', tool:'Fit Manager', desc:'Read your in-game fittings'},
   {scope:'esi-fittings.write_fittings.v1', tool:'Fit Manager', desc:'Save fittings to your ship'},
   {scope:'esi-corporations.read_structures.v1', tool:'Structure Browser', desc:'Read corp Upwell structures'},
@@ -344,6 +351,16 @@ async function esiPub(path){ const r=await fetch('https://esi.evetech.net/latest
 function loadSuiteChars(){ try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};} }
 function saveSuiteChars(chars){ localStorage.setItem(SHARED_KEY, JSON.stringify(chars)); }
 let suiteChars=loadSuiteChars();
+function renderPilotStrip(){
+  const ids=Object.keys(suiteChars);
+  document.querySelectorAll('.pilot-strip').forEach(el=>{
+    if(!ids.length){ el.style.display='none'; el.innerHTML=''; return; }
+    el.style.display='flex';
+    el.innerHTML=ids.map((id,i)=>`<div class="pilot-chip${i===0?' on':''}" title="${suiteChars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>`).join('');
+  });
+}
+renderPilotStrip();
+window.addEventListener('storage', e=>{ if(e.key===SHARED_KEY){ suiteChars=loadSuiteChars(); renderPilotStrip(); } });
 
 function renderScopeList(){ document.getElementById('scopeList').innerHTML=SCOPE_INFO.map(s=>
   `<li><b>${s.scope}</b><span class="sd">${s.desc} — <i>${s.tool}</i></span></li>`).join(''); }
@@ -371,10 +388,10 @@ async function handleSuiteRedirect(){
     const entry={access:t.access_token,refresh:t.refresh_token,expires:Date.now()+(t.expires_in||1200)*1000,charId,charName:pl.name||('Char '+charId),corpId:null,corpName:''};
     try{ const ch=await esiPub('/characters/'+charId+'/'); entry.corpId=ch.corporation_id;
       const co=await esiPub('/corporations/'+entry.corpId+'/'); entry.corpName=co.name||''; }catch(e){}
-    suiteChars[charId]=entry; saveSuiteChars(suiteChars); renderRoster();
+    suiteChars[charId]=entry; saveSuiteChars(suiteChars); renderRoster(); renderPilotStrip();
   }catch(e){ alert('Sign-in failed: '+e.message); }
 }
-function removeSuiteChar(charId){ delete suiteChars[charId]; saveSuiteChars(suiteChars); renderRoster(); }
+function removeSuiteChar(charId){ delete suiteChars[charId]; saveSuiteChars(suiteChars); renderRoster(); renderPilotStrip(); }
 window.removeSuiteChar=removeSuiteChar;
 function renderRoster(){
   const r=document.getElementById('roster'); const ids=Object.keys(suiteChars);

@@ -123,8 +123,13 @@
   .list-row:last-child{border-bottom:none}
   .list-row .dim{color:#6a707c}
 </style>
+<style>
+.pilot-strip{position:fixed;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:5px;z-index:9999;max-width:480px}
+.pilot-chip{width:22px;height:22px;border-radius:6px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);border:1.5px solid rgba(220,160,90,.35)}
+</style>
 </head>
 <body>
+<div class="pilot-strip"></div>
 <div class="page">
   <div class="topbar">
     <div><h1>Structures</h1><div class="sub" id="topSub">Loading…</div></div>
@@ -549,6 +554,15 @@ if(document.getElementById('metDrills')){ metLoadHub(); metAddDrill(); }
 const PREF_KEY='eve_structures_preferred_char';
 let preferredChar=(function(){ try{ return JSON.parse(localStorage.getItem(PREF_KEY)||'{}'); }catch(e){ return {}; } })();
 let structures=[], chars={};
+function renderPilotStrip(){
+  const ids=Object.keys(chars);
+  document.querySelectorAll('.pilot-strip').forEach(el=>{
+    if(!ids.length){ el.style.display='none'; el.innerHTML=''; return; }
+    el.style.display='flex';
+    el.innerHTML=ids.map((id,i)=>`<div class="pilot-chip${i===0?' on':''}" title="${chars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>`).join('');
+  });
+}
+window.addEventListener('storage', e=>{ if(e.key===SHARED_KEY){ sGet(SHARED_KEY).then(c=>{ chars=c||{}; renderPilotStrip(); }); } });
 let corpAccess={};
 let orphanCorps=[];
 const now=()=>Date.now();
@@ -658,7 +672,7 @@ function currentGas(s){ if(s.gasUnknown) return null; const base=+s.gas||0; if(!
   const el=(now()-new Date(s.gasAsOf).getTime())/3600000; return Math.max(0, base-(+s.gasRate||0)*el); }
 function gasHoursLeft(s){ const g=currentGas(s); if(g==null) return Infinity; return hoursLeft(g,s.gasRate); }
 function statusOf(s){ if(s.state==='anchoring'||s.state==='anchor_vulnerable') return 'anchoring'; if(s.unanchorsAt) return 'decommissioning'; const t=TYPES[s.type]; if(!t.mining) return 'support';
-  if(s.type==='metenox'){ const g=currentGas(s); const run=(g==null)?true:g>0; return (run&&fuelOk(s))?'extracting':'idle'; }
+  if(s.type==='metenox'){ if(s.gasUnknown) return 'gas-unknown'; const g=currentGas(s); const run=g>0; return (run&&fuelOk(s))?'extracting':'idle'; }
   if(s.extractionEnd) return new Date(s.extractionEnd).getTime()>now()?'extracting':'ready'; return 'idle'; }
 function runwayText(h){ if(h===Infinity) return 'no draw'; if(h<=0) return 'DEPLETED';
   const d=Math.floor(h/24),hr=Math.floor(h%24),m=Math.floor((h-Math.floor(h))*60); // floor only — never overstate safety
@@ -738,10 +752,14 @@ async function importFromEsi(token,silent,charIdForDot){
   let extractions=[]; try{ extractions=await esiGet('/corporation/'+corpId+'/mining/extractions/',token); }catch(e){}
   const exMap={}; extractions.forEach(x=>{ exMap[x.structure_id]=x.chunk_arrival_time; });
   // corp assets → fuel blocks + magmatic gas held in each structure's fuel bay (for Metenox section)
-  const fuelMap={},gasMap={}; let assetsScopeMissing=false;
+  // also captures the 'Deliveries' flag as an experimental read of the cargo-deposit staging area —
+  // unconfirmed against real data, and likely near-zero in practice since it auto-transfers into the fuel bay.
+  const fuelMap={},gasMap={},depositMap={}; let assetsScopeMissing=false;
   try{ const assets=await esiGetPaged('/corporations/'+corpId+'/assets/',token,30);
-    assets.forEach(a=>{ if(a.location_flag!=='StructureFuel') return; const sid=a.location_id,q=a.quantity||0;
-      if(FUEL_BLOCK_TYPES.has(a.type_id)) fuelMap[sid]=(fuelMap[sid]||0)+q; else if(a.type_id===MAGMATIC_GAS_TYPE) gasMap[sid]=(gasMap[sid]||0)+q; });
+    assets.forEach(a=>{ const sid=a.location_id,q=a.quantity||0;
+      if(a.location_flag==='StructureFuel'){ if(FUEL_BLOCK_TYPES.has(a.type_id)) fuelMap[sid]=(fuelMap[sid]||0)+q; else if(a.type_id===MAGMATIC_GAS_TYPE) gasMap[sid]=(gasMap[sid]||0)+q; }
+      else if(a.location_flag==='Deliveries' && (FUEL_BLOCK_TYPES.has(a.type_id)||a.type_id===MAGMATIC_GAS_TYPE)){ depositMap[sid]=depositMap[sid]||{}; depositMap[sid][a.type_id]=(depositMap[sid][a.type_id]||0)+q; }
+    });
   }catch(e){ if(/\b403\b/.test(e.message)) assetsScopeMissing=true; }
   const sysCache={},constCache={}; let added=0,updated=0; const seen=new Set();
   for(const st of list){
@@ -775,6 +793,11 @@ async function importFromEsi(token,silent,charIdForDot){
       // magmatic gas reagent from assets (esi-assets.read_corporation_assets.v1)
       if(gasMap[st.structure_id]!=null){ o.gas=gasMap[st.structure_id]; o.gasAsOf=new Date().toISOString(); o.gasUnknown=false; o.gasFromEsi=true; }
       else { o.gasFromEsi=false; if(o.gas==null) o.gas=0; if(o.gasUnknown==null) o.gasUnknown=true; }
+      // experimental: cargo-deposit staging area (unconfirmed flag, likely near-zero — see code comment above)
+      const dep=depositMap[st.structure_id];
+      if(dep){ o.depositFuel=0; o.depositGas=0;
+        Object.keys(dep).forEach(tid=>{ if(FUEL_BLOCK_TYPES.has(+tid)) o.depositFuel+=dep[tid]; else if(+tid===MAGMATIC_GAS_TYPE) o.depositGas+=dep[tid]; }); }
+      else { o.depositFuel=0; o.depositGas=0; }
     }
     if(ex) updated++; else { structures.push(o); added++; }
   }
@@ -788,7 +811,7 @@ async function importFromEsi(token,silent,charIdForDot){
 let _lastAlertKey='';
 function alertScan(opts){ opts=opts||{};
   const active=structures.filter(s=>{const st=statusOf(s);return st!=='decommissioning'&&st!=='anchoring';});
-  const idle=active.filter(s=>TYPES[s.type].mining && (s.type==='metenox'?statusOf(s)==='idle':(statusOf(s)!=='extracting' && !(s.extractionEnd && new Date(s.extractionEnd).getTime()>now())))); // Tatara/Athanor deemed idle unless an extraction is currently in progress; Metenox by its own gas/fuel status
+  const idle=active.filter(s=>TYPES[s.type].mining && (s.type==='metenox'?['idle','gas-unknown'].includes(statusOf(s)):(statusOf(s)!=='extracting' && !(s.extractionEnd && new Date(s.extractionEnd).getTime()>now())))); // Tatara/Athanor deemed idle unless an extraction is currently in progress; Metenox by its own gas/fuel status, or flagged if gas can't be confirmed
   const fuelH=active.map(s=>({s,h:fuelHoursLeft(s)})).filter(x=>isFinite(x.h) && x.h<=HR_WEEK);
   const depleted=fuelH.filter(x=>x.h<=0);
   const critical=fuelH.filter(x=>x.h>0 && x.h<=48);
@@ -816,10 +839,11 @@ function structCardHtml(s){
   const t=TYPES[s.type]||TYPES.other;
   const st=statusOf(s);
   const age=syncAge(s);
-  const pulse=(st==='extracting'||st==='decommissioning'||st==='anchoring');
+  const pulse=(st==='extracting'||st==='decommissioning'||st==='anchoring'||st==='gas-unknown');
   let statusTxt='', statusCls='mining', msLeft=null;
   if(st==='extracting'){ statusCls='mining'; if(s.extractionEnd){ msLeft=new Date(s.extractionEnd)-now(); statusTxt='Chunk '+fmtHM(msLeft/3600000); } else statusTxt='Mining'; }
   else if(st==='ready'){ statusCls='mining'; statusTxt='Chunk ready'; }
+  else if(st==='gas-unknown'){ statusCls='crit'; statusTxt='⚠ Gas unknown'; }
   else if(st==='idle'){ statusCls='idle'; statusTxt='Idle'; }
   else if(st==='anchoring'){ statusCls='crit'; statusTxt='Anchoring'; }
   else if(st==='decommissioning'){ statusCls='crit'; if(s.unanchorsAt){ msLeft=new Date(s.unanchorsAt)-now(); statusTxt='Unanchors '+fmtHM(msLeft/3600000); } else statusTxt='Unanchoring'; }
@@ -831,8 +855,15 @@ function structCardHtml(s){
   const renderImg=typeId?`<img class="struct-render" alt="" src="https://images.evetech.net/types/${typeId}/render?size=64" onerror="this.style.visibility='hidden'">`:'';
   let gasRow='';
   if(s.type==='metenox'){
-    const gh=gasHoursLeft(s), gPct=gh===Infinity?100:Math.max(0,Math.min(100,(gh/HR_MONTH)*100)), gCls=fuelBarClass(gPct);
-    gasRow=`<div class="fuel-row" style="margin-top:4px"><div class="bar-track" style="flex:1"><div class="bar-fill ${gCls}" style="width:${gPct}%"></div></div><span class="fuel-n">${Math.round(gPct)}% gas</span></div>`;
+    if(s.gasUnknown){
+      gasRow=`<div class="fuel-row" style="margin-top:4px"><div class="bar-track" style="flex:1;background:repeating-linear-gradient(45deg,rgba(230,120,90,.25),rgba(230,120,90,.25) 4px,transparent 4px,transparent 8px)"></div><span class="fuel-n" style="color:var(--red)">gas unknown</span></div>`;
+    } else {
+      const gh=gasHoursLeft(s), gPct=gh===Infinity?100:Math.max(0,Math.min(100,(gh/HR_MONTH)*100)), gCls=fuelBarClass(gPct);
+      gasRow=`<div class="fuel-row" style="margin-top:4px"><div class="bar-track" style="flex:1"><div class="bar-fill ${gCls}" style="width:${gPct}%"></div></div><span class="fuel-n">${Math.round(gPct)}% gas</span></div>`;
+    }
+    if((s.depositFuel||s.depositGas) && (s.depositFuel>0||s.depositGas>0)){
+      gasRow+=`<div class="fuel-row" style="margin-top:2px;opacity:.7"><span class="fuel-n" style="font-size:9px">⚗ cargo deposit (experimental): ${s.depositFuel||0} fuel, ${s.depositGas||0} gas — awaiting auto-transfer</span></div>`;
+    }
   }
   return `<div class="struct-card${pctCls==='crit'?' flagged':''}">
     <div class="top-row"><div class="avatar">${renderImg}</div><div><div class="nm">${esc(s.name)}</div><div class="type-sub">${esc(t.label)}</div></div><span class="esi-age" style="color:${age.color}">${esc(age.label.replace('synced ','').replace(' ago',''))}</span></div>
@@ -847,7 +878,7 @@ function emptyState(msg){ return `<div style="grid-column:1/-1;padding:30px;text
 function renderAll(){
   const active=structures.filter(s=>!['anchoring','decommissioning'].includes(statusOf(s)));
   const extracting=active.filter(s=>['extracting','ready'].includes(statusOf(s)));
-  const idle=active.filter(s=>statusOf(s)==='idle');
+  const idle=active.filter(s=>['idle','gas-unknown'].includes(statusOf(s)));
   const decom=structures.filter(s=>['anchoring','decommissioning'].includes(statusOf(s)));
   const metenox=active.filter(s=>s.type==='metenox');
   const moon=active.filter(s=>TYPES[s.type].mining && s.type!=='metenox');
@@ -892,6 +923,7 @@ document.getElementById('syncBtn').onclick=async()=>{
 (async function init(){
   structures=(await sGet(STORE_KEY))||[];
   chars=(await sGet(SHARED_KEY))||{};
+  renderPilotStrip();
   extractionPlans=(await sGet(PLAN_KEY))||[];
   const exStr=(await sGet(EXCLUDE_KEY))||''; excludeKeywords=parseExclude(exStr);
   const exEl=document.getElementById('optExclude'); if(exEl) exEl.value=exStr;

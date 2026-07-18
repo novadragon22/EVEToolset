@@ -292,8 +292,13 @@
     --steel:#7a2838;--steel-edge:#3a1218;--steel-soft:#9a4858;
   }
 </style>
+<style>
+.pilot-strip{position:fixed;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:5px;z-index:9999;max-width:480px}
+.pilot-chip{width:22px;height:22px;border-radius:6px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);border:1.5px solid rgba(220,160,90,.35)}
+</style>
 </head>
 <body>
+<div class="pilot-strip"></div>
 <div class="toast" id="toast"></div>
 <div class="app">
   <div class="topbar">
@@ -1254,7 +1259,17 @@ document.getElementById('zpilot').onclick=()=>{ if(!anyChar()){openLogin();retur
   const pi=pilotByChar[ids[0]]; view.x=wx(pi);view.y=wy(pi);view.zoom=Math.max(view.zoom,3);draw(); };
 
 // init
+function renderPilotStrip(){
+  const ids=Object.keys(chars);
+  document.querySelectorAll('.pilot-strip').forEach(el=>{
+    if(!ids.length){ el.style.display='none'; el.innerHTML=''; return; }
+    el.style.display='flex';
+    el.innerHTML=ids.map((id,i)=>`<div class="pilot-chip${i===0?' on':''}" title="${chars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>`).join('');
+  });
+}
 loadChars();
+renderPilotStrip();
+window.addEventListener('storage', e=>{ if(e.key===CHARS_KEY){ loadChars(); renderPilotStrip(); } });
 renderWps(); renderRoute(); resize(); fit();
 document.getElementById('calPill').style.cursor='default';
 document.getElementById('zgate').classList.add('on');
