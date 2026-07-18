@@ -785,6 +785,7 @@ async function importFromEsi(token,silent,charIdForDot){
   const tail=assetsScopeMissing?'Re-authorize to grant asset access for fuel-bay contents.':'Fuel bays read from corp assets.';
   toast((al.summary?'⚠ '+al.summary+'  —  ':'')+'Synced '+added+' new, updated '+updated+(removed?', removed '+removed:'')+'. '+tail);
 }
+let _lastAlertKey='';
 function alertScan(opts){ opts=opts||{};
   const active=structures.filter(s=>{const st=statusOf(s);return st!=='decommissioning'&&st!=='anchoring';});
   const idle=active.filter(s=>TYPES[s.type].mining && (s.type==='metenox'?statusOf(s)==='idle':(statusOf(s)!=='extracting' && !(s.extractionEnd && new Date(s.extractionEnd).getTime()>now())))); // Tatara/Athanor deemed idle unless an extraction is currently in progress; Metenox by its own gas/fuel status
