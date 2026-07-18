@@ -155,7 +155,8 @@
     <div style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#fff,#e8a850);box-shadow:0 0 22px #e8a850"></div>
     <div class="star-card float" id="heroStarCard">Search for a product above<br><span style="color:#8a7458">real candidate systems will rank here</span></div>
   </div>
-  <div id="universeMap"></div>
+  <canvas id="universeCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:auto"></canvas>
+  <div id="universeTooltip" class="float" style="display:none;position:absolute;padding:6px 10px;font-size:9px;color:#f0dcc0;pointer-events:none;z-index:30;white-space:nowrap"></div>
   <div class="float" id="mapScale" style="position:absolute;bottom:60px;left:20px;padding:6px 10px;font-size:8px;color:#8a7458;display:none">
     <div style="display:flex;align-items:center;gap:6px"><div style="width:40px;height:1px;background:#8a7458"></div><span id="mapScaleText">— ly</span></div>
   </div>
@@ -538,48 +539,68 @@ async function renderMyColonies(){
   }
 
   const LY_PER_METER=1/9.4607e15;
-  function renderAmbientStars(){
-    const wrap=document.getElementById('universeMap'), scaleBox=document.getElementById('mapScale');
-    if(!wrap) return;
-    const N=30, stride=Math.max(1,Math.floor(sysIds.length/N));
-    const sample=[]; for(let i=0;i<sysIds.length && sample.length<N;i+=stride) sample.push(sysIds[i]);
-    const xs=sample.map(id=>SYS[id][3]), ys=sample.map(id=>SYS[id][4]);
-    const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
-    const spanX=(maxX-minX)||1, spanY=(maxY-minY)||1;
-    const PAD_L=12, PAD_R=88, PAD_T=15, PAD_B=25;
-    const usableW=100-PAD_L-PAD_R, usableH=100-PAD_T-PAD_B;
-    wrap.innerHTML=sample.map(id=>{
-      const s=SYS[id]; const px=PAD_L+((s[3]-minX)/spanX)*usableW, py=PAD_T+((s[4]-minY)/spanY)*usableH;
-      return `<div class="star-node" title="${s[0]}" style="top:${py}%;left:${px}%;width:6px;height:6px">
-        <div style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#a88860,#6a5a48);opacity:.6"></div></div>`;
-    }).join('');
-    if(scaleBox) scaleBox.style.display='none';
+  let _univBounds=null;
+  function universeBounds(){
+    if(_univBounds) return _univBounds;
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    for(const id of sysIds){ const s=SYS[id]; if(s[3]<minX)minX=s[3]; if(s[3]>maxX)maxX=s[3]; if(s[4]<minY)minY=s[4]; if(s[4]>maxY)maxY=s[4]; }
+    _univBounds={minX,maxX,minY,maxY,spanX:(maxX-minX)||1,spanY:(maxY-minY)||1};
+    return _univBounds;
   }
+  let _lastDrawnPoints=[]; // for hover lookup: [{x,y,id,r?}]
   function renderUniverseMap(){
-    const wrap=document.getElementById('universeMap'), scaleBox=document.getElementById('mapScale'), scaleText=document.getElementById('mapScaleText');
-    if(!wrap) return;
-    if(!results.length){ renderAmbientStars(); return; }
-    const top=results.slice(0,25);
-    const xs=top.map(r=>SYS[r.id][3]), ys=top.map(r=>SYS[r.id][4]);
-    const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
-    const spanX=(maxX-minX)||1, spanY=(maxY-minY)||1;
-    const PAD_L=12, PAD_R=88, PAD_T=15, PAD_B=25; // keep clear of the hero planet/candidate-list panel
-    const usableW=100-PAD_L-PAD_R, usableH=100-PAD_T-PAD_B;
-    wrap.innerHTML=top.map((r,i)=>{
-      const s=SYS[r.id];
-      const px=PAD_L+((s[3]-minX)/spanX)*usableW, py=PAD_T+((s[4]-minY)/spanY)*usableH;
-      const full=r.covered===r.total;
-      const size=full?13:8;
-      const color=full?'#fff':'#c89860';
-      const glow=full?'#e8a850':'transparent';
-      return `<div class="star-node" title="${s[0]} · ${roundSec(r.sec).toFixed(1)} sec · ${r.covered}/${r.total} covered" style="top:${py}%;left:${px}%;width:${size}px;height:${size}px">
-        <div style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,${color},${full?'#e8a850':'#8a7458'});${full?`box-shadow:0 0 14px ${glow}`:''}"></div></div>`;
-    }).join('');
-    // real scale legend: convert the map's full real-world width span to light-years
+    const canvas=document.getElementById('universeCanvas'), scaleBox=document.getElementById('mapScale'), scaleText=document.getElementById('mapScaleText');
+    if(!canvas) return;
+    const rect=canvas.parentElement.getBoundingClientRect();
+    const dpr=window.devicePixelRatio||1;
+    canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
+    const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,rect.width,rect.height);
+    const b=universeBounds();
+    const PAD_L=0.12, PAD_R=0.30, PAD_T=0.15, PAD_B=0.25; // fractions of width/height; keep clear of hero planet + candidate-list panel
+    const usableW=rect.width*(1-PAD_L-PAD_R), usableH=rect.height*(1-PAD_T-PAD_B);
+    const ox=rect.width*PAD_L, oy=rect.height*PAD_T;
+    function project(s){ return [ox+((s[3]-b.minX)/b.spanX)*usableW, oy+((s[4]-b.minY)/b.spanY)*usableH]; }
+
+    // draw the real, entire universe as a faint backdrop
+    ctx.fillStyle='rgba(168,136,96,.35)';
+    _lastDrawnPoints=[];
+    for(const id of sysIds){ const s=SYS[id]; const [px,py]=project(s);
+      ctx.beginPath(); ctx.arc(px,py,0.6,0,7); ctx.fill();
+      _lastDrawnPoints.push({x:px,y:py,id,covered:null,total:null,sec:s[1],name:s[0]});
+    }
+
+    // overlay real candidate results, if a search has been run, brighter and larger
+    if(results.length){
+      const top=results.slice(0,60);
+      top.forEach(r=>{ const s=SYS[r.id]; const [px,py]=project(s); const full=r.covered===r.total;
+        ctx.beginPath(); ctx.arc(px,py, full?4.5:3, 0, 7);
+        ctx.fillStyle= full? '#fff' : '#e8a850';
+        if(full){ ctx.shadowColor='#e8a850'; ctx.shadowBlur=10; } else { ctx.shadowBlur=0; }
+        ctx.fill(); ctx.shadowBlur=0;
+        _lastDrawnPoints.push({x:px,y:py,id:r.id,covered:r.covered,total:r.total,sec:s[1],name:s[0],isResult:true});
+      });
+    }
+
     if(scaleBox&&scaleText){
-      const lySpan=Math.sqrt(spanX*spanX+spanY*spanY)*LY_PER_METER;
-      scaleText.textContent=(lySpan<1?lySpan.toFixed(2):Math.round(lySpan))+' ly across this view';
+      const lySpan=Math.sqrt(b.spanX*b.spanX+b.spanY*b.spanY)*LY_PER_METER;
+      scaleText.textContent=Math.round(lySpan).toLocaleString()+' ly across all of New Eden ('+sysIds.length.toLocaleString()+' systems)';
       scaleBox.style.display='block';
+    }
+  }
+  { const c=document.getElementById('universeCanvas');
+    if(c){ c.addEventListener('mousemove', e=>{
+        const rect=c.getBoundingClientRect(); const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+        let best=null, bestD=64; // px^2 threshold
+        for(const p of _lastDrawnPoints){ const d=(p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my); if(d<bestD){ bestD=d; best=p; } }
+        const tip=document.getElementById('universeTooltip');
+        if(best){ tip.style.display='block'; tip.style.left=(best.x+16)+'px'; tip.style.top=(best.y-8)+'px';
+          tip.innerHTML=best.isResult? `${best.name}<br><span style="color:#8a7458">${roundSec(best.sec).toFixed(1)} sec · ${best.covered}/${best.total} covered</span>`
+            : `${best.name}<br><span style="color:#8a7458">${roundSec(best.sec).toFixed(1)} sec</span>`;
+        } else tip.style.display='none';
+      });
+      c.addEventListener('mouseleave', ()=>{ document.getElementById('universeTooltip').style.display='none'; });
+      window.addEventListener('resize', ()=>renderUniverseMap());
     }
   }
 
