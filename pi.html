@@ -616,6 +616,7 @@ async function renderMyColonies(){
   }
 
   let _lastDrawnPoints=[]; // for hover lookup: [{x,y,id,r?}]
+  let mapZoom=1, mapPanX=0, mapPanY=0;
   function renderUniverseMap(){
     const canvas=document.getElementById('universeCanvas'), scaleBox=document.getElementById('mapScale'), scaleText=document.getElementById('mapScaleText');
     if(!canvas) return;
@@ -628,7 +629,10 @@ async function renderMyColonies(){
     const PAD_L=0.12, PAD_R=0.30, PAD_T=0.15, PAD_B=0.25;
     const usableW=rect.width*(1-PAD_L-PAD_R), usableH=rect.height*(1-PAD_T-PAD_B);
     const ox=rect.width*PAD_L, oy=rect.height*PAD_T;
-    function project(s){ return [ox+((s[3]-b.minX)/b.spanX)*usableW, oy+((s[4]-b.minY)/b.spanY)*usableH]; }
+    function project(s){
+      const px=ox+((s[3]-b.minX)/b.spanX)*usableW, py=oy+(1-(s[4]-b.minY)/b.spanY)*usableH;
+      return [(px-rect.width/2)*mapZoom+rect.width/2+mapPanX, (py-rect.height/2)*mapZoom+rect.height/2+mapPanY];
+    }
 
     // real stargate connections (SYS[id][6]) drawn as faint lines between actually-adjacent systems
     ctx.strokeStyle='rgba(220,160,90,.10)'; ctx.lineWidth=0.5; ctx.beginPath();
@@ -679,6 +683,26 @@ async function renderMyColonies(){
       });
       c.addEventListener('mouseleave', ()=>{ document.getElementById('universeTooltip').style.display='none'; });
       window.addEventListener('resize', ()=>renderUniverseMap());
+
+      // real scroll-to-zoom, clamped to a sane range
+      c.addEventListener('wheel', e=>{
+        e.preventDefault();
+        const factor = e.deltaY<0 ? 1.15 : 1/1.15;
+        mapZoom = Math.max(0.5, Math.min(12, mapZoom*factor));
+        renderUniverseMap();
+      }, {passive:false});
+
+      // real drag-to-pan
+      let dragging=false, lastX=0, lastY=0;
+      c.addEventListener('mousedown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; c.style.cursor='grabbing'; });
+      window.addEventListener('mousemove', e=>{
+        if(!dragging) return;
+        mapPanX += e.clientX-lastX; mapPanY += e.clientY-lastY;
+        lastX=e.clientX; lastY=e.clientY;
+        renderUniverseMap();
+      });
+      window.addEventListener('mouseup', ()=>{ dragging=false; c.style.cursor='grab'; });
+      c.style.cursor='grab';
     }
   }
 
