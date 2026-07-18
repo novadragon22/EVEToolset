@@ -150,7 +150,7 @@
 
   <div class="star-node" style="top:35%;left:60%;width:24px;height:24px">
     <div style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#fff,#e8a850);box-shadow:0 0 22px #e8a850"></div>
-    <div class="star-card float" id="heroStarCard">Amamake · Score 94<br><span style="color:#8a7458">0.4 sec · 6/6 types · closest ▸</span></div>
+    <div class="star-card float" id="heroStarCard">Search for a product above<br><span style="color:#8a7458">real candidate systems will rank here</span></div>
   </div>
   <div class="star-node" style="top:55%;left:75%;width:14px;height:14px;background:radial-gradient(circle,#eee,#a88860)"></div>
   <div class="star-node" style="top:25%;left:78%;width:11px;height:11px;background:radial-gradient(circle,#eee,#8a7458)"></div>
@@ -158,9 +158,9 @@
   <div class="planet-core"></div>
   <div class="orbit-ring">
     <div class="orbit-icon" id="orbitCoverage" style="top:0;left:50%;transform:translate(-50%,0)">🌍<br>—</div>
-    <div class="orbit-icon" style="bottom:0;left:50%;transform:translate(-50%,0)">⛏<br>18h</div>
-    <div class="orbit-icon" style="top:50%;left:0;transform:translate(0,-50%)">🌍<br>6/6</div>
-    <div class="orbit-icon" style="top:50%;right:0;transform:translate(0,-50%)">🌐<br>Bleak L.</div>
+    <div class="orbit-icon" id="orbitTier" style="bottom:0;left:50%;transform:translate(-50%,0)">🏭<br>—</div>
+    <div class="orbit-icon" id="orbitJumps" style="top:50%;left:0;transform:translate(0,-50%)">🛰<br>—</div>
+    <div class="orbit-icon" id="orbitRegion" style="top:50%;right:0;transform:translate(0,-50%)">🌐<br>—</div>
   </div>
 
   <div class="float" style="position:absolute;top:130px;right:20px;width:230px;padding:10px 14px;z-index:5">
@@ -226,16 +226,18 @@
   <div class="pilot-strip"><div class="pilot-chip on"></div><div class="pilot-chip"></div></div>
 
   <div class="rank-bar">
-    <div class="rank-sel float">Tier: P2 ▾</div>
-    <div class="rank-sel float">Hub: Jita ▾</div>
-    <div class="rank-sel float">Basis: Buy P1 inputs ▾</div>
+    <select id="mkTierSel" class="rank-sel float">
+      <option value="1">Tier: P1</option><option value="2" selected>Tier: P2</option><option value="3">Tier: P3</option><option value="4">Tier: P4</option>
+    </select>
+    <select id="mkHubSel" class="rank-sel float">
+      <option value="60003760" selected>Hub: Jita</option><option value="60008494">Hub: Amarr</option><option value="60011866">Hub: Dodixie</option><option value="60004588">Hub: Rens</option><option value="60005686">Hub: Hek</option>
+    </select>
+    <select id="mkBasisSel" class="rank-sel float">
+      <option value="P1" selected>Basis: Buy P1 inputs</option><option value="P0">Basis: Buy raw P0</option>
+    </select>
+    <span id="mkMsg" style="color:#6a5a48;font-size:9px;align-self:center">(7.5% sales tax assumed — real-time prices via Fuzzwork)</span>
   </div>
-  <div class="rank-list">
-    <div class="rank-item float"><div class="rank-glow" style="background:#7ec87e;box-shadow:0 0 10px #7ec87e"></div><span class="nm">Oxidizing Compound</span><span class="profit" style="color:#7ec87e">+2,140/unit</span><span class="margin">38% margin</span></div>
-    <div class="rank-item float"><div class="rank-glow" style="background:#e8a850"></div><span class="nm">Reactive Metals</span><span class="profit" style="color:#e8a850">+1,380/unit</span><span class="margin">24% margin</span></div>
-    <div class="rank-item float"><div class="rank-glow" style="background:#c88850"></div><span class="nm">Silicate Glass</span><span class="profit" style="color:#c88850">+620/unit</span><span class="margin">11% margin</span></div>
-    <div class="rank-item float"><div class="rank-glow" style="background:#8a6858"></div><span class="nm">Fertilizer</span><span class="profit" style="color:#a08868">+90/unit</span><span class="margin">2% margin</span></div>
-  </div>
+  <div class="rank-list" id="mkRankList"></div>
 </div>
 
 <!-- ===== VIEW 4: COLONY LOGISTICS ===== -->
@@ -259,27 +261,15 @@
   <div class="import-btn float">⭱ Import route</div>
   <div class="pilot-strip"><div class="pilot-chip on"></div><div class="pilot-chip"></div></div>
 
-  <svg style="position:absolute;inset:0;pointer-events:none">
-    <line x1="26%" y1="45%" x2="50%" y2="55%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>
-    <line x1="50%" y1="55%" x2="74%" y2="45%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>
-  </svg>
-  <div class="logi-node" style="top:38%;left:22%"><div class="designation">I</div>Amamake</div>
-  <div class="logi-role" style="top:32%;left:19%">Nova D. · Extractor</div>
-  <div class="logi-role" style="top:59%;left:19%;color:#7ec87e">Storage 34% · 92% eff.</div>
-  <div class="logi-node" style="top:48%;left:46%"><div class="designation">II</div>Vard (feeder)</div>
-  <div class="logi-role" style="top:42%;left:43%">Nova Alt · Full</div>
-  <div class="logi-role" style="top:69%;left:43%;color:#e8a850">Storage 78% · 87% eff.</div>
-  <div class="logi-node" style="top:38%;left:70%"><div class="designation">III</div>Huola</div>
-  <div class="logi-role" style="top:32%;left:67%">Nova D. · Factory</div>
-  <div class="logi-role" style="top:59%;left:67%;color:#7ec87e">Storage 12% · 95% eff.</div>
+  <svg id="logiSvg" style="position:absolute;inset:0;pointer-events:none"></svg>
+  <div id="logiNodes"></div>
 
   <div class="buffer-panel float">
     <div class="lbl">Buffer &amp; haul cadence</div>
-    <div class="buf-row"><span>I → II</span><span><b>6h</b> haul cadence · ~4 cycles buffered at II before overflow</span></div>
-    <div class="buf-row"><span>II → III</span><span><b>Silicate Glass</b> → <b>Oxidizing Compound</b>, exported at III</span></div>
+    <div id="logiBuffer"></div>
   </div>
-  <div class="float" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 18px;font-size:9px;color:#8a7458">
-    Roman numerals mark production order. Gold flow lines show material transfer direction between colonies.
+  <div class="float" id="logiNote" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 18px;font-size:9px;color:#8a7458">
+    Pick a target product on Candidates to see its real production chain here.
   </div>
 </div>
 
@@ -499,10 +489,18 @@ async function renderMyColonies(){
 
   function updateHeroFromResults(){
     const top=results[0]; const card=document.getElementById('heroStarCard'); const cov=document.getElementById('orbitCoverage');
-    if(!top){ return; }
+    const tierEl=document.getElementById('orbitTier'), jumpEl=document.getElementById('orbitJumps'), regEl=document.getElementById('orbitRegion');
+    if(!top){
+      if(card) card.innerHTML='Search for a product above<br><span style="color:#8a7458">real candidate systems will rank here</span>';
+      if(cov) cov.innerHTML='🌍<br>—'; if(tierEl) tierEl.innerHTML='🏭<br>—'; if(jumpEl) jumpEl.innerHTML='🛰<br>—'; if(regEl) regEl.innerHTML='🌐<br>—';
+      return;
+    }
     const s=SYS[top.id]; const region=REG[s[2]]||'Unknown';
     if(card) card.innerHTML=`${s[0]} · ${top.covered}/${top.total} covered<br><span style="color:#8a7458">${roundSec(top.sec).toFixed(1)} sec · ${region}${top.jumps!=null?' · '+top.jumps+'j':''}</span>`;
     if(cov) cov.innerHTML=`🌍<br>${top.covered}/${top.total}`;
+    if(tierEl) tierEl.innerHTML=`🏭<br>${target?('P'+(PI.tier[target]!=null?PI.tier[target]:'?')):'—'}`;
+    if(jumpEl) jumpEl.innerHTML=`🛰<br>${top.jumps==null?'—':(top.jumps===Infinity?'∞':top.jumps+'j')}`;
+    if(regEl) regEl.innerHTML=`🌐<br>${region.length>10?region.slice(0,9)+'…':region}`;
   }
 
   { const chk=document.getElementById('wholeChainChk'); if(chk) chk.addEventListener('change', ()=>{ whole=chk.checked; compute(); }); }
@@ -512,8 +510,115 @@ async function renderMyColonies(){
   renderChain(); renderMarket();
 
   const _origSwitchView=switchView;
-  switchView=function(view){ _origSwitchView(view); if(view==='mycolonies') renderMyColonies(); };
-  if(document.querySelector('.level.on')&&document.querySelector('.level.on').dataset.view==='mycolonies') renderMyColonies();
+
+/* ===== What to Make — real profit ranking, adapted from the working backup ===== */
+let mkTier=2, mkHub=60003760, mkBasis='P1';
+let wtmPriceCache={};
+async function fetchHubPrices(station, ids){ const miss=ids.filter(t=>wtmPriceCache[station+':'+t]===undefined); if(!miss.length) return;
+  try{ const url=`https://market.fuzzwork.co.uk/aggregates/?station=${station}&types=${miss.join(',')}`;
+    const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status); const j=await r.json();
+    miss.forEach(t=>{ const d=j[t]||{}; wtmPriceCache[station+':'+t]={ sell:d.sell?+d.sell.min:0, buy:d.buy?+d.buy.max:0 }; });
+  }catch(e){ miss.forEach(t=>{ if(wtmPriceCache[station+':'+t]===undefined) wtmPriceCache[station+':'+t]=null; }); throw e; } }
+function wpx(st,t){ return wtmPriceCache[st+':'+t]; }
+function unitEconomics(prod, st){
+  const r=PI.recipe[prod]; if(!r) return null; const p=wpx(st,prod); if(!p) return null;
+  const consume=bom(prod, r.out);
+  const p1=Object.keys(consume).filter(t=>PI.tier[t]===1), p0=Object.keys(consume).filter(t=>PI.p0pt[t]);
+  let costP1=0,okP1=true; p1.forEach(t=>{ const q=Math.ceil(consume[t]); const pp=wpx(st,t); if(pp)costP1+=q*pp.sell; else okP1=false; });
+  let costP0=0,okP0=true; p0.forEach(t=>{ const q=Math.ceil(consume[t]); const pp=wpx(st,t); if(pp)costP0+=q*pp.sell; else okP0=false; });
+  return { rev:r.out*p.buy, costP1:okP1?costP1:null, costP0:okP0?costP0:null, out:r.out, ct:r.ct }; }
+
+async function renderWhatToMake(){
+  const list=document.getElementById('mkRankList'), msg=document.getElementById('mkMsg'); if(!list) return;
+  const prods=Object.keys(PI.recipe).filter(o=>PI.tier[o]===mkTier);
+  const idset=new Set(); prods.forEach(o=>chainTypeIds(o).forEach(t=>idset.add(t)));
+  list.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">Loading prices for '+prods.length+' P'+mkTier+' products…</div>';
+  try{ await fetchHubPrices(mkHub,[...idset]); if(msg) msg.textContent='(7.5% sales tax assumed — real-time prices via Fuzzwork)'; }
+  catch(e){ if(msg) msg.textContent='(price fetch failed — check network)'; }
+  const SALES_TAX=0.075;
+  let rows=prods.map(o=>{ const e=unitEconomics(o,mkHub); if(!e) return {o,na:true};
+    const rev=e.rev*(1-SALES_TAX);
+    const inCost = mkBasis==='P1'?e.costP1:e.costP0;
+    const profitRun=(inCost!=null)?rev-inCost:null;
+    const margin=(inCost!=null && rev>0)?(rev-inCost)/rev:null;
+    return {o,rev,inCost,profitRun,margin,outN:e.out}; }).filter(r=>!r.na);
+  rows=rows.filter(r=>r.profitRun!=null);
+  rows.sort((a,b)=>(b.profitRun/b.outN)-(a.profitRun/a.outN));
+  if(!rows.length){ list.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">No priced P'+mkTier+' products found at this hub right now.</div>'; return; }
+  const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.profitRun/r.outN)));
+  list.innerHTML=rows.slice(0,25).map(r=>{
+    const perUnit=r.profitRun/r.outN; const pct=Math.round(Math.abs(perUnit)/maxAbs*100);
+    const col=perUnit>=0?'#7ec87e':'#d66a5a';
+    const marginTxt=r.margin!=null?Math.round(r.margin*100)+'% margin':'—';
+    return `<div class="rank-item float"><div class="rank-glow" style="background:${col};box-shadow:0 0 ${Math.max(2,pct/10)}px ${col}"></div>
+      <span class="nm">${PI.recipe[r.o].name}</span><span class="profit" style="color:${col}">${perUnit>=0?'+':''}${Math.round(perUnit).toLocaleString()}/unit</span><span class="margin">${marginTxt}</span></div>`;
+  }).join('');
+}
+{ const s=document.getElementById('mkTierSel'); if(s) s.addEventListener('change', ()=>{ mkTier=+s.value; renderWhatToMake(); }); }
+{ const s=document.getElementById('mkHubSel'); if(s) s.addEventListener('change', ()=>{ mkHub=+s.value; renderWhatToMake(); }); }
+{ const s=document.getElementById('mkBasisSel'); if(s) s.addEventListener('change', ()=>{ mkBasis=s.value; renderWhatToMake(); }); }
+
+
+/* ===== Colony Logistics — real chain trace + real candidate-system scoring ===== */
+function traceChain(t){ // walks target down to P0 via the first ingredient at each level (linear simplification of the real branching tree)
+  const stages=[]; let cur=String(t);
+  while(true){ stages.unshift(cur); const r=PI.recipe[cur]; if(!r||!r.in||!r.in.length) break; cur=String(r.in[0][0]); if(PI.p0pt[cur]&&!PI.recipe[cur]) { stages.unshift(cur); break; } }
+  return stages; }
+
+function bestSystemFor(prodId, near){ // real scoring: which real system can source this stage's own P0 needs, closest to `near` if given
+  const need=[...p0NeedsFor(prodId)]; if(!need.length) return null;
+  const nearId= near? (nameToId[String(near).toLowerCase()]||near) : homeId;
+  const dist= nearId? bfs(nearId) : {};
+  let best=null;
+  for(const id of sysIds){ const have=SYS[id][5]; if(!have) continue;
+    const covered=need.filter(p=>(PI.p0pt[p]||[]).some(c=>have[c])).length;
+    if(covered===0) continue;
+    const jumps= nearId? (dist[id]===undefined?Infinity:dist[id]) : null;
+    if(!best || covered>best.covered || (covered===best.covered && (jumps??1e9)<(best.jumps??1e9))) best={id,covered,total:need.length,jumps};
+  }
+  return best; }
+
+function fmtHrs(sec){ const h=sec/3600; return h<1?Math.round(sec/60)+'m':(h===Math.round(h)?h+'h':h.toFixed(1)+'h'); }
+
+async function renderLogistics(){
+  const svgWrap=document.getElementById('logiSvg'), nodesWrap=document.getElementById('logiNodes'), bufWrap=document.getElementById('logiBuffer'), noteEl=document.getElementById('logiNote');
+  if(!nodesWrap) return;
+  if(!target){ nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Pick a target product on Candidates to see its real production chain here.</div>';
+    if(bufWrap) bufWrap.innerHTML=''; if(svgWrap) svgWrap.innerHTML=''; return; }
+  const stages=traceChain(target);
+  nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Scoring systems for '+stages.length+' stages…</div>';
+  const positions=stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: (i%2===0)?38:52 }));
+  const near = document.getElementById('homeInput') ? document.getElementById('homeInput').value : '';
+  const picks=stages.map(s=>bestSystemFor(s, near));
+  let nodesHtml='', lines='';
+  stages.forEach((s,i)=>{ const pick=picks[i]; const roman=['I','II','III','IV','V'][i]||String(i+1);
+    const sysName=pick?SYS[pick.id][0]:'no system found';
+    const label = PI.p0pt[s]&&!PI.recipe[s] ? 'raw material' : PI.recipe[s].name;
+    nodesHtml+=`<div class="logi-node" style="top:${positions[i].top}%;left:${positions[i].left}%"><div class="designation">${roman}</div>${sysName}</div>
+      <div class="logi-role" style="top:${positions[i].top-6}%;left:${positions[i].left-3}%">${label}</div>
+      <div class="logi-role" style="top:${positions[i].top+21}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>`;
+    if(i>0){ const a=positions[i-1], b=positions[i];
+      lines+=`<line x1="${a.left+4}%" y1="${a.top+3}%" x2="${b.left+4}%" y2="${b.top+3}%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>`; }
+  });
+  nodesWrap.innerHTML=nodesHtml;
+  if(svgWrap) svgWrap.innerHTML=lines;
+  if(bufWrap){
+    let rows='';
+    for(let i=0;i<stages.length-1;i++){ const a=stages[i], b=stages[i+1];
+      const ra=PI.recipe[a], rb=PI.recipe[b];
+      const ctA=ra?ra.ct:1800, ctB=rb?rb.ct:1800;
+      const cadence=Math.max(ctA,ctB);
+      rows+=`<div class="buf-row"><span>${['I','II','III','IV','V'][i]} → ${['I','II','III','IV','V'][i+1]}</span>
+        <span><b>${fmtHrs(cadence)}</b> haul cadence · ${PI.p0pt[a]&&!PI.recipe[a]?'raw':PI.recipe[a].name} → ${PI.recipe[b]?PI.recipe[b].name:b}, matched to the slower stage's cycle</span></div>`;
+    }
+    bufWrap.innerHTML=rows||'<div class="buf-row"><span style="color:#6a5a48">Single-stage chain — no hauls needed.</span></div>';
+  }
+  if(noteEl) noteEl.textContent='Roman numerals mark production order, earliest to latest. System picks are scored the same way as Candidates — real planet-type coverage and jump distance, not example data.';
+}
+
+  switchView=function(view){ _origSwitchView(view); if(view==='mycolonies') renderMyColonies(); if(view==='whattomake') renderWhatToMake(); if(view==='logistics') renderLogistics(); };
+  { const cur=document.querySelector('.level.on'); const v=cur&&cur.dataset.view;
+    if(v==='mycolonies') renderMyColonies(); else if(v==='whattomake') renderWhatToMake(); else if(v==='logistics') renderLogistics(); }
 </script>
 </body>
 </html>
