@@ -113,7 +113,7 @@
     <div class="nav-tab on" data-nav="candidates">Candidates</div><div class="nav-tab" data-nav="mycolonies">My colonies</div><div class="nav-tab" data-nav="logistics">Colony logistics</div><div class="nav-tab" data-nav="whattomake">What to make</div>
   </div>
   <div class="header-controls">
-    <div class="product-chips" title="Selected products"><div class="pchip"><img src="https://images.evetech.net/types/2392/icon?size=32" alt="Oxidizing Compound" onerror="this.style.visibility='hidden'"></div><div class="pchip"><img src="https://images.evetech.net/types/2398/icon?size=32" alt="Reactive Metals" onerror="this.style.visibility='hidden'"></div></div>
+    <div class="product-chips" title="Selected products"></div>
     <div class="theme-picker">
       <button class="theme-swatch on" data-theme="amarr" style="background:#e8a850;color:#e8a850"></button>
       <button class="theme-swatch" data-theme="caldari" style="background:#4a90c4;color:#4a90c4"></button>
@@ -182,7 +182,7 @@
     <div class="nav-tab" data-nav="candidates">Candidates</div><div class="nav-tab on" data-nav="mycolonies">My colonies</div><div class="nav-tab" data-nav="logistics">Colony logistics</div><div class="nav-tab" data-nav="whattomake">What to make</div>
   </div>
   <div class="header-controls">
-    <div class="product-chips" title="Selected products"><div class="pchip"><img src="https://images.evetech.net/types/2392/icon?size=32" alt="Oxidizing Compound" onerror="this.style.visibility='hidden'"></div><div class="pchip"><img src="https://images.evetech.net/types/2398/icon?size=32" alt="Reactive Metals" onerror="this.style.visibility='hidden'"></div></div>
+    <div class="product-chips" title="Selected products"></div>
     <div class="theme-picker">
       <button class="theme-swatch on" data-theme="amarr" style="background:#e8a850;color:#e8a850"></button>
       <button class="theme-swatch" data-theme="caldari" style="background:#4a90c4;color:#4a90c4"></button>
@@ -212,7 +212,7 @@
     <div class="nav-tab" data-nav="candidates">Candidates</div><div class="nav-tab" data-nav="mycolonies">My colonies</div><div class="nav-tab" data-nav="logistics">Colony logistics</div><div class="nav-tab on" data-nav="whattomake">What to make</div>
   </div>
   <div class="header-controls">
-    <div class="product-chips" title="Selected products"><div class="pchip"><img src="https://images.evetech.net/types/2392/icon?size=32" alt="Oxidizing Compound" onerror="this.style.visibility='hidden'"></div><div class="pchip"><img src="https://images.evetech.net/types/2398/icon?size=32" alt="Reactive Metals" onerror="this.style.visibility='hidden'"></div></div>
+    <div class="product-chips" title="Selected products"></div>
     <div class="theme-picker">
       <button class="theme-swatch on" data-theme="amarr" style="background:#e8a850;color:#e8a850"></button>
       <button class="theme-swatch" data-theme="caldari" style="background:#4a90c4;color:#4a90c4"></button>
@@ -247,7 +247,7 @@
     <div class="nav-tab" data-nav="candidates">Candidates</div><div class="nav-tab" data-nav="mycolonies">My colonies</div><div class="nav-tab on" data-nav="logistics">Colony logistics</div><div class="nav-tab" data-nav="whattomake">What to make</div>
   </div>
   <div class="header-controls">
-    <div class="product-chips" title="Selected products"><div class="pchip"><img src="https://images.evetech.net/types/2392/icon?size=32" alt="Oxidizing Compound" onerror="this.style.visibility='hidden'"></div><div class="pchip"><img src="https://images.evetech.net/types/2398/icon?size=32" alt="Reactive Metals" onerror="this.style.visibility='hidden'"></div></div>
+    <div class="product-chips" title="Selected products"></div>
     <div class="theme-picker">
       <button class="theme-swatch on" data-theme="amarr" style="background:#e8a850;color:#e8a850"></button>
       <button class="theme-swatch" data-theme="caldari" style="background:#4a90c4;color:#4a90c4"></button>
@@ -342,6 +342,13 @@ function renderBasketChips(){
   const ids=Object.keys(sel);
   wrap.innerHTML=ids.length?ids.map(id=>`<span style="font-size:8px;padding:3px 7px;border:1px solid rgba(220,160,90,.35);color:#f0dcc0">${PI.recipe[id].name} ×${sel[id]}</span>`).join('')
     :'<span style="font-size:8px;color:#6a5a48">No products selected yet</span>';
+  renderHeaderChips();
+}
+function renderHeaderChips(){
+  const ids=Object.keys(sel);
+  const html=ids.length? ids.map(id=>`<div class="pchip"><img src="https://images.evetech.net/types/${id}/icon?size=32" alt="${PI.recipe[id]?PI.recipe[id].name:id}" onerror="this.style.visibility='hidden'"></div>`).join('')
+    : '<div class="pchip" style="display:flex;align-items:center;justify-content:center;font-size:9px;color:#6a5a48">—</div>';
+  document.querySelectorAll('.product-chips').forEach(el=>el.innerHTML=html);
 }
 { const b=document.getElementById('productSearchBtn'); if(b) b.onclick=doProductSearch; }
 { const el=document.getElementById('productSearchInput'); if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doProductSearch(); }); }
