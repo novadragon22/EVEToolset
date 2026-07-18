@@ -124,11 +124,12 @@
     <div class="sync-chip"><span class="sync-dot"></span>Synced 2m ago</div>
     <span class="gear-btn">⚙</span>
   </div>
-  <div class="add-search float" style="height:auto;padding:10px 14px">
+  <div class="add-search float" style="height:auto;padding:10px 14px;position:relative;z-index:15">
     <div style="display:flex;gap:6px;margin-bottom:6px">
       <input id="productSearchInput" placeholder="Search a product to add…" style="flex:1;background:transparent;border:none;color:#f0dcc0;font-family:inherit;font-size:11px;outline:none">
       <span id="productSearchBtn" style="cursor:pointer;color:#e8a850;font-size:11px">+</span>
     </div>
+    <div id="productSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:20;background:rgba(8,6,4,.97);border:1px solid rgba(220,160,90,.35);max-height:220px;overflow-y:auto"></div>
     <div id="basketChips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
   </div>
   <div class="settings-strip float">
@@ -330,18 +331,41 @@ function renderCandidateResults(){
   }).join('');
 }
 
+function renderSuggestions(){
+  const el=document.getElementById('productSearchInput'), box=document.getElementById('productSuggestions'); if(!el||!box) return;
+  const q=(el.value||'').trim().toLowerCase();
+  if(!q){ box.innerHTML=''; box.style.display='none'; return; }
+  const matches=Object.keys(PI.recipe).filter(id=>PI.recipe[id].name.toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){ box.innerHTML='<div style="padding:6px 10px;color:#6a5a48;font-size:9px">No matching products</div>'; box.style.display='block'; return; }
+  box.innerHTML=matches.map(id=>`<div class="prod-sugg" data-id="${id}" style="padding:6px 10px;cursor:pointer;font-size:9.5px;color:#f0dcc0;border-bottom:1px solid rgba(220,160,90,.12)">${PI.recipe[id].name} <span style="color:#6a5a48">P${PI.tier[id]}</span></div>`).join('');
+  box.style.display='block';
+  box.querySelectorAll('.prod-sugg').forEach(row=>row.onclick=()=>addProductToBasket(row.dataset.id));
+}
+function addProductToBasket(id){
+  sel[id]=sel[id]||10; target=id;
+  try{localStorage.setItem('pi_sel',JSON.stringify(sel));}catch(e){}
+  const el=document.getElementById('productSearchInput'), box=document.getElementById('productSuggestions');
+  if(el) el.value=''; if(box){ box.innerHTML=''; box.style.display='none'; }
+  renderBasketChips(); compute();
+}
+function removeProductFromBasket(id){
+  delete sel[id];
+  if(target===id) target=Object.keys(sel)[0]||null;
+  try{localStorage.setItem('pi_sel',JSON.stringify(sel));}catch(e){}
+  renderBasketChips(); compute();
+}
 function doProductSearch(){
   const el=document.getElementById('productSearchInput'); if(!el) return;
   const q=(el.value||'').trim().toLowerCase(); if(!q){ return; }
   const match=Object.keys(PI.recipe).find(id=>PI.recipe[id].name.toLowerCase().includes(q));
-  if(match){ sel[match]=sel[match]||10; target=match; try{localStorage.setItem('pi_sel',JSON.stringify(sel));}catch(e){}
-    renderBasketChips(); compute(); }
+  if(match) addProductToBasket(match);
 }
 function renderBasketChips(){
   const wrap=document.getElementById('basketChips'); if(!wrap) return;
   const ids=Object.keys(sel);
-  wrap.innerHTML=ids.length?ids.map(id=>`<span style="font-size:8px;padding:3px 7px;border:1px solid rgba(220,160,90,.35);color:#f0dcc0">${PI.recipe[id].name} ×${sel[id]}</span>`).join('')
+  wrap.innerHTML=ids.length?ids.map(id=>`<span style="font-size:8px;padding:3px 7px;border:1px solid rgba(220,160,90,.35);color:#f0dcc0;display:inline-flex;align-items:center;gap:5px">${PI.recipe[id].name} ×${sel[id]}<span class="chip-x" data-id="${id}" style="cursor:pointer;color:#8a6858">✕</span></span>`).join('')
     :'<span style="font-size:8px;color:#6a5a48">No products selected yet</span>';
+  wrap.querySelectorAll('.chip-x').forEach(x=>x.onclick=()=>removeProductFromBasket(x.dataset.id));
   renderHeaderChips();
 }
 function renderHeaderChips(){
@@ -351,6 +375,7 @@ function renderHeaderChips(){
   document.querySelectorAll('.product-chips').forEach(el=>el.innerHTML=html);
 }
 { const b=document.getElementById('productSearchBtn'); if(b) b.onclick=doProductSearch; }
+{ const el=document.getElementById('productSearchInput'); if(el) el.addEventListener('input', renderSuggestions); }
 { const el=document.getElementById('productSearchInput'); if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doProductSearch(); }); }
 { const h=document.getElementById('homeInput'); if(h) h.addEventListener('change',compute); }
 document.querySelectorAll('.sec-pill').forEach(p=>p.addEventListener('click',()=>{
