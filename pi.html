@@ -538,10 +538,27 @@ async function renderMyColonies(){
   }
 
   const LY_PER_METER=1/9.4607e15;
+  function renderAmbientStars(){
+    const wrap=document.getElementById('universeMap'), scaleBox=document.getElementById('mapScale');
+    if(!wrap) return;
+    const N=30, stride=Math.max(1,Math.floor(sysIds.length/N));
+    const sample=[]; for(let i=0;i<sysIds.length && sample.length<N;i+=stride) sample.push(sysIds[i]);
+    const xs=sample.map(id=>SYS[id][3]), ys=sample.map(id=>SYS[id][4]);
+    const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+    const spanX=(maxX-minX)||1, spanY=(maxY-minY)||1;
+    const PAD_L=12, PAD_R=88, PAD_T=15, PAD_B=25;
+    const usableW=100-PAD_L-PAD_R, usableH=100-PAD_T-PAD_B;
+    wrap.innerHTML=sample.map(id=>{
+      const s=SYS[id]; const px=PAD_L+((s[3]-minX)/spanX)*usableW, py=PAD_T+((s[4]-minY)/spanY)*usableH;
+      return `<div class="star-node" title="${s[0]}" style="top:${py}%;left:${px}%;width:6px;height:6px">
+        <div style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#a88860,#6a5a48);opacity:.6"></div></div>`;
+    }).join('');
+    if(scaleBox) scaleBox.style.display='none';
+  }
   function renderUniverseMap(){
     const wrap=document.getElementById('universeMap'), scaleBox=document.getElementById('mapScale'), scaleText=document.getElementById('mapScaleText');
     if(!wrap) return;
-    if(!results.length){ wrap.innerHTML=''; if(scaleBox) scaleBox.style.display='none'; return; }
+    if(!results.length){ renderAmbientStars(); return; }
     const top=results.slice(0,25);
     const xs=top.map(r=>SYS[r.id][3]), ys=top.map(r=>SYS[r.id][4]);
     const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
@@ -709,6 +726,7 @@ async function renderLogistics(){
   switchView=function(view){ _origSwitchView(view); if(view==='mycolonies') renderMyColonies(); if(view==='whattomake') renderWhatToMake(); if(view==='logistics') renderLogistics(); };
   { const cur=document.querySelector('.level.on'); const v=cur&&cur.dataset.view;
     if(v==='mycolonies') renderMyColonies(); else if(v==='whattomake') renderWhatToMake(); else if(v==='logistics') renderLogistics(); }
+  renderUniverseMap(); updateHeroFromResults(); renderChain(); renderMarket();
 </script>
 </body>
 </html>
