@@ -907,8 +907,6 @@ function bestSystemFor(prodId, near, owners, usedOwners){ // real scoring: which
   for(const id of sysIds){ const have=SYS[id][5]; if(!have) continue;
     const role=roleForSystem(id, own);
     if(role==='none') continue; // that character's colonies are marked not required — excluded from the chain entirely
-    if(stageKind==='raw' && role==='factory') continue; // factory-role characters don't extract
-    if(stageKind==='prod' && role==='extractor') continue; // extractor-role characters don't build
     const covered=need.filter(p=>(PI.p0pt[p]||[]).some(c=>have[c])).length;
     if(covered===0) continue;
     const jumps= nearId? (dist[id]===undefined?Infinity:dist[id]) : null;
@@ -951,7 +949,7 @@ async function renderLogistics(){
       if(i===stages.length-1 && selectedSystemId && SYS[selectedSystemId]){
         const stageKind = (PI.p0pt[s]&&!PI.recipe[s]) ? 'raw' : 'prod';
         const role=roleForSystem(selectedSystemId, owners);
-        const roleOk = role!=='none' && !(stageKind==='raw'&&role==='factory') && !(stageKind==='prod'&&role==='extractor');
+        const roleOk = role!=='none';
         if(roleOk){
           const selSys=SYS[selectedSystemId]; const have=selSys[5]||{};
           const p0=basketP0(); let covered=0; p0.forEach(p=>{ if((PI.p0pt[p]||[]).some(c=>have[c])) covered++; });

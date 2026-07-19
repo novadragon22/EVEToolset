@@ -309,6 +309,7 @@
 // =====================================================================
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5';
 const SHARED_KEY='eve_suite_chars';
+const MAX_SUITE_CHARS=20; // up to 20 logged-in characters are remembered between sessions
 const AUTH_CALLBACK='https://novadragon22.github.io/EVEToolset/index.html';
 console.log('[EVE Toolset] registered callback URL for the EVE SSO app:', AUTH_CALLBACK);
 
@@ -388,14 +389,20 @@ async function handleSuiteRedirect(){
     const entry={access:t.access_token,refresh:t.refresh_token,expires:Date.now()+(t.expires_in||1200)*1000,charId,charName:pl.name||('Char '+charId),corpId:null,corpName:''};
     try{ const ch=await esiPub('/characters/'+charId+'/'); entry.corpId=ch.corporation_id;
       const co=await esiPub('/corporations/'+entry.corpId+'/'); entry.corpName=co.name||''; }catch(e){}
-    suiteChars[charId]=entry; saveSuiteChars(suiteChars); renderRoster(); renderPilotStrip();
+    const isNew = suiteChars[charId]==null;
+    suiteChars[charId]=entry;
+    if(isNew){
+      const ids=Object.keys(suiteChars);
+      while(ids.length>MAX_SUITE_CHARS){ const oldest=ids.shift(); delete suiteChars[oldest]; }
+    }
+    saveSuiteChars(suiteChars); renderRoster(); renderPilotStrip();
   }catch(e){ alert('Sign-in failed: '+e.message); }
 }
 function removeSuiteChar(charId){ delete suiteChars[charId]; saveSuiteChars(suiteChars); renderRoster(); renderPilotStrip(); }
 window.removeSuiteChar=removeSuiteChar;
 function renderRoster(){
   const r=document.getElementById('roster'); const ids=Object.keys(suiteChars);
-  const addChip='<span class="add-chip" id="addCharBtn" title="Add character">+</span>';
+  const addChip=`<span class="add-chip" id="addCharBtn" title="Add character (${ids.length}/${MAX_SUITE_CHARS} remembered)">+</span>`;
   r.innerHTML=ids.length? ids.map(id=>{ const c=suiteChars[id];
     const label=c.charName+(c.corpName?' · '+c.corpName:'');
     return `<span class="rchip" title="${label.replace(/"/g,'&quot;')}"><img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=64" onerror="this.style.visibility='hidden'"><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')"><svg width="12" height="12" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`;
