@@ -848,8 +848,14 @@ async function renderLogistics(){
   const rowCount=targets.length;
   targets.forEach((t,rowIdx)=>{
     const stages=traceChain(t);
-    const rowCenter = rowCount===1 ? 45 : (14 + 72*rowIdx/Math.max(1,rowCount-1));
-    const positions=stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: rowCenter + ((i%2===0)?-7:7) }));
+    // single product keeps the original zigzag layout centered in the pane;
+    // multiple products get flat, evenly-spaced rows sized to fit within the visible band so nothing runs off-screen
+    const rowCenter = rowCount===1 ? 45 : (16 + 68*(rowIdx+0.5)/rowCount);
+    const rowHeight = rowCount===1 ? 100 : (68/rowCount);
+    const stagger = rowCount===1 ? 7 : Math.min(5, rowHeight*0.22);
+    const upOff = rowCount===1 ? 6 : Math.min(6, rowHeight*0.22);
+    const downOff = rowCount===1 ? 21 : Math.min(14, rowHeight*0.34);
+    const positions=stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: rowCenter + ((i%2===0)?-stagger:stagger) }));
     const picks=stages.map((s,i)=>{
       // the final stage is the target product itself — if a system was explicitly selected on Candidates, build there directly rather than re-scoring
       if(i===stages.length-1 && selectedSystemId && SYS[selectedSystemId]){
@@ -860,13 +866,13 @@ async function renderLogistics(){
       return bestSystemFor(s, near);
     });
     const prodName = PI.recipe[t] ? PI.recipe[t].name : t;
-    nodesHtml+=`<div class="logi-role" style="top:${rowCenter-16}%;left:12px;color:#f0dcc0;font-weight:600;font-size:8px">${prodName}${sel[t]?' ×'+sel[t]:''}</div>`;
+    nodesHtml+=`<div class="logi-role" style="top:${Math.max(2,rowCenter-stagger-upOff-8)}%;left:12px;color:#f0dcc0;font-weight:600;font-size:8px">${prodName}${sel[t]?' ×'+sel[t]:''}</div>`;
     stages.forEach((s,i)=>{ const pick=picks[i]; const roman=['I','II','III','IV','V'][i]||String(i+1);
       const sysName=pick?SYS[pick.id][0]:'no system found';
       const label = PI.p0pt[s]&&!PI.recipe[s] ? 'raw material' : PI.recipe[s].name;
       nodesHtml+=`<div class="logi-node" style="top:${positions[i].top}%;left:${positions[i].left}%"><div class="designation">${roman}</div>${sysName}</div>
-        <div class="logi-role" style="top:${positions[i].top-6}%;left:${positions[i].left-3}%">${label}</div>
-        <div class="logi-role" style="top:${positions[i].top+21}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>`;
+        <div class="logi-role" style="top:${positions[i].top-upOff}%;left:${positions[i].left-3}%">${label}</div>
+        <div class="logi-role" style="top:${positions[i].top+downOff}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>`;
       if(i>0){ const a=positions[i-1], b=positions[i];
         lines+=`<line x1="${a.left+4}%" y1="${a.top+3}%" x2="${b.left+4}%" y2="${b.top+3}%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>`; }
     });
