@@ -326,6 +326,14 @@ function compute(){
   renderCandidateResults();
 }
 
+let selectedSystemId=null;
+try{ selectedSystemId=localStorage.getItem('pi_selected_system')||null; }catch(e){}
+function selectCandidateSystem(id){
+  selectedSystemId=id;
+  try{ localStorage.setItem('pi_selected_system', id); }catch(e){}
+  renderCandidateResults();
+  renderLogistics();
+}
 function renderCandidateResults(){
   const wrap=document.getElementById('candidateList'); if(!wrap) return;
   if(!results.length){ wrap.innerHTML='<div style="padding:20px;text-align:center;color:#8a7458;font-size:9px">No candidates yet — search for a product above to start scoring systems.</div>'; return; }
@@ -333,9 +341,11 @@ function renderCandidateResults(){
     const s=SYS[r.id]; const name=s[0]; const region=REG[s[2]]||'Unknown';
     const pct=Math.round((r.covered/r.total)*100);
     const jtxt=r.jumps==null?'—':(r.jumps===Infinity?'unreachable':r.jumps+'j');
-    return `<div style="display:flex;justify-content:space-between;font-size:9px;padding:5px 0;border-bottom:1px solid rgba(220,160,90,.15);color:${r.covered===r.total?'#f0dcc0':'#c89860'}">
-      <span>${name}</span><span style="color:#8a7458">${roundSec(r.sec).toFixed(1)} · ${r.covered}/${r.total} · ${jtxt} · ${region}</span></div>`;
+    const isSel=String(r.id)===String(selectedSystemId);
+    return `<div class="cand-row" data-id="${r.id}" style="display:flex;justify-content:space-between;font-size:9px;padding:5px 6px;margin:0 -6px;border-bottom:1px solid rgba(220,160,90,.15);cursor:pointer;color:${r.covered===r.total?'#f0dcc0':'#c89860'};${isSel?'background:rgba(232,168,80,.18);border-left:2px solid #e8a850':''}">
+      <span>${isSel?'✓ ':''}${name}</span><span style="color:#8a7458">${roundSec(r.sec).toFixed(1)} · ${r.covered}/${r.total} · ${jtxt} · ${region}</span></div>`;
   }).join('');
+  wrap.querySelectorAll('.cand-row').forEach(row=>row.onclick=()=>selectCandidateSystem(row.dataset.id));
 }
 
 let suggTierFilter=null; // null = all tiers
@@ -686,7 +696,9 @@ async function renderMyColonies(){
         let best=null, bestD=64; // px^2 threshold
         for(const p of _lastDrawnPoints){ const d=(p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my); if(d<bestD){ bestD=d; best=p; } }
         const tip=document.getElementById('universeTooltip');
-        if(best){ tip.style.display='block'; tip.style.left=(mx+16)+'px'; tip.style.top=(my-8)+'px';
+        if(best){ tip.style.display='block';
+          const uiScale=+(getComputedStyle(document.documentElement).getPropertyValue('--ui'))||1;
+          tip.style.left=((mx+16)/uiScale)+'px'; tip.style.top=((my-8)/uiScale)+'px';
           tip.innerHTML=best.isResult? `${best.name}<br><span style="color:#8a7458">${roundSec(best.sec).toFixed(1)} sec · ${best.covered}/${best.total} covered</span>`
             : `${best.name}<br><span style="color:#8a7458">${roundSec(best.sec).toFixed(1)} sec</span>`;
         } else tip.style.display='none';
@@ -703,15 +715,24 @@ async function renderMyColonies(){
       }, {passive:false});
 
       // real drag-to-pan
-      let dragging=false, lastX=0, lastY=0;
-      c.addEventListener('mousedown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; c.style.cursor='grabbing'; });
+      let dragging=false, lastX=0, lastY=0, dragMoved=0, downX=0, downY=0;
+      c.addEventListener('mousedown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; downX=e.clientX; downY=e.clientY; dragMoved=0; c.style.cursor='grabbing'; });
       window.addEventListener('mousemove', e=>{
         if(!dragging) return;
         mapPanX += e.clientX-lastX; mapPanY += e.clientY-lastY;
+        dragMoved += Math.abs(e.clientX-lastX)+Math.abs(e.clientY-lastY);
         lastX=e.clientX; lastY=e.clientY;
         renderUniverseMap();
       });
-      window.addEventListener('mouseup', ()=>{ dragging=false; c.style.cursor='grab'; });
+      window.addEventListener('mouseup', e=>{
+        dragging=false; c.style.cursor='grab';
+        if(dragMoved<4){ // treat as a genuine click, not the end of a pan-drag
+          const rect=c.getBoundingClientRect(); const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+          let best=null, bestD=64;
+          for(const p of _lastDrawnPoints){ if(!p.isResult) continue; const d=(p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my); if(d<bestD){ bestD=d; best=p; } }
+          if(best) selectCandidateSystem(String(best.id));
+        }
+      });
       c.style.cursor='grab';
     }
   }
@@ -723,7 +744,8 @@ async function renderMyColonies(){
   renderCandidateResults=function(){ _origRenderCandidateResults(); renderChain(); renderMarket(); renderUniverseMap(); };
 
   /* ---------- UI scale (ported from the real Structure Browser feature) ---------- */
-  function applyUi(pct){ const v=Math.max(50,Math.min(500,+pct||100))/100; document.documentElement.style.setProperty('--ui',v); try{ localStorage.setItem('pi_ui',Math.round(v*100)); }catch(e){} }
+  function applyUi(pct){ const v=Math.max(50,Math.min(500,+pct||100))/100; document.documentElement.style.setProperty('--ui',v); try{ localStorage.setItem('pi_ui',Math.round(v*100)); }catch(e){}
+    if(typeof renderUniverseMap==='function') requestAnimationFrame(renderUniverseMap); }
   function uiSaved(){ try{ return +localStorage.getItem('pi_ui')||100; }catch(e){ return 100; } }
   function openScale(){ const cur=uiSaved(); document.getElementById('cfgUi').value=cur; document.getElementById('cfgUiRange').value=cur; document.getElementById('setModal').style.display='flex'; }
   applyUi(uiSaved());
@@ -813,8 +835,17 @@ async function renderLogistics(){
   const stages=traceChain(target);
   nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Scoring systems for '+stages.length+' stages…</div>';
   const positions=stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: (i%2===0)?38:52 }));
-  const near = document.getElementById('homeInput') ? document.getElementById('homeInput').value : '';
-  const picks=stages.map(s=>bestSystemFor(s, near));
+  const homeInputVal = document.getElementById('homeInput') ? document.getElementById('homeInput').value : '';
+  const near = (selectedSystemId && SYS[selectedSystemId]) ? SYS[selectedSystemId][0] : homeInputVal;
+  const picks=stages.map((s,i)=>{
+    // the final stage is the target product itself — if a system was explicitly selected on Candidates, build there directly rather than re-scoring
+    if(i===stages.length-1 && selectedSystemId && SYS[selectedSystemId]){
+      const sel=SYS[selectedSystemId]; const have=sel[5]||{};
+      const p0=basketP0(); let covered=0; p0.forEach(p=>{ if((PI.p0pt[p]||[]).some(c=>have[c])) covered++; });
+      return { id:selectedSystemId, covered, total:p0.length||1, jumps: homeId? (distCache[selectedSystemId]!=null?distCache[selectedSystemId]:null) : null };
+    }
+    return bestSystemFor(s, near);
+  });
   let nodesHtml='', lines='';
   stages.forEach((s,i)=>{ const pick=picks[i]; const roman=['I','II','III','IV','V'][i]||String(i+1);
     const sysName=pick?SYS[pick.id][0]:'no system found';
