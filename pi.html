@@ -706,11 +706,18 @@ async function renderMyColonies(){
       c.addEventListener('mouseleave', ()=>{ document.getElementById('universeTooltip').style.display='none'; });
       window.addEventListener('resize', ()=>renderUniverseMap());
 
-      // real scroll-to-zoom, clamped to a sane range
+      // real scroll-to-zoom, clamped to a sane range, centered on the cursor
       c.addEventListener('wheel', e=>{
         e.preventDefault();
+        const rect=c.getBoundingClientRect();
+        const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+        const cx=rect.width/2, cy=rect.height/2;
         const factor = e.deltaY<0 ? 1.15 : 1/1.15;
-        mapZoom = Math.max(0.5, Math.min(12, mapZoom*factor));
+        const newZoom = Math.max(0.5, Math.min(12, mapZoom*factor));
+        // keep the data point currently under the cursor fixed on screen
+        mapPanX = mx - cx - (newZoom/mapZoom)*(mx - cx - mapPanX);
+        mapPanY = my - cy - (newZoom/mapZoom)*(my - cy - mapPanY);
+        mapZoom = newZoom;
         renderUniverseMap();
       }, {passive:false});
 
@@ -730,7 +737,7 @@ async function renderMyColonies(){
           const rect=c.getBoundingClientRect(); const mx=e.clientX-rect.left, my=e.clientY-rect.top;
           let best=null, bestD=64;
           for(const p of _lastDrawnPoints){ if(!p.isResult) continue; const d=(p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my); if(d<bestD){ bestD=d; best=p; } }
-          if(best) selectCandidateSystem(String(best.id));
+          if(best){ selectCandidateSystem(String(best.id)); switchView('logistics'); }
         }
       });
       c.style.cursor='grab';
@@ -830,45 +837,54 @@ function fmtHrs(sec){ const h=sec/3600; return h<1?Math.round(sec/60)+'m':(h===M
 async function renderLogistics(){
   const svgWrap=document.getElementById('logiSvg'), nodesWrap=document.getElementById('logiNodes'), bufWrap=document.getElementById('logiBuffer'), noteEl=document.getElementById('logiNote');
   if(!nodesWrap) return;
-  if(!target){ nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Pick a target product on Candidates to see its real production chain here.</div>';
+  const basketIds=Object.keys(sel);
+  const targets= basketIds.length? basketIds : (target?[String(target)]:[]);
+  if(!targets.length){ nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Pick a target product on Candidates to see its real production chain here.</div>';
     if(bufWrap) bufWrap.innerHTML=''; if(svgWrap) svgWrap.innerHTML=''; return; }
-  const stages=traceChain(target);
-  nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Scoring systems for '+stages.length+' stages…</div>';
-  const positions=stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: (i%2===0)?38:52 }));
+  nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Scoring systems for '+targets.length+' product'+(targets.length>1?'s':'')+'…</div>';
   const homeInputVal = document.getElementById('homeInput') ? document.getElementById('homeInput').value : '';
   const near = (selectedSystemId && SYS[selectedSystemId]) ? SYS[selectedSystemId][0] : homeInputVal;
-  const picks=stages.map((s,i)=>{
-    // the final stage is the target product itself — if a system was explicitly selected on Candidates, build there directly rather than re-scoring
-    if(i===stages.length-1 && selectedSystemId && SYS[selectedSystemId]){
-      const sel=SYS[selectedSystemId]; const have=sel[5]||{};
-      const p0=basketP0(); let covered=0; p0.forEach(p=>{ if((PI.p0pt[p]||[]).some(c=>have[c])) covered++; });
-      return { id:selectedSystemId, covered, total:p0.length||1, jumps: homeId? (distCache[selectedSystemId]!=null?distCache[selectedSystemId]:null) : null };
+  let nodesHtml='', lines='', bufSections='';
+  const rowCount=targets.length;
+  targets.forEach((t,rowIdx)=>{
+    const stages=traceChain(t);
+    const rowCenter = rowCount===1 ? 45 : (14 + 72*rowIdx/Math.max(1,rowCount-1));
+    const positions=stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: rowCenter + ((i%2===0)?-7:7) }));
+    const picks=stages.map((s,i)=>{
+      // the final stage is the target product itself — if a system was explicitly selected on Candidates, build there directly rather than re-scoring
+      if(i===stages.length-1 && selectedSystemId && SYS[selectedSystemId]){
+        const selSys=SYS[selectedSystemId]; const have=selSys[5]||{};
+        const p0=basketP0(); let covered=0; p0.forEach(p=>{ if((PI.p0pt[p]||[]).some(c=>have[c])) covered++; });
+        return { id:selectedSystemId, covered, total:p0.length||1, jumps: homeId? (distCache[selectedSystemId]!=null?distCache[selectedSystemId]:null) : null };
+      }
+      return bestSystemFor(s, near);
+    });
+    const prodName = PI.recipe[t] ? PI.recipe[t].name : t;
+    nodesHtml+=`<div class="logi-role" style="top:${rowCenter-16}%;left:12px;color:#f0dcc0;font-weight:600;font-size:8px">${prodName}${sel[t]?' ×'+sel[t]:''}</div>`;
+    stages.forEach((s,i)=>{ const pick=picks[i]; const roman=['I','II','III','IV','V'][i]||String(i+1);
+      const sysName=pick?SYS[pick.id][0]:'no system found';
+      const label = PI.p0pt[s]&&!PI.recipe[s] ? 'raw material' : PI.recipe[s].name;
+      nodesHtml+=`<div class="logi-node" style="top:${positions[i].top}%;left:${positions[i].left}%"><div class="designation">${roman}</div>${sysName}</div>
+        <div class="logi-role" style="top:${positions[i].top-6}%;left:${positions[i].left-3}%">${label}</div>
+        <div class="logi-role" style="top:${positions[i].top+21}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>`;
+      if(i>0){ const a=positions[i-1], b=positions[i];
+        lines+=`<line x1="${a.left+4}%" y1="${a.top+3}%" x2="${b.left+4}%" y2="${b.top+3}%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>`; }
+    });
+    if(bufWrap){
+      let rows='';
+      for(let i=0;i<stages.length-1;i++){ const a=stages[i], b=stages[i+1];
+        const ra=PI.recipe[a], rb=PI.recipe[b];
+        const ctA=ra?ra.ct:1800, ctB=rb?rb.ct:1800;
+        const cadence=Math.max(ctA,ctB);
+        rows+=`<div class="buf-row"><span>${['I','II','III','IV','V'][i]} → ${['I','II','III','IV','V'][i+1]}</span>
+          <span><b>${fmtHrs(cadence)}</b> haul cadence · ${PI.p0pt[a]&&!PI.recipe[a]?'raw':PI.recipe[a].name} → ${PI.recipe[b]?PI.recipe[b].name:b}, matched to the slower stage's cycle</span></div>`;
+      }
+      bufSections+=`<div style="margin-bottom:8px">${rowCount>1?'<div style="font-size:8px;color:#f0dcc0;font-weight:600;margin-bottom:2px">'+prodName+'</div>':''}${rows||'<div class="buf-row"><span style="color:#6a5a48">Single-stage chain — no hauls needed.</span></div>'}</div>`;
     }
-    return bestSystemFor(s, near);
-  });
-  let nodesHtml='', lines='';
-  stages.forEach((s,i)=>{ const pick=picks[i]; const roman=['I','II','III','IV','V'][i]||String(i+1);
-    const sysName=pick?SYS[pick.id][0]:'no system found';
-    const label = PI.p0pt[s]&&!PI.recipe[s] ? 'raw material' : PI.recipe[s].name;
-    nodesHtml+=`<div class="logi-node" style="top:${positions[i].top}%;left:${positions[i].left}%"><div class="designation">${roman}</div>${sysName}</div>
-      <div class="logi-role" style="top:${positions[i].top-6}%;left:${positions[i].left-3}%">${label}</div>
-      <div class="logi-role" style="top:${positions[i].top+21}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>`;
-    if(i>0){ const a=positions[i-1], b=positions[i];
-      lines+=`<line x1="${a.left+4}%" y1="${a.top+3}%" x2="${b.left+4}%" y2="${b.top+3}%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>`; }
   });
   nodesWrap.innerHTML=nodesHtml;
   if(svgWrap) svgWrap.innerHTML=lines;
-  if(bufWrap){
-    let rows='';
-    for(let i=0;i<stages.length-1;i++){ const a=stages[i], b=stages[i+1];
-      const ra=PI.recipe[a], rb=PI.recipe[b];
-      const ctA=ra?ra.ct:1800, ctB=rb?rb.ct:1800;
-      const cadence=Math.max(ctA,ctB);
-      rows+=`<div class="buf-row"><span>${['I','II','III','IV','V'][i]} → ${['I','II','III','IV','V'][i+1]}</span>
-        <span><b>${fmtHrs(cadence)}</b> haul cadence · ${PI.p0pt[a]&&!PI.recipe[a]?'raw':PI.recipe[a].name} → ${PI.recipe[b]?PI.recipe[b].name:b}, matched to the slower stage's cycle</span></div>`;
-    }
-    bufWrap.innerHTML=rows||'<div class="buf-row"><span style="color:#6a5a48">Single-stage chain — no hauls needed.</span></div>';
-  }
+  if(bufWrap) bufWrap.innerHTML=bufSections;
   if(noteEl) noteEl.textContent='Roman numerals mark production order, earliest to latest. System picks are scored the same way as Candidates — real planet-type coverage and jump distance, not example data.';
 }
 
