@@ -92,6 +92,12 @@
   .role-pill.role-extractor{color:#7ec8e0;border-color:rgba(126,200,224,.4)}
   .role-pill.role-factory{color:#7ec87e;border-color:rgba(126,200,126,.4)}
   .role-pill.role-none{color:#8a6858;border-color:rgba(138,104,88,.4);text-decoration:line-through}
+  .role-menu{z-index:9999;background:#1a140f;border:1px solid rgba(200,152,96,.4);border-radius:6px;padding:4px;box-shadow:0 6px 18px rgba(0,0,0,.5);min-width:130px;font-size:10px}
+  .role-menu-hdr{padding:3px 8px 5px;color:#8a7458;font-size:8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(200,152,96,.15);margin-bottom:3px}
+  .role-menu-item{padding:5px 8px;border-radius:4px;cursor:pointer;color:#e8d8c0;white-space:nowrap}
+  .role-menu-item:hover{background:rgba(200,152,96,.15)}
+  .role-menu-item.current{color:#e8a850;font-weight:600}
+  .pilot-chip{cursor:pointer}
   .import-btn{position:absolute;top:80px;right:20px;padding:7px 12px;font-size:9px;color:#a0d0e0;border:1px solid rgba(122,184,200,.4);cursor:pointer;z-index:5}
   .buffer-panel{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);width:600px;padding:10px 16px;font-size:8.5px;color:#8a7458}
   .buffer-panel .buf-row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(220,160,90,.1)}
@@ -258,8 +264,11 @@
   </div>
   <div class="import-btn float">⭱ Import route</div>
   <div class="float" style="position:absolute;top:80px;right:170px;padding:7px 12px;font-size:9px;color:#c89860;display:flex;align-items:center;gap:6px">
-    <input type="checkbox" id="autoAssignChk" style="cursor:pointer">
-    <label for="autoAssignChk" style="cursor:pointer">Auto-assign: minimize characters</label>
+    <label for="autoAssignSel" style="cursor:pointer">Auto-assign:</label>
+    <select id="autoAssignSel" style="cursor:pointer;background:#1a140f;color:#c89860;border:1px solid rgba(200,152,96,.35);border-radius:4px;font-size:9px;padding:2px 6px">
+      <option value="0">Off</option>
+      <option value="1">Minimize characters</option>
+    </select>
   </div>
   <div class="pilot-strip"></div>
 
@@ -455,10 +464,36 @@ function setCharRole(charId, role){
   if(role==='full') delete charRoles[String(charId)]; else charRoles[String(charId)]=role;
   try{ localStorage.setItem('pi_char_roles', JSON.stringify(charRoles)); }catch(e){}
 }
+const ROLE_ORDER=['full','extractor','factory','none'];
 function cycleCharRole(charId){
-  const order=['full','extractor','factory','none'];
-  const cur=charRole(charId); setCharRole(charId, order[(order.indexOf(cur)+1)%order.length]);
+  const cur=charRole(charId); setCharRole(charId, ROLE_ORDER[(ROLE_ORDER.indexOf(cur)+1)%ROLE_ORDER.length]);
   renderPilotStrip(); if(typeof renderLogistics==='function') renderLogistics();
+}
+function closeRoleMenu(){ const m=document.getElementById('roleMenu'); if(m) m.remove(); document.removeEventListener('click', closeRoleMenuOnOutsideClick, true); }
+function closeRoleMenuOnOutsideClick(e){ const m=document.getElementById('roleMenu'); if(m && !m.contains(e.target)) closeRoleMenu(); }
+function openRoleMenu(charId, anchorEl, charName){
+  closeRoleMenu();
+  const menu=document.createElement('div');
+  menu.className='role-menu'; menu.id='roleMenu';
+  const cur=charRole(charId);
+  menu.innerHTML=`<div class="role-menu-hdr">${charName||'Character'} — colony role</div>`+
+    ROLE_ORDER.map(r=>`<div class="role-menu-item${cur===r?' current':''}" data-role="${r}">${ROLE_LABEL[r]}${cur===r?' ✓':''}</div>`).join('');
+  document.body.appendChild(menu);
+  const rect=anchorEl.getBoundingClientRect();
+  const menuRect=menu.getBoundingClientRect();
+  let top=rect.bottom+4, left=rect.left;
+  if(left+menuRect.width>window.innerWidth-8) left=window.innerWidth-menuRect.width-8;
+  if(top+menuRect.height>window.innerHeight-8) top=rect.top-menuRect.height-4;
+  menu.style.position='fixed'; menu.style.top=top+'px'; menu.style.left=left+'px';
+  menu.querySelectorAll('.role-menu-item').forEach(item=>{
+    item.addEventListener('click', e=>{
+      e.stopPropagation();
+      setCharRole(charId, item.dataset.role);
+      closeRoleMenu();
+      renderPilotStrip(); if(typeof renderLogistics==='function') renderLogistics();
+    });
+  });
+  setTimeout(()=>document.addEventListener('click', closeRoleMenuOnOutsideClick, true), 0);
 }
 function renderPilotStrip(){
   const ids=Object.keys(chars);
@@ -467,9 +502,10 @@ function renderPilotStrip(){
     el.style.display='flex';
     el.innerHTML=ids.map((id,i)=>{
       const role=charRole(id);
+      const name=(chars[id].charName||('Character '+id)).replace(/"/g,'&quot;');
       return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-        <div class="pilot-chip${i===0?' on':''}" title="${chars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>
-        <div class="role-pill role-${role}" style="position:static" onclick="cycleCharRole('${id}')" title="Click to change ${chars[id].charName||'this character'}'s colony role">${ROLE_LABEL[role]}</div>
+        <div class="pilot-chip${i===0?' on':''}" title="${name} — click to assign colony role" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center" onclick="openRoleMenu('${id}', this, '${name}')"></div>
+        <div class="role-pill role-${role}" style="position:static" onclick="openRoleMenu('${id}', this, '${name}')" title="Click to change ${name}'s colony role">${ROLE_LABEL[role]}</div>
       </div>`;
     }).join('');
   });
@@ -848,8 +884,8 @@ function traceChain(t){ // walks target down to P0 via the first ingredient at e
   return stages; }
 
 let autoAssign=false; try{ autoAssign=localStorage.getItem('pi_auto_assign')==='1'; }catch(e){ autoAssign=false; }
-{ const chk=document.getElementById('autoAssignChk'); if(chk){ chk.checked=autoAssign;
-  chk.addEventListener('change', ()=>{ autoAssign=chk.checked; try{localStorage.setItem('pi_auto_assign', autoAssign?'1':'0');}catch(e){} renderLogistics(); }); } }
+{ const sel=document.getElementById('autoAssignSel'); if(sel){ sel.value=autoAssign?'1':'0';
+  sel.addEventListener('change', ()=>{ autoAssign=sel.value==='1'; try{localStorage.setItem('pi_auto_assign', autoAssign?'1':'0');}catch(e){} renderLogistics(); }); } }
 
 function systemOwnerMap(){ // which character (if any) owns an existing colony in each system
   const owner={};
@@ -939,7 +975,7 @@ async function renderLogistics(){
       nodesHtml+=`<div class="logi-node" style="top:${positions[i].top}%;left:${positions[i].left}%"><div class="designation">${roman}</div>${sysName}</div>
         <div class="logi-role" style="top:${positions[i].top-upOff}%;left:${positions[i].left-3}%">${label}</div>
         <div class="logi-role" style="top:${positions[i].top+downOff}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>
-        ${pick&&ownerId!=null?`<div class="role-pill role-${role}" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%" onclick="cycleCharRole('${ownerId}')" title="${pilotName||'Character'}'s colony role — click to change">${ROLE_LABEL[role]}${pilotName?' · '+pilotName:''}</div>`
+        ${pick&&ownerId!=null?`<div class="role-pill role-${role}" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%" onclick="openRoleMenu('${ownerId}', this, '${(pilotName||'Character').replace(/"/g,'&quot;')}')" title="${pilotName||'Character'}'s colony role — click to assign">${ROLE_LABEL[role]}${pilotName?' · '+pilotName:''}</div>`
           : pick?`<div class="logi-role" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%;color:#6a5a48">no colony here yet</div>`:''}`;
       if(i>0){ const a=positions[i-1], b=positions[i];
         lines+=`<line x1="${a.left+4}%" y1="${a.top+3}%" x2="${b.left+4}%" y2="${b.top+3}%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>`; }
