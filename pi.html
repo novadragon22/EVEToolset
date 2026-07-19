@@ -87,6 +87,11 @@
     border:1px solid rgba(220,160,90,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:8px;color:#c89860}
   .logi-node .designation{color:#f0dcc0;font-weight:600;font-size:10px}
   .logi-role{position:absolute;font-size:7px;color:#8a7458;white-space:nowrap}
+  .role-pill{position:absolute;font-size:6.5px;padding:1px 5px;border-radius:8px;cursor:pointer;white-space:nowrap;border:1px solid transparent;user-select:none}
+  .role-pill.role-full{color:#e8a850;border-color:rgba(220,160,90,.4)}
+  .role-pill.role-extractor{color:#7ec8e0;border-color:rgba(126,200,224,.4)}
+  .role-pill.role-factory{color:#7ec87e;border-color:rgba(126,200,126,.4)}
+  .role-pill.role-none{color:#8a6858;border-color:rgba(138,104,88,.4);text-decoration:line-through}
   .import-btn{position:absolute;top:80px;right:20px;padding:7px 12px;font-size:9px;color:#a0d0e0;border:1px solid rgba(122,184,200,.4);cursor:pointer;z-index:5}
   .buffer-panel{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);width:600px;padding:10px 16px;font-size:8.5px;color:#8a7458}
   .buffer-panel .buf-row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(220,160,90,.1)}
@@ -252,6 +257,10 @@
     <span class="gear-btn">⚙</span>
   </div>
   <div class="import-btn float">⭱ Import route</div>
+  <div class="float" style="position:absolute;top:80px;right:170px;padding:7px 12px;font-size:9px;color:#c89860;display:flex;align-items:center;gap:6px">
+    <input type="checkbox" id="autoAssignChk" style="cursor:pointer">
+    <label for="autoAssignChk" style="cursor:pointer">Auto-assign: minimize characters</label>
+  </div>
   <div class="pilot-strip"></div>
 
   <svg id="logiSvg" style="position:absolute;inset:0;pointer-events:none"></svg>
@@ -309,6 +318,7 @@ function compute(){
   const p0=basketP0(); if(!p0.length){ results=[]; renderCandidateResults(); return; }
   const homeInput=document.getElementById('homeInput');
   homeId = homeInput ? (nameToId[(homeInput.value||'').trim().toLowerCase()]||null) : null;
+  if(homeInput){ try{ localStorage.setItem('pi_home_station', homeInput.value||''); }catch(e){} }
   distCache = homeId?bfs(homeId):{};
   const cand=[];
   for(const id of sysIds){ const s=SYS[id]; const sec=s[1];
@@ -424,7 +434,7 @@ function renderHeaderChips(){
 document.addEventListener('click', (e)=>{ const box=document.getElementById('productSuggestions'), el=document.getElementById('productSearchInput');
   if(box && el && !box.contains(e.target) && e.target!==el){ box.style.display='none'; } });
 { const el=document.getElementById('productSearchInput'); if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doProductSearch(); }); }
-{ const h=document.getElementById('homeInput'); if(h) h.addEventListener('change',compute); }
+{ const h=document.getElementById('homeInput'); if(h){ try{ const saved=localStorage.getItem('pi_home_station'); if(saved) h.value=saved; }catch(e){} h.addEventListener('change',compute); } }
 document.querySelectorAll('.sec-pill').forEach(p=>p.addEventListener('click',()=>{
   const map={'Hi':'hi','Low':'low','Null':'null'}; secFilter=map[p.textContent.trim()]||'all';
   document.querySelectorAll('.sec-pill').forEach(x=>x.classList.remove('on')); p.classList.add('on');
@@ -438,12 +448,30 @@ const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5';
 let chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');
 const saveChars=()=>localStorage.setItem(SHARED_KEY,JSON.stringify(chars));
 function visibleCharIds(){ return Object.keys(chars); }
+const ROLE_LABEL={full:'Full',extractor:'Extractor',factory:'Factory',none:'Not required'};
+let charRoles={}; try{ charRoles=JSON.parse(localStorage.getItem('pi_char_roles')||'{}'); }catch(e){ charRoles={}; }
+function charRole(charId){ return charRoles[String(charId)]||'full'; }
+function setCharRole(charId, role){
+  if(role==='full') delete charRoles[String(charId)]; else charRoles[String(charId)]=role;
+  try{ localStorage.setItem('pi_char_roles', JSON.stringify(charRoles)); }catch(e){}
+}
+function cycleCharRole(charId){
+  const order=['full','extractor','factory','none'];
+  const cur=charRole(charId); setCharRole(charId, order[(order.indexOf(cur)+1)%order.length]);
+  renderPilotStrip(); if(typeof renderLogistics==='function') renderLogistics();
+}
 function renderPilotStrip(){
   const ids=Object.keys(chars);
   document.querySelectorAll('.pilot-strip').forEach(el=>{
     if(!ids.length){ el.style.display='none'; el.innerHTML=''; return; }
     el.style.display='flex';
-    el.innerHTML=ids.map((id,i)=>`<div class="pilot-chip${i===0?' on':''}" title="${chars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>`).join('');
+    el.innerHTML=ids.map((id,i)=>{
+      const role=charRole(id);
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div class="pilot-chip${i===0?' on':''}" title="${chars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>
+        <div class="role-pill role-${role}" style="position:static" onclick="cycleCharRole('${id}')" title="Click to change ${chars[id].charName||'this character'}'s colony role">${ROLE_LABEL[role]}</div>
+      </div>`;
+    }).join('');
   });
 }
 renderPilotStrip();
@@ -819,16 +847,39 @@ function traceChain(t){ // walks target down to P0 via the first ingredient at e
   while(true){ stages.unshift(cur); const r=PI.recipe[cur]; if(!r||!r.in||!r.in.length) break; cur=String(r.in[0][0]); if(PI.p0pt[cur]&&!PI.recipe[cur]) { stages.unshift(cur); break; } }
   return stages; }
 
-function bestSystemFor(prodId, near){ // real scoring: which real system can source this stage's own P0 needs, closest to `near` if given
+let autoAssign=false; try{ autoAssign=localStorage.getItem('pi_auto_assign')==='1'; }catch(e){ autoAssign=false; }
+{ const chk=document.getElementById('autoAssignChk'); if(chk){ chk.checked=autoAssign;
+  chk.addEventListener('change', ()=>{ autoAssign=chk.checked; try{localStorage.setItem('pi_auto_assign', autoAssign?'1':'0');}catch(e){} renderLogistics(); }); } }
+
+function systemOwnerMap(){ // which character (if any) owns an existing colony in each system
+  const owner={};
+  for(const charId of Object.keys(colonies)){
+    (colonies[charId]||[]).forEach(c=>{ if(owner[c.system]==null) owner[c.system]=charId; });
+  }
+  return owner;
+}
+async function ensureColoniesLoaded(){ const ids=visibleCharIds(); if(ids.length) await Promise.all(ids.map(loadColonies)); }
+function roleForSystem(sysId, owners){ const owner=(owners||systemOwnerMap())[sysId]; return owner!=null? charRole(owner) : 'full'; }
+
+function bestSystemFor(prodId, near, owners, usedOwners){ // real scoring: which real system can source this stage's own P0 needs, closest to `near` if given
   const need=[...p0NeedsFor(prodId)]; if(!need.length) return null;
   const nearId= near? (nameToId[String(near).toLowerCase()]||near) : homeId;
   const dist= nearId? bfs(nearId) : {};
+  const stageKind = (PI.p0pt[prodId]&&!PI.recipe[prodId]) ? 'raw' : 'prod';
+  const own= owners||systemOwnerMap();
   let best=null;
   for(const id of sysIds){ const have=SYS[id][5]; if(!have) continue;
+    const role=roleForSystem(id, own);
+    if(role==='none') continue; // that character's colonies are marked not required — excluded from the chain entirely
+    if(stageKind==='raw' && role==='factory') continue; // factory-role characters don't extract
+    if(stageKind==='prod' && role==='extractor') continue; // extractor-role characters don't build
     const covered=need.filter(p=>(PI.p0pt[p]||[]).some(c=>have[c])).length;
     if(covered===0) continue;
     const jumps= nearId? (dist[id]===undefined?Infinity:dist[id]) : null;
-    if(!best || covered>best.covered || (covered===best.covered && (jumps??1e9)<(best.jumps??1e9))) best={id,covered,total:need.length,jumps};
+    const reused= autoAssign && usedOwners && own[id]!=null && usedOwners.has(own[id]) ? 1 : 0;
+    if(!best || covered>best.covered
+      || (covered===best.covered && reused>best.reused)
+      || (covered===best.covered && reused===best.reused && (jumps??1e9)<(best.jumps??1e9))) best={id,covered,total:need.length,jumps,reused};
   }
   return best; }
 
@@ -842,6 +893,9 @@ async function renderLogistics(){
   if(!targets.length){ nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Pick a target product on Candidates to see its real production chain here.</div>';
     if(bufWrap) bufWrap.innerHTML=''; if(svgWrap) svgWrap.innerHTML=''; return; }
   nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Scoring systems for '+targets.length+' product'+(targets.length>1?'s':'')+'…</div>';
+  await ensureColoniesLoaded();
+  const owners=systemOwnerMap();
+  const usedOwners=new Set();
   const homeInputVal = document.getElementById('homeInput') ? document.getElementById('homeInput').value : '';
   const near = (selectedSystemId && SYS[selectedSystemId]) ? SYS[selectedSystemId][0] : homeInputVal;
   let nodesHtml='', lines='', bufSections='';
@@ -859,20 +913,34 @@ async function renderLogistics(){
     const picks=stages.map((s,i)=>{
       // the final stage is the target product itself — if a system was explicitly selected on Candidates, build there directly rather than re-scoring
       if(i===stages.length-1 && selectedSystemId && SYS[selectedSystemId]){
-        const selSys=SYS[selectedSystemId]; const have=selSys[5]||{};
-        const p0=basketP0(); let covered=0; p0.forEach(p=>{ if((PI.p0pt[p]||[]).some(c=>have[c])) covered++; });
-        return { id:selectedSystemId, covered, total:p0.length||1, jumps: homeId? (distCache[selectedSystemId]!=null?distCache[selectedSystemId]:null) : null };
+        const stageKind = (PI.p0pt[s]&&!PI.recipe[s]) ? 'raw' : 'prod';
+        const role=roleForSystem(selectedSystemId, owners);
+        const roleOk = role!=='none' && !(stageKind==='raw'&&role==='factory') && !(stageKind==='prod'&&role==='extractor');
+        if(roleOk){
+          const selSys=SYS[selectedSystemId]; const have=selSys[5]||{};
+          const p0=basketP0(); let covered=0; p0.forEach(p=>{ if((PI.p0pt[p]||[]).some(c=>have[c])) covered++; });
+          if(owners[selectedSystemId]!=null) usedOwners.add(owners[selectedSystemId]);
+          return { id:selectedSystemId, covered, total:p0.length||1, jumps: homeId? (distCache[selectedSystemId]!=null?distCache[selectedSystemId]:null) : null };
+        }
+        // the owning character's role doesn't allow this stage — fall through to real scoring instead
       }
-      return bestSystemFor(s, near);
+      const pick=bestSystemFor(s, near, owners, usedOwners);
+      if(pick && owners[pick.id]!=null) usedOwners.add(owners[pick.id]);
+      return pick;
     });
     const prodName = PI.recipe[t] ? PI.recipe[t].name : t;
     nodesHtml+=`<div class="logi-role" style="top:${Math.max(2,rowCenter-stagger-upOff-8)}%;left:12px;color:#f0dcc0;font-weight:600;font-size:8px">${prodName}${sel[t]?' ×'+sel[t]:''}</div>`;
     stages.forEach((s,i)=>{ const pick=picks[i]; const roman=['I','II','III','IV','V'][i]||String(i+1);
-      const sysName=pick?SYS[pick.id][0]:'no system found';
+      const sysName=pick?SYS[pick.id][0]:'no system found (check character roles)';
       const label = PI.p0pt[s]&&!PI.recipe[s] ? 'raw material' : PI.recipe[s].name;
+      const ownerId= pick? owners[pick.id] : null;
+      const role= pick? roleForSystem(pick.id, owners) : null;
+      const pilotName= ownerId!=null && chars[ownerId] ? chars[ownerId].charName : null;
       nodesHtml+=`<div class="logi-node" style="top:${positions[i].top}%;left:${positions[i].left}%"><div class="designation">${roman}</div>${sysName}</div>
         <div class="logi-role" style="top:${positions[i].top-upOff}%;left:${positions[i].left-3}%">${label}</div>
-        <div class="logi-role" style="top:${positions[i].top+downOff}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>`;
+        <div class="logi-role" style="top:${positions[i].top+downOff}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>
+        ${pick&&ownerId!=null?`<div class="role-pill role-${role}" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%" onclick="cycleCharRole('${ownerId}')" title="${pilotName||'Character'}'s colony role — click to change">${ROLE_LABEL[role]}${pilotName?' · '+pilotName:''}</div>`
+          : pick?`<div class="logi-role" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%;color:#6a5a48">no colony here yet</div>`:''}`;
       if(i>0){ const a=positions[i-1], b=positions[i];
         lines+=`<line x1="${a.left+4}%" y1="${a.top+3}%" x2="${b.left+4}%" y2="${b.top+3}%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>`; }
     });
@@ -891,7 +959,7 @@ async function renderLogistics(){
   nodesWrap.innerHTML=nodesHtml;
   if(svgWrap) svgWrap.innerHTML=lines;
   if(bufWrap) bufWrap.innerHTML=bufSections;
-  if(noteEl) noteEl.textContent='Roman numerals mark production order, earliest to latest. System picks are scored the same way as Candidates — real planet-type coverage and jump distance, not example data.';
+  if(noteEl) noteEl.textContent='Roman numerals mark production order, earliest to latest. System picks are scored the same way as Candidates — real planet-type coverage and jump distance, not example data.'+(autoAssign?' Auto-assign is on: picks favor characters already used elsewhere in this chain to minimize headcount.':'');
 }
 
   switchView=function(view){ _origSwitchView(view); if(view==='mycolonies') renderMyColonies(); if(view==='whattomake') renderWhatToMake(); if(view==='logistics') renderLogistics(); };
