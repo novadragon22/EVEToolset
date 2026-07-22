@@ -98,10 +98,35 @@
   .role-menu-item:hover{background:rgba(200,152,96,.15)}
   .role-menu-item.current{color:#e8a850;font-weight:600}
   .pilot-chip{cursor:pointer}
+  .roles-fab{position:relative;font-family:inherit;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#e8a850;
+    background:rgba(200,152,96,.08);border:1px solid rgba(220,160,90,.4);border-radius:6px;padding:8px 14px;cursor:pointer;
+    display:flex;align-items:center;gap:7px;box-shadow:0 0 14px rgba(200,152,96,.12)}
+  .roles-fab:hover{background:rgba(200,152,96,.18);border-color:#e8a850}
+  .roles-fab .badge{background:#e8a850;color:#1a1006;font-size:9px;font-weight:700;border-radius:9px;padding:1px 7px}
+  .roles-drawer{position:fixed;top:0;right:-360px;width:340px;height:100vh;z-index:120;background:linear-gradient(180deg,rgba(20,14,8,.97),rgba(8,5,2,.99));
+    border-left:1px solid rgba(220,160,90,.4);box-shadow:-20px 0 60px rgba(0,0,0,.6);padding:22px;overflow-y:auto;transition:right .3s cubic-bezier(.2,.9,.3,1)}
+  .roles-drawer.open{right:0}
+  .roles-drawer-backdrop{position:fixed;inset:0;z-index:115;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.3s}
+  .roles-drawer-backdrop.open{opacity:1;pointer-events:auto}
+  .roles-drawer-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .roles-drawer-head h3{font-size:13px;color:#e8a850;margin:0;text-transform:uppercase;letter-spacing:.08em}
+  .roles-drawer-head .sub{font-size:9.5px;color:#8a7458;flex-basis:100%;margin-top:2px}
+  .roles-drawer-close{margin-left:auto;cursor:pointer;color:#8a7458;font-size:14px}
+  .roles-drawer-close:hover{color:#e8a850}
+  .roles-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid rgba(200,152,96,.12)}
+  .roles-row .portrait{width:36px;height:36px;border-radius:8px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);
+    border:2px solid rgba(220,160,90,.4);background-size:cover;background-position:center;flex-shrink:0;cursor:pointer}
+  .roles-row .rname{flex:1;font-size:11px;color:#e8d8c0}
+  .roles-row .role-pill{position:static}
+  .roles-empty{padding:20px 4px;color:#8a7458;font-size:10px}
   .import-btn{position:absolute;top:80px;right:20px;padding:7px 12px;font-size:9px;color:#a0d0e0;border:1px solid rgba(122,184,200,.4);cursor:pointer;z-index:5}
   .buffer-panel{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);width:600px;padding:10px 16px;font-size:8.5px;color:#8a7458}
   .buffer-panel .buf-row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(220,160,90,.1)}
   .buffer-panel .buf-row b{color:#c89860}
+  .route-row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(220,160,90,.1);font-size:8.5px;color:#8a7458}
+  .route-row .stop-name{color:#f0dcc0;font-weight:600}
+  .route-row .stop-idx{color:#e8a850;font-weight:700;margin-right:5px}
+  .route-summary{color:#7ec87e;font-size:8.5px;padding-top:4px}
 
   .header-controls{position:absolute;top:20px;right:20px;display:flex;align-items:center;gap:10px;z-index:6}
   .product-chips{display:flex;gap:6px}
@@ -270,7 +295,14 @@
       <option value="1">Minimize characters</option>
     </select>
   </div>
-  <div class="pilot-strip"></div>
+  <div class="float" style="position:absolute;top:118px;right:170px;padding:7px 12px;font-size:9px;color:#c89860;display:flex;align-items:center;gap:6px" title="Route optimiser plans hauls around this ship's infrastructure hold capacity">
+    <label for="haulShipSel" style="cursor:pointer">Hauler:</label>
+    <select id="haulShipSel" style="cursor:pointer;background:#1a140f;color:#c89860;border:1px solid rgba(200,152,96,.35);border-radius:4px;font-size:9px;padding:2px 6px"></select>
+    <input id="haulCapacityInput" type="number" min="1" step="1" style="width:64px;background:#0d0f14;border:1px solid rgba(220,160,90,.3);color:#f0dcc0;border-radius:4px;padding:2px 6px;font-size:9px" title="Infrastructure hold capacity (m³) — reference value, edit to match your fit">
+    <span style="color:#6a5a48">m³ infra hold</span>
+  </div>
+  <div class="pilot-strip readonly"></div>
+  <button class="roles-fab" id="charRolesBtn" style="position:absolute;bottom:56px;left:20px;z-index:5" title="Assign colony roles per character">⚑ Character Roles<span class="badge" id="charRolesBadge">0</span></button>
 
   <svg id="logiSvg" style="position:absolute;inset:0;pointer-events:none"></svg>
   <div id="logiNodes"></div>
@@ -278,10 +310,19 @@
   <div class="buffer-panel float">
     <div class="lbl">Buffer &amp; haul cadence</div>
     <div id="logiBuffer"></div>
+    <div class="lbl" style="margin-top:10px">Route optimiser <span id="haulShipLbl" style="color:#6a5a48;font-weight:400;text-transform:none"></span></div>
+    <div id="logiRoute"></div>
   </div>
   <div class="float" id="logiNote" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 18px;font-size:9px;color:#8a7458">
     Pick a target product on Candidates to see its real production chain here.
   </div>
+</div>
+
+<div class="roles-drawer-backdrop" id="rolesBackdrop"></div>
+<div class="roles-drawer" id="rolesDrawer">
+  <div class="roles-drawer-head"><h3>Character Roles</h3><span class="roles-drawer-close" id="rolesDrawerClose">✕</span>
+    <span class="sub">Assign each character's colony role — click a portrait or role pill to change it</span></div>
+  <div id="rolesDrawerList"></div>
 </div>
 
 <div id="setModal" style="display:none;position:fixed;inset:0;background:rgba(2,1,3,.7);z-index:100;align-items:center;justify-content:center">
@@ -467,7 +508,7 @@ function setCharRole(charId, role){
 const ROLE_ORDER=['full','extractor','factory','none'];
 function cycleCharRole(charId){
   const cur=charRole(charId); setCharRole(charId, ROLE_ORDER[(ROLE_ORDER.indexOf(cur)+1)%ROLE_ORDER.length]);
-  renderPilotStrip(); if(typeof renderLogistics==='function') renderLogistics();
+  renderPilotStrip(); if(typeof renderLogistics==='function') renderLogistics(); if(typeof renderRolesDrawer==='function') renderRolesDrawer();
 }
 function closeRoleMenu(){ const m=document.getElementById('roleMenu'); if(m) m.remove(); document.removeEventListener('click', closeRoleMenuOnOutsideClick, true); }
 function closeRoleMenuOnOutsideClick(e){ const m=document.getElementById('roleMenu'); if(m && !m.contains(e.target)) closeRoleMenu(); }
@@ -490,7 +531,7 @@ function openRoleMenu(charId, anchorEl, charName){
       e.stopPropagation();
       setCharRole(charId, item.dataset.role);
       closeRoleMenu();
-      renderPilotStrip(); if(typeof renderLogistics==='function') renderLogistics();
+      renderPilotStrip(); if(typeof renderLogistics==='function') renderLogistics(); if(typeof renderRolesDrawer==='function') renderRolesDrawer();
     });
   });
   setTimeout(()=>document.addEventListener('click', closeRoleMenuOnOutsideClick, true), 0);
@@ -500,18 +541,45 @@ function renderPilotStrip(){
   document.querySelectorAll('.pilot-strip').forEach(el=>{
     if(!ids.length){ el.style.display='none'; el.innerHTML=''; return; }
     el.style.display='flex';
+    const isReadonly=el.classList.contains('readonly');
+    const click2Title=n=>n+"'s colony role — click to change";
     el.innerHTML=ids.map((id,i)=>{
       const role=charRole(id);
       const name=(chars[id].charName||('Character '+id)).replace(/"/g,'&quot;');
+      const click=isReadonly?'':` onclick="openRoleMenu('${id}', this, '${name}')"`;
+      const cursor=isReadonly?'cursor:default':'';
+      const pillTitle=isReadonly?name:click2Title(name);
       return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-        <div class="pilot-chip${i===0?' on':''}" title="${name} — click to assign colony role" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center" onclick="openRoleMenu('${id}', this, '${name}')"></div>
-        <div class="role-pill role-${role}" style="position:static" onclick="openRoleMenu('${id}', this, '${name}')" title="Click to change ${name}'s colony role">${ROLE_LABEL[role]}</div>
+        <div class="pilot-chip${i===0?' on':''}" title="${name}${isReadonly?'':' — click to assign colony role'}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center;${cursor}"${click}></div>
+        <div class="role-pill role-${role}" style="position:static;${cursor}"${click} title="${pillTitle}">${ROLE_LABEL[role]}</div>
       </div>`;
     }).join('');
   });
 }
 renderPilotStrip();
-window.addEventListener('storage', e=>{ if(e.key===SHARED_KEY){ chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); renderPilotStrip(); } });
+function renderRolesDrawer(){
+  const list=document.getElementById('rolesDrawerList'); const badge=document.getElementById('charRolesBadge');
+  if(!list) return;
+  const ids=Object.keys(chars);
+  if(badge) badge.textContent=String(ids.length);
+  if(!ids.length){ list.innerHTML='<div class="roles-empty">No characters connected yet. Sign in on My colonies to add characters here.</div>'; return; }
+  list.innerHTML=ids.map(id=>{
+    const role=charRole(id);
+    const name=(chars[id].charName||('Character '+id)).replace(/"/g,'&quot;');
+    return `<div class="roles-row">
+      <div class="portrait" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64)" onclick="openRoleMenu('${id}', this, '${name}')" title="Click to change ${name}'s colony role"></div>
+      <div class="rname">${name}</div>
+      <div class="role-pill role-${role}" onclick="openRoleMenu('${id}', this, '${name}')" title="Click to change ${name}'s colony role">${ROLE_LABEL[role]}</div>
+    </div>`;
+  }).join('');
+}
+renderRolesDrawer();
+{ const b=document.getElementById('charRolesBtn'), d=document.getElementById('rolesDrawer'), bd=document.getElementById('rolesBackdrop'), c=document.getElementById('rolesDrawerClose');
+  if(b) b.onclick=()=>{ renderRolesDrawer(); d.classList.add('open'); bd.classList.add('open'); };
+  if(c) c.onclick=()=>{ d.classList.remove('open'); bd.classList.remove('open'); };
+  if(bd) bd.onclick=()=>{ d.classList.remove('open'); bd.classList.remove('open'); };
+}
+window.addEventListener('storage', e=>{ if(e.key===SHARED_KEY){ chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); renderPilotStrip(); renderRolesDrawer(); } });
 async function tok(body){ const r=await fetch('https://login.eveonline.com/v2/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body).toString()});
   if(!r.ok) throw new Error('token '+r.status); return r.json(); }
 async function freshTok(id){ const s=chars[id]; if(Date.now()<s.expires-30000) return s.access;
@@ -887,6 +955,41 @@ let autoAssign=false; try{ autoAssign=localStorage.getItem('pi_auto_assign')==='
 { const sel=document.getElementById('autoAssignSel'); if(sel){ sel.value=autoAssign?'1':'0';
   sel.addEventListener('change', ()=>{ autoAssign=sel.value==='1'; try{localStorage.setItem('pi_auto_assign', autoAssign?'1':'0');}catch(e){} renderLogistics(); }); } }
 
+/* Ships with an Infrastructure Hold, used here to size the route optimiser's haul batches.
+   Capacities are reference figures for the stock hull — always editable, since rigs/skills/fits change them.
+   The Squall/Deluge/Torrent/Avalanche line is the Upwell hauler family added in the Equinox expansion,
+   often called "the EDENCOM haulers" in community shorthand; the actual EDENCOM faction (Invasion-era
+   combat ships) has no haulers of its own. Only Avalanche's ~3,000,000 m³ figure has a citable source
+   (player reporting); the others are placeholders — check in-game and adjust. */
+const HAUL_SHIPS=[
+  {id:'epithal', name:'Epithal (Gallente Industrial)', hold:3000},
+  {id:'primae', name:'Primae (CCP unique)', hold:10000},
+  {id:'squall', name:'Squall (Upwell T1 Hauler)', hold:5000},
+  {id:'deluge', name:'Deluge (Upwell T2 Blockade Runner)', hold:5000},
+  {id:'torrent', name:'Torrent (Upwell T2 Transport)', hold:8000},
+  {id:'avalanche', name:'Avalanche (Upwell Freighter)', hold:3000000},
+  {id:'custom', name:'Custom / other hauler…', hold:1000}
+];
+let haulShipId='epithal', haulCapacity=HAUL_SHIPS[0].hold;
+try{ haulShipId=localStorage.getItem('pi_haul_ship')||haulShipId; }catch(e){}
+try{ const savedCap=localStorage.getItem('pi_haul_capacity'); if(savedCap) haulCapacity=+savedCap; }catch(e){}
+{ const sel=document.getElementById('haulShipSel'), cap=document.getElementById('haulCapacityInput');
+  if(sel){
+    sel.innerHTML=HAUL_SHIPS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    sel.value=haulShipId;
+    if(cap) cap.value=haulCapacity;
+    sel.addEventListener('change', ()=>{
+      haulShipId=sel.value; try{ localStorage.setItem('pi_haul_ship', haulShipId); }catch(e){}
+      const ship=HAUL_SHIPS.find(s=>s.id===haulShipId);
+      if(ship && cap){ haulCapacity=ship.hold; cap.value=haulCapacity; try{ localStorage.setItem('pi_haul_capacity', haulCapacity); }catch(e){} }
+      renderLogistics();
+    });
+    if(cap) cap.addEventListener('input', ()=>{ haulCapacity=+cap.value||1; try{ localStorage.setItem('pi_haul_capacity', haulCapacity); }catch(e){} renderLogistics(); });
+  }
+}
+/* Reference volumes (m³/unit) by PI tier — approximate, since exact figures vary by item; edit per stage if you know the real numbers. */
+const REF_VOLUME_BY_TIER={0:0.4, 1:6, 2:8, 3:340, 4:6000};
+
 function systemOwnerMap(){ // which character (if any) owns an existing colony in each system
   const owner={};
   for(const charId of Object.keys(colonies)){
@@ -933,6 +1036,8 @@ async function renderLogistics(){
   const homeInputVal = document.getElementById('homeInput') ? document.getElementById('homeInput').value : '';
   const near = (selectedSystemId && SYS[selectedSystemId]) ? SYS[selectedSystemId][0] : homeInputVal;
   let nodesHtml='', lines='', bufSections='';
+  const routeStops=new Map(); // system id -> {sysName, jumps} deduped across the whole plan
+  let totalTripsAll=0;
   const rowCount=targets.length;
   targets.forEach((t,rowIdx)=>{
     const stages=traceChain(t);
@@ -975,6 +1080,7 @@ async function renderLogistics(){
         <div class="logi-role" style="top:${positions[i].top+downOff}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>
         ${pick&&ownerId!=null?`<div class="role-pill role-${role}" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%" onclick="openRoleMenu('${ownerId}', this, '${(pilotName||'Character').replace(/"/g,'&quot;')}')" title="${pilotName||'Character'}'s colony role — click to assign">${ROLE_LABEL[role]}${pilotName?' · '+pilotName:''}</div>`
           : pick?`<div class="logi-role" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%;color:#6a5a48">no colony here yet</div>`:''}`;
+      if(pick){ routeStops.set(pick.id, { sysName: SYS[pick.id][0], jumps: pick.jumps }); }
       if(i>0){ const a=positions[i-1], b=positions[i];
         lines+=`<line x1="${a.left+4}%" y1="${a.top+3}%" x2="${b.left+4}%" y2="${b.top+3}%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>`; }
     });
@@ -984,8 +1090,14 @@ async function renderLogistics(){
         const ra=PI.recipe[a], rb=PI.recipe[b];
         const ctA=ra?ra.ct:1800, ctB=rb?rb.ct:1800;
         const cadence=Math.max(ctA,ctB);
+        const qtyPerCadence= ra ? ra.out*Math.max(1,cadence/ctA) : 1;
+        const tierForVol= PI.tier[a]!=null?PI.tier[a]:(PI.tier[b]!=null?PI.tier[b]:1);
+        const volPerUnit= REF_VOLUME_BY_TIER[tierForVol]!=null?REF_VOLUME_BY_TIER[tierForVol]:6;
+        const totalM3= qtyPerCadence*volPerUnit;
+        const trips= Math.max(1, Math.ceil(totalM3/haulCapacity));
+        totalTripsAll+=trips;
         rows+=`<div class="buf-row"><span>${['I','II','III','IV','V'][i]} → ${['I','II','III','IV','V'][i+1]}</span>
-          <span><b>${fmtHrs(cadence)}</b> haul cadence · ${PI.p0pt[a]&&!PI.recipe[a]?'raw':PI.recipe[a].name} → ${PI.recipe[b]?PI.recipe[b].name:b}, matched to the slower stage's cycle</span></div>`;
+          <span><b>${fmtHrs(cadence)}</b> haul cadence · ${PI.p0pt[a]&&!PI.recipe[a]?'raw':PI.recipe[a].name} → ${PI.recipe[b]?PI.recipe[b].name:b}, matched to the slower stage's cycle · ~${Math.round(totalM3).toLocaleString()} m³ ≈ <b>${trips}</b> trip${trips===1?'':'s'} in selected hauler</span></div>`;
       }
       bufSections+=`<div style="margin-bottom:8px">${rowCount>1?'<div style="font-size:8px;color:#f0dcc0;font-weight:600;margin-bottom:2px">'+prodName+'</div>':''}${rows||'<div class="buf-row"><span style="color:#6a5a48">Single-stage chain — no hauls needed.</span></div>'}</div>`;
     }
@@ -993,6 +1105,17 @@ async function renderLogistics(){
   nodesWrap.innerHTML=nodesHtml;
   if(svgWrap) svgWrap.innerHTML=lines;
   if(bufWrap) bufWrap.innerHTML=bufSections;
+  const shipLbl=document.getElementById('haulShipLbl'); const routeWrap=document.getElementById('logiRoute');
+  const shipObj=HAUL_SHIPS.find(s=>s.id===haulShipId);
+  if(shipLbl) shipLbl.textContent=`— ${shipObj?shipObj.name:'custom hauler'}, ${haulCapacity.toLocaleString()} m³`;
+  if(routeWrap){
+    const stops=[...routeStops.values()].sort((x,y)=>(x.jumps??1e9)-(y.jumps??1e9));
+    if(!stops.length){ routeWrap.innerHTML='<div class="route-row"><span style="color:#6a5a48">No systems scored yet — pick a target product to plan a route.</span></div>'; }
+    else{
+      routeWrap.innerHTML=stops.map((s,i)=>`<div class="route-row"><span><span class="stop-idx">${i+1}.</span><span class="stop-name">${s.sysName}</span></span><span>${s.jumps!=null?s.jumps+' jumps from home':'jumps unknown'}</span></div>`).join('')
+        +`<div class="route-summary">Nearest-first route across ${stops.length} system${stops.length===1?'':'s'} · ~${totalTripsAll} total trip${totalTripsAll===1?'':'s'} to clear every haul stage at current cadence</div>`;
+    }
+  }
   if(noteEl) noteEl.textContent='Roman numerals mark production order, earliest to latest. System picks are scored the same way as Candidates — real planet-type coverage and jump distance, not example data.'+(autoAssign?' Auto-assign is on: picks favor characters already used elsewhere in this chain to minimize headcount.':'');
 }
 
