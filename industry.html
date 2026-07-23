@@ -339,11 +339,16 @@ body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:no
 .forge-row.soon .forge-time { color:var(--amber); text-shadow:0 0 14px var(--amber); }
 
 /* ===== Blueprint Library ===== */
-.bp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:22px; }
+.bp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:22px; max-height:70vh; overflow-y:auto; padding-right:6px; }
+.bp-grid::-webkit-scrollbar, #researchBpList::-webkit-scrollbar { width:10px; }
+.bp-grid::-webkit-scrollbar-track, #researchBpList::-webkit-scrollbar-track { background:rgba(0,0,0,.3); }
+.bp-grid::-webkit-scrollbar-thumb, #researchBpList::-webkit-scrollbar-thumb { background:linear-gradient(180deg,var(--gold-bright),var(--gold)); border-radius:2px; }
+.bp-grid::-webkit-scrollbar-thumb:hover, #researchBpList::-webkit-scrollbar-thumb:hover { background:var(--gold-bright); }
 .bp-card { border:1px solid var(--line2); padding:24px; cursor:pointer; position:relative; overflow:hidden;
   background:linear-gradient(160deg, rgba(var(--gold-rgb),.08), rgba(0,0,0,.3) 65%);
   clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
-  box-shadow:0 14px 30px rgba(0,0,0,.5); transition:.3s cubic-bezier(.2,.9,.3,1.2); }
+  box-shadow:0 14px 30px rgba(0,0,0,.5); transition:.3s cubic-bezier(.2,.9,.3,1.2);
+  content-visibility:auto; contain-intrinsic-size:auto 220px; }
 .bp-card::before, .bp-card::after { content:''; position:absolute; width:18px; height:18px; border:2px solid var(--gold-dim); opacity:.8; filter:drop-shadow(0 0 6px rgba(var(--gold-rgb),.4)); }
 .bp-card::before { top:-2px; left:-2px; border-right:none; border-bottom:none; }
 .bp-card::after { bottom:-2px; right:-2px; border-left:none; border-top:none; }
@@ -628,8 +633,8 @@ body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:no
   <div class="panel-body">
   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:12px;margin-bottom:14px">
     <label>Check ownership for <select id="libraryCharSelect"></select></label>
-    <label>Corporation <select id="libraryCorpSelect"><option value="">— none selected —</option></select></label>
-    <button class="parse-btn" id="libraryLoadBtn" type="button" style="padding:6px 16px">Load my blueprints ▸</button>
+    <label>Also include corp hangar <select id="libraryCorpSelect"><option value="">— none selected —</option></select></label>
+    <button class="parse-btn" id="libraryLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
     <span id="libraryLoadStatus" class="sub"></span>
   </div>
   <div class="bp-subtabs" style="align-items:center;justify-content:space-between">
@@ -643,6 +648,11 @@ body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:no
     <button class="bp-filt-btn on" data-filt="all" id="bpFiltAll">All (0)</button>
     <button class="bp-filt-btn" data-filt="owned" id="bpFiltOwned">Owned (0)</button>
     <button class="bp-filt-btn" data-filt="missing" id="bpFiltMissing">Missing (0)</button>
+  </div>
+  <div class="bp-filter" id="bpSourceFilter">
+    <button class="bp-src-btn on" data-src="all" id="bpSrcAll">All Sources (0)</button>
+    <button class="bp-src-btn" data-src="personal" id="bpSrcPersonal">Personal (0)</button>
+    <button class="bp-src-btn" data-src="corp" id="bpSrcCorp">Corp (0)</button>
   </div>
   <div class="bp-grid" id="bpGrid">
     <div class="sub" style="padding:20px 4px">Loading blueprint catalog…</div>
@@ -690,7 +700,7 @@ body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:no
         <label>Character <select id="researchCharSelect"></select></label>
         <button class="parse-btn" id="researchLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
       </div>
-      <div id="researchBpList" class="sub" style="padding:8px 4px 16px">No blueprints loaded yet — pick a character and load.</div>
+      <div id="researchBpList" class="sub" style="padding:8px 4px 16px;max-height:60vh;overflow-y:auto">No blueprints loaded yet — pick a character and load.</div>
 
       <div id="researchTargetPanel" style="display:none">
         <div style="display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;margin-bottom:16px">
@@ -1623,14 +1633,15 @@ document.getElementById('importJsonFile').addEventListener('change', (e)=>{
   e.target.value='';
 });
 
-let bpTypeFilt='blueprint', bpStatusFilt='all', bpSearchTerm='';
+let bpTypeFilt='blueprint', bpStatusFilt='all', bpSourceFilt='all', bpSearchTerm='';
 function applyBpFilters(){
   document.querySelectorAll('.bp-card').forEach(card=>{
     const typeOk = bpTypeFilt==='all' || card.dataset.type===bpTypeFilt;
     const statusOk = bpStatusFilt==='all' || card.dataset.status===bpStatusFilt;
+    const sourceOk = bpSourceFilt==='all' || (card.dataset.source||'').split(',').includes(bpSourceFilt);
     const nameEl = card.querySelector('.bp-name');
     const searchOk = !bpSearchTerm || (nameEl && nameEl.textContent.toLowerCase().includes(bpSearchTerm));
-    card.classList.toggle('hidden-filt', !(typeOk && statusOk && searchOk));
+    card.classList.toggle('hidden-filt', !(typeOk && statusOk && sourceOk && searchOk));
   });
 }
 document.getElementById('bpSearchInput').addEventListener('input', (e)=>{
@@ -1647,6 +1658,12 @@ document.querySelectorAll('.bp-filt-btn').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.bp-filt-btn').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
   bpStatusFilt=b.dataset.filt;
+  applyBpFilters();
+});
+document.querySelectorAll('.bp-src-btn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.bp-src-btn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  bpSourceFilt=b.dataset.src;
   applyBpFilters();
 });
 
@@ -2027,15 +2044,17 @@ populateLibraryCharSelect();
 // The corp dropdown is populated independently of the character dropdown —
 // it lists every corp any roster character belongs to, not just whichever
 // character happens to be selected above. Loading corp blueprints still
-// needs an authenticated character, so we remember which roster character(s)
-// belong to each corp and use one of them automatically at load time.
-let libraryCorpToCharId = {};
+// needs an authenticated character, so we remember ALL roster character(s)
+// belonging to each corp — not just the first — because the first one seen
+// might not hold the Director/Accountant role the corp blueprints endpoint
+// requires, while a different roster-mate in the same corp might.
+let libraryCorpToCharIds = {}; // corpId -> [charId, charId, ...]
 const libraryCharCorpCache = {}; // charId -> corporation_id, cached for the session
 const libraryCorpNameCache = {}; // corporation_id -> name, cached for the session
 async function populateLibraryCorpSelect(){
   const corpSel = document.getElementById('libraryCorpSelect');
   corpSel.innerHTML = '<option value="">— none selected —</option>';
-  libraryCorpToCharId = {};
+  libraryCorpToCharIds = {};
   const ids = Object.keys(chars).filter(id=>chars[id] && chars[id].refresh);
   const seenCorps = {};
   await Promise.all(ids.map(async charId=>{
@@ -2047,7 +2066,7 @@ async function populateLibraryCorpSelect(){
         libraryCharCorpCache[charId] = corpId;
       }
       if(!corpId) return;
-      if(!libraryCorpToCharId[corpId]) libraryCorpToCharId[corpId] = charId;
+      (libraryCorpToCharIds[corpId] = libraryCorpToCharIds[corpId] || []).push(charId);
       if(seenCorps[corpId]) return;
       seenCorps[corpId] = true;
       let corpLabel = libraryCorpNameCache[corpId];
@@ -2063,62 +2082,83 @@ async function populateLibraryCorpSelect(){
     }catch(err){ /* skip characters whose corp can't be resolved */ }
   }));
 }
-document.getElementById('libraryCorpSelect').addEventListener('change', ()=>{
-  const corpId = document.getElementById('libraryCorpSelect').value;
-  document.getElementById('libraryLoadBtn').textContent = corpId ? 'Load corp blueprints ▸' : 'Load my blueprints ▸';
-});
 populateLibraryCorpSelect();
 
 document.getElementById('libraryLoadBtn').onclick = async ()=>{
   const status = document.getElementById('libraryLoadStatus');
   const charId = document.getElementById('libraryCharSelect').value;
   const corpId = document.getElementById('libraryCorpSelect').value;
-  if(corpId){
-    const corpAuthCharId = libraryCorpToCharId[corpId];
-    if(!corpAuthCharId){ status.textContent = 'No roster character with stored ESI credentials belongs to this corp.'; return; }
-    status.textContent = 'Loading corp hangar blueprints…';
-    try{
-      const owned = await eGet(corpAuthCharId, '/corporations/'+corpId+'/blueprints/');
-      libraryOwnedByBpTypeId = {};
-      libraryAllCopiesByBpTypeId = {};
-      owned.forEach(bp=>{
-        const existing = libraryOwnedByBpTypeId[bp.type_id];
-        if(!existing || bp.material_efficiency > existing.material_efficiency ||
-           (bp.material_efficiency === existing.material_efficiency && bp.time_efficiency > existing.time_efficiency)){
-          libraryOwnedByBpTypeId[bp.type_id] = bp;
-        }
-        (libraryAllCopiesByBpTypeId[bp.type_id] = libraryAllCopiesByBpTypeId[bp.type_id] || []).push(bp);
-      });
-      status.textContent = 'Loaded '+owned.length+' blueprint cop'+(owned.length===1?'y':'ies')+' from corp hangar.';
-      renderBpLibrary();
-    }catch(err){
-      status.textContent = 'Could not load corp blueprints ('+err.message+'). Needs Director/Accountant roles and the esi-corporations.read_blueprints.v1 scope.';
-    }
-    return;
-  }
-  if(!charId){ status.textContent = 'No character selected — add one via the pilot roster first.'; return; }
-  if(!chars[charId] || !chars[charId].refresh){ status.textContent = 'No ESI credentials stored for this character — sign in via the pilot roster first.'; return; }
-  status.textContent = 'Loading your blueprints…';
-  try{
-    const owned = await eGet(charId, '/characters/'+charId+'/blueprints/');
-    libraryOwnedByBpTypeId = {};
-    libraryAllCopiesByBpTypeId = {};
-    owned.forEach(bp=>{
+
+  if(!charId && !corpId){ status.textContent = 'Select a character and/or a corporation to load blueprints from.'; return; }
+
+  libraryOwnedByBpTypeId = {};
+  libraryAllCopiesByBpTypeId = {};
+
+  const mergeIn = (list, source)=>{
+    list.forEach(bp=>{
+      bp = Object.assign({}, bp, {source});
       const existing = libraryOwnedByBpTypeId[bp.type_id];
-      // Best-researched copy drives the card's headline ME/TE and the
-      // research-eligibility check; all copies are tracked separately so we
-      // can show "×N copies owned" rather than silently hiding the rest.
+      // Best-researched copy (across BOTH personal and corp hangars) drives the
+      // card's headline ME/TE and the research-eligibility check; all copies
+      // are tracked separately, tagged with their source, so we can show
+      // "×N copies owned" (personal + corp mixed) rather than silently
+      // hiding one hangar's stock in favor of the other.
       if(!existing || bp.material_efficiency > existing.material_efficiency ||
          (bp.material_efficiency === existing.material_efficiency && bp.time_efficiency > existing.time_efficiency)){
         libraryOwnedByBpTypeId[bp.type_id] = bp;
       }
       (libraryAllCopiesByBpTypeId[bp.type_id] = libraryAllCopiesByBpTypeId[bp.type_id] || []).push(bp);
     });
-    status.textContent = 'Loaded '+owned.length+' blueprint cop'+(owned.length===1?'y':'ies')+' from personal hangar (as '+(chars[charId].charName||charId)+').';
-    renderBpLibrary();
-  }catch(err){
-    status.textContent = 'Could not load blueprints ('+err.message+'). Needs the esi-characters.read_blueprints.v1 scope.';
+  };
+
+  const results = [];
+  const errors = [];
+
+  if(charId){
+    if(!chars[charId] || !chars[charId].refresh){
+      errors.push('No ESI credentials stored for the selected character — sign in via the pilot roster first.');
+    }else{
+      status.textContent = 'Loading personal hangar blueprints…';
+      try{
+        const owned = await eGet(charId, '/characters/'+charId+'/blueprints/');
+        mergeIn(owned, 'personal');
+        results.push(owned.length+' personal (as '+(chars[charId].charName||charId)+')');
+      }catch(err){
+        errors.push('Personal blueprints failed ('+err.message+'). Needs the esi-characters.read_blueprints.v1 scope.');
+      }
+    }
   }
+
+  if(corpId){
+    const candidates = libraryCorpToCharIds[corpId] || [];
+    if(!candidates.length){
+      errors.push('No roster character with stored ESI credentials belongs to this corp.');
+    }else{
+      status.textContent = 'Loading corp hangar blueprints…';
+      let loaded = false;
+      let lastErr = null;
+      for(const candidateCharId of candidates){
+        try{
+          const owned = await eGet(candidateCharId, '/corporations/'+corpId+'/blueprints/');
+          mergeIn(owned, 'corp');
+          results.push(owned.length+' corp hangar (checked as '+(chars[candidateCharId].charName||candidateCharId)+')');
+          loaded = true;
+          break; // found a character with the right role — no need to try the rest
+        }catch(err){
+          lastErr = err; // try the next roster-mate in this corp — they may hold the Director/Accountant role this one lacks
+        }
+      }
+      if(!loaded){
+        errors.push('Corp blueprints failed for all '+candidates.length+' roster character(s) in this corp'+(lastErr?' ('+lastErr.message+')':'')+'. Needs Director/Accountant roles and the esi-corporations.read_blueprints.v1 scope.');
+      }
+    }
+  }
+
+  const parts = [];
+  if(results.length) parts.push('Loaded '+results.join(' + ')+'.');
+  if(errors.length) parts.push(errors.join(' '));
+  status.textContent = parts.join(' ') || 'Nothing loaded.';
+  renderBpLibrary();
 };
 
 function renderBpLibrary(){
@@ -2126,20 +2166,25 @@ function renderBpLibrary(){
   const entries = Object.entries(BP_SDE_DETAIL);
   if(!entries.length){ grid.innerHTML = '<div class="sub" style="padding:20px 4px">No blueprint catalog data loaded.</div>'; return; }
 
-  const counts = { all:0, blueprint:0, reaction:0, owned:0, missing:0 };
+  const counts = { all:0, blueprint:0, reaction:0, owned:0, missing:0, personal:0, corp:0 };
   const cardsHtml = entries.map(([name, d])=>{
     const isReaction = !!d.isReaction;
     const owned = d.bpTypeID!=null ? libraryOwnedByBpTypeId[d.bpTypeID] : null;
     const status = owned ? 'owned' : 'missing';
+    const allCopies = d.bpTypeID!=null ? (libraryAllCopiesByBpTypeId[d.bpTypeID]||[]) : [];
+    const hasPersonal = allCopies.some(c=>c.source==='personal');
+    const hasCorp = allCopies.some(c=>c.source==='corp');
+    const sources = [hasPersonal?'personal':null, hasCorp?'corp':null].filter(Boolean).join(',');
     counts.all++; counts[isReaction?'reaction':'blueprint']++; counts[status]++;
+    if(hasPersonal) counts.personal++;
+    if(hasCorp) counts.corp++;
 
     const meTe = owned
       ? '<div class="bp-me"><span>ME '+owned.material_efficiency+'%</span>'+(isReaction?'':'<span>TE '+owned.time_efficiency+'%</span>')+'</div>'
       : '';
-    const allCopies = d.bpTypeID!=null ? (libraryAllCopiesByBpTypeId[d.bpTypeID]||[]) : [];
     const copiesLine = allCopies.length>1
       ? '<div class="sub" style="font-size:10.5px;margin-top:4px">×'+allCopies.length+' cop'+(allCopies.length===1?'y':'ies')+' owned (best shown) — '+
-        allCopies.map(c=>'ME '+c.material_efficiency+'%/TE '+c.time_efficiency+'%'+(c.runs<0?' BPO':' ('+c.runs+' runs)')).join(', ')+'</div>'
+        allCopies.map(c=>'['+(c.source==='corp'?'Corp':'Personal')+'] ME '+c.material_efficiency+'%/TE '+c.time_efficiency+'%'+(c.runs<0?' BPO':' ('+c.runs+' runs)')).join(', ')+'</div>'
       : '';
     const mins = d.buildTime ? Math.round(d.buildTime/60) : null;
     const buildLine = status==='owned'
@@ -2148,10 +2193,12 @@ function renderBpLibrary(){
     const needsResearch = owned && !isReaction && (owned.material_efficiency<10 || owned.time_efficiency<20);
     const researchBtn = needsResearch ? '<button class="bp-add research">Add to research ▸</button>' : '';
     const addBtn = status==='owned' ? '<button class="bp-add">Add to build planner ▸</button>' : '<button class="bp-add find">Find this blueprint ▸</button>';
-    const ownerLine = status==='owned' ? '<div class="bp-owner personal">Owned</div>' : '';
+    const ownerLine = status==='owned'
+      ? '<div class="bp-owner personal">'+(hasPersonal&&hasCorp?'Owned (Personal + Corp)':hasCorp?'Owned (Corp Hangar)':'Owned (Personal)')+'</div>'
+      : '';
     const icon = isReaction ? '⚛' : '🚀';
 
-    return '<div class="bp-card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-bptypeid="'+d.bpTypeID+'">'+
+    return '<div class="bp-card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+sources+'" data-bptypeid="'+d.bpTypeID+'">'+
       '<div class="bp-icon">'+icon+'</div>'+
       '<div class="bp-name">'+name+'</div>'+
       meTe + copiesLine + buildLine + ownerLine + addBtn + researchBtn +
@@ -2164,6 +2211,9 @@ function renderBpLibrary(){
   document.getElementById('bpFiltAll').textContent = 'All ('+counts.all+')';
   document.getElementById('bpFiltOwned').textContent = 'Owned ('+counts.owned+')';
   document.getElementById('bpFiltMissing').textContent = 'Missing ('+counts.missing+')';
+  document.getElementById('bpSrcAll').textContent = 'All Sources ('+counts.all+')';
+  document.getElementById('bpSrcPersonal').textContent = 'Personal ('+counts.personal+')';
+  document.getElementById('bpSrcCorp').textContent = 'Corp ('+counts.corp+')';
 
   wireBpCardHandlers();
   wireBpDetailDrawer();
