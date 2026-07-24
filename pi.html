@@ -1,146 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html data-app="pi">
 <head>
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'amarr';}catch(e){}</script>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
 <meta charset="utf-8">
 <title>EVE PI Planner</title>
 <style>
-  *{box-sizing:border-box}
-  :root{--ui:1}
-  #uiScaleWrap{transform-origin:top left;transform:scale(var(--ui,1));width:calc(100vw / var(--ui,1));height:calc(100vh / var(--ui,1))}
-  body{margin:0;background:#020103;font-family:'IBM Plex Mono',monospace;color:#d8c8b8}
-  .level{position:relative;width:100%;height:100%;overflow:hidden;border-bottom:2px solid #1a1008;display:none}
-  .level.on{display:block}
-  .stars{position:absolute;inset:0;background:
-    radial-gradient(1px 1px at 8% 15%, #fff, transparent 60%),
-    radial-gradient(1px 1px at 22% 68%, #fff, transparent 60%),
-    radial-gradient(1.5px 1.5px at 38% 28%, #fff, transparent 60%),
-    radial-gradient(1px 1px at 68% 12%, #fff, transparent 60%),
-    radial-gradient(1px 1px at 90% 35%, #fff, transparent 60%),
-    radial-gradient(1px 1px at 15% 92%, #fff, transparent 60%),
-    radial-gradient(1200px 800px at 50% 50%, #0a0612 0%, #020103 70%)}
-  .float{background:rgba(8,6,4,.85);border:1px solid rgba(220,160,90,.35);backdrop-filter:blur(8px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
-  .lbl{font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:#c89860;margin-bottom:4px}
-  .val{font-size:14px;color:#f0dcc0;font-weight:600}
-  .tag{position:absolute;top:20px;left:32px;font-size:9px;letter-spacing:.25em;color:#8a7458;text-transform:uppercase;z-index:5}
-  .tag b{color:#e8a850;display:block;font-size:18px;letter-spacing:.05em;margin-top:4px;font-weight:600}
-
-  .nav-tabs{position:absolute;top:20px;right:20px;display:flex;gap:6px;z-index:6}
-  .nav-tab{padding:7px 12px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#8a7458;cursor:pointer;border:1px solid rgba(220,160,90,.2)}
-  .nav-tab.on{color:#f0dcc0;border-color:#e8a850;background:rgba(232,168,80,.1)}
-
-  .pilot-strip{position:absolute;bottom:20px;left:20px;display:flex;flex-wrap:wrap;gap:5px;z-index:5;max-width:480px}
-  .pilot-chip{width:22px;height:22px;border-radius:6px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);border:1.5px solid rgba(220,160,90,.35)}
-  .pilot-chip.on{border-color:#e8a850;box-shadow:0 0 10px rgba(232,168,80,.3)}
-
-  .planet-core{position:absolute;bottom:150px;left:32%;transform:translate(-50%,0);width:100px;height:100px;border-radius:50%;
-    background:radial-gradient(circle at 35% 30%, #3a2818, #1a0f08 55%, #0a0503 80%);
-    box-shadow:inset -16px -12px 32px rgba(0,0,0,.8), inset 8px 4px 16px rgba(220,160,90,.15), 0 0 46px rgba(220,140,60,.1)}
-  .orbit-ring{position:absolute;bottom:150px;left:32%;transform:translate(-50%,0);width:280px;height:280px;pointer-events:none}
-  .orbit-icon{position:absolute;width:42px;height:42px;border-radius:50%;background:rgba(8,6,4,.85);border:1px solid rgba(220,160,90,.4);
-    display:flex;align-items:center;justify-content:center;font-size:8px;color:#c89860;text-align:center;pointer-events:auto}
-  .add-search{position:absolute;top:20px;left:20px;width:300px;padding:10px 14px;z-index:5}
-  .add-search input{width:100%;background:transparent;border:none;color:#f0dcc0;font-family:inherit;font-size:11px;outline:none}
-  .settings-strip{position:absolute;top:78px;left:20px;width:300px;padding:7px 12px;display:flex;align-items:center;gap:6px;font-size:8px;z-index:5;flex-wrap:wrap}
-  .sec-pill{padding:2px 6px;border:1px solid rgba(220,160,90,.3);color:#8a7458}
-  .sec-pill.on{border-color:#e8a850;color:#f0dcc0;background:rgba(232,168,80,.1)}
-  .market-panel{position:absolute;top:130px;left:20px;width:300px;padding:10px 14px;z-index:5}
-  .market-panel .big-val{font-size:16px;color:#7ec87e;font-weight:600;margin:3px 0}
-  .market-row{display:flex;justify-content:space-between;font-size:8.5px;padding:3px 0;border-top:1px solid rgba(220,160,90,.12)}
-  .star-node{position:absolute;border-radius:50%}
-  .star-card{position:absolute;width:150px;padding:8px 10px;top:14px;left:-60px;font-size:8px}
-
-  .chain-strip{position:absolute;top:230px;left:20px;width:300px;padding:10px 14px;z-index:5}
-  .chain-row{display:flex;align-items:center;gap:0;margin-top:6px}
-  .chain-node{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;
-    background:rgba(8,6,4,.9);border:1.5px solid rgba(220,160,90,.25);color:#8a7458}
-  .chain-node.on{border-color:#e8a850;color:#f0dcc0;background:rgba(232,168,80,.12);box-shadow:0 0 8px rgba(232,168,80,.3)}
-  .chain-link{width:20px;height:1.5px;background:rgba(220,160,90,.2)}
-  .chain-link.on{background:#e8a850}
-  .chain-needs{margin-top:8px;font-size:8px;color:#8a7458;line-height:1.6}
-  .chain-needs b{color:#c89860}
-
-  .colony-row{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;gap:26px}
-  .my-colony{width:150px;text-align:center}
-  .my-planet{width:80px;height:80px;border-radius:50%;margin:0 auto 10px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);
-    border:1px solid rgba(220,160,90,.4);position:relative;display:flex;align-items:center;justify-content:center}
-  .my-planet .ring{position:absolute;inset:-8px;border:1px solid rgba(220,160,90,.2);border-radius:50%}
-  .my-planet.alert{border-color:#d66a5a;box-shadow:0 0 16px rgba(214,106,90,.3)}
-  .cc-badge{font-size:9px;color:#e8a850;font-weight:700}
-  .my-colony .sysname{font-size:11px;color:#f0dcc0;font-weight:600}
-  .my-colony .sub{font-size:7.5px;color:#6a5a48;margin-top:1px}
-  .my-colony .stat{font-size:8.5px;color:#8a7458;margin-top:4px}
-  .my-colony .stat b{color:#e8a850}
-  .capacity-panel{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:640px;padding:12px 18px}
-  .cap-row{display:flex;justify-content:space-between;font-size:9.5px;padding:3px 0;border-bottom:1px solid rgba(220,160,90,.1)}
-
-  .rank-bar{position:absolute;top:80px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
-  .rank-sel{padding:6px 10px;font-size:9px;color:#c89860;border:1px solid rgba(220,160,90,.3)}
-  .rank-list{position:absolute;top:140px;left:50%;transform:translateX(-50%);width:560px}
-  .rank-item{display:flex;align-items:center;gap:14px;padding:9px 14px;margin-bottom:6px;position:relative}
-  .rank-glow{width:8px;height:34px;border-radius:2px;flex-shrink:0}
-  .rank-item .nm{flex:1;font-size:11.5px;color:#e8dcc8}
-  .rank-item .profit{font-size:12px;font-weight:600}
-  .rank-item .margin{font-size:8.5px;color:#8a7458}
-
-  .logi-node{position:absolute;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2a1c10,#0f0a06);z-index:2;
-    border:1px solid rgba(220,160,90,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:8px;color:#c89860}
-  .logi-node .designation{color:#f0dcc0;font-weight:600;font-size:10px}
-  .logi-role{position:absolute;font-size:7px;color:#8a7458;white-space:nowrap;z-index:2}
-  .role-pill{position:absolute;font-size:6.5px;padding:1px 5px;border-radius:8px;cursor:pointer;white-space:nowrap;border:1px solid transparent;user-select:none}
-  .role-pill.role-full{color:#e8a850;border-color:rgba(220,160,90,.4)}
-  .role-pill.role-extractor{color:#7ec8e0;border-color:rgba(126,200,224,.4)}
-  .role-pill.role-factory{color:#7ec87e;border-color:rgba(126,200,126,.4)}
-  .role-pill.role-none{color:#8a6858;border-color:rgba(138,104,88,.4);text-decoration:line-through}
-  .role-menu{z-index:9999;background:#1a140f;border:1px solid rgba(200,152,96,.4);border-radius:6px;padding:4px;box-shadow:0 6px 18px rgba(0,0,0,.5);min-width:130px;font-size:10px}
-  .role-menu-hdr{padding:3px 8px 5px;color:#8a7458;font-size:8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(200,152,96,.15);margin-bottom:3px}
-  .role-menu-item{padding:5px 8px;border-radius:4px;cursor:pointer;color:#e8d8c0;white-space:nowrap}
-  .role-menu-item:hover{background:rgba(200,152,96,.15)}
-  .role-menu-item.current{color:#e8a850;font-weight:600}
-  .pilot-chip{cursor:pointer}
-  .roles-fab{position:relative;font-family:inherit;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#e8a850;
-    background:rgba(200,152,96,.08);border:1px solid rgba(220,160,90,.4);border-radius:6px;padding:8px 14px;cursor:pointer;
-    display:flex;align-items:center;gap:7px;box-shadow:0 0 14px rgba(200,152,96,.12)}
-  .roles-fab:hover{background:rgba(200,152,96,.18);border-color:#e8a850}
-  .roles-fab .badge{background:#e8a850;color:#1a1006;font-size:9px;font-weight:700;border-radius:9px;padding:1px 7px}
-  .roles-drawer{position:fixed;top:0;right:-360px;width:340px;height:100vh;z-index:120;background:linear-gradient(180deg,rgba(20,14,8,.97),rgba(8,5,2,.99));
-    border-left:1px solid rgba(220,160,90,.4);box-shadow:-20px 0 60px rgba(0,0,0,.6);padding:22px;overflow-y:auto;transition:right .3s cubic-bezier(.2,.9,.3,1)}
-  .roles-drawer.open{right:0}
-  .roles-drawer-backdrop{position:fixed;inset:0;z-index:115;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.3s}
-  .roles-drawer-backdrop.open{opacity:1;pointer-events:auto}
-  .roles-drawer-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-  .roles-drawer-head h3{font-size:13px;color:#e8a850;margin:0;text-transform:uppercase;letter-spacing:.08em}
-  .roles-drawer-head .sub{font-size:9.5px;color:#8a7458;flex-basis:100%;margin-top:2px}
-  .roles-drawer-close{margin-left:auto;cursor:pointer;color:#8a7458;font-size:14px}
-  .roles-drawer-close:hover{color:#e8a850}
-  .roles-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid rgba(200,152,96,.12)}
-  .roles-row .portrait{width:36px;height:36px;border-radius:8px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);
-    border:2px solid rgba(220,160,90,.4);background-size:cover;background-position:center;flex-shrink:0;cursor:pointer}
-  .roles-row .rname{flex:1;font-size:11px;color:#e8d8c0}
-  .roles-row .role-pill{position:static}
-  .roles-empty{padding:20px 4px;color:#8a7458;font-size:10px}
-  .import-btn{position:absolute;top:80px;right:20px;padding:7px 12px;font-size:9px;color:#a0d0e0;border:1px solid rgba(122,184,200,.4);cursor:pointer;z-index:5}
-  .buffer-panel{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);width:600px;padding:10px 16px;font-size:8.5px;color:#8a7458}
-  .buffer-panel .buf-row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(220,160,90,.1)}
-  .buffer-panel .buf-row b{color:#c89860}
-  .route-row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(220,160,90,.1);font-size:8.5px;color:#8a7458}
-  .route-row .stop-name{color:#f0dcc0;font-weight:600}
-  .route-row .stop-idx{color:#e8a850;font-weight:700;margin-right:5px}
-  .route-summary{color:#7ec87e;font-size:8.5px;padding-top:4px}
-
-  .header-controls{position:absolute;top:20px;right:20px;display:flex;align-items:center;gap:10px;z-index:6}
-  .product-chips{display:flex;gap:6px}
-  .pchip{width:24px;height:24px;border-radius:5px;background:rgba(8,6,4,.9);border:1px solid rgba(220,160,90,.4);
-    display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .pchip img{width:100%;height:100%;object-fit:cover}
-  .theme-picker{display:flex;gap:5px;padding:0 8px;border-left:1px solid rgba(220,160,90,.25);border-right:1px solid rgba(220,160,90,.25)}
-  .theme-swatch{width:13px;height:13px;border-radius:50%;border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:0}
-  .theme-swatch.on{box-shadow:0 0 0 2px #020103,0 0 0 3px currentColor}
-  .sync-chip{display:flex;align-items:center;gap:5px;font-size:8px;color:#8a7458;cursor:pointer}
-  .sync-dot{width:6px;height:6px;border-radius:50%;background:#7ec87e;box-shadow:0 0 5px #7ec87e}
-  .gear-btn{font-size:11px;color:#8a7458;cursor:pointer;padding:2px 4px}
-  .nav-tabs{top:56px}
+*{box-sizing:border-box}
+:root{--ui:1}
+#uiScaleWrap{transform-origin:top left;transform:scale(var(--ui,1));width:calc(100vw / var(--ui,1));height:calc(100vh / var(--ui,1))}
+body{margin:0}
+.level{position:relative;width:100%;height:100%;overflow:hidden;display:none}
+.level.on{display:block}
+.stars{position:absolute;inset:0}
+.lbl{font-size:8.5px;margin-bottom:4px}
+.val{font-size:14px}
+.tag{position:absolute;top:20px;left:32px;font-size:9px;z-index:5}
+.tag b{display:block;font-size:18px;margin-top:4px}
+.nav-tabs{position:absolute;top:20px;right:20px;display:flex;gap:6px;z-index:6}
+.nav-tab{padding:7px 12px;font-size:9px;cursor:pointer}
+.pilot-strip{position:absolute;bottom:20px;left:20px;display:flex;flex-wrap:wrap;gap:5px;z-index:5;max-width:480px}
+.pilot-chip{width:22px;height:22px}
+.planet-core{position:absolute;bottom:150px;left:32%;transform:translate(-50%,0);width:100px;height:100px}
+.orbit-ring{position:absolute;bottom:150px;left:32%;transform:translate(-50%,0);width:280px;height:280px;pointer-events:none}
+.orbit-icon{position:absolute;width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:8px;text-align:center;pointer-events:auto}
+.add-search{position:absolute;top:20px;left:20px;width:300px;padding:10px 14px;z-index:5}
+.add-search input{width:100%;font-size:11px}
+.settings-strip{position:absolute;top:78px;left:20px;width:300px;padding:7px 12px;display:flex;align-items:center;gap:6px;font-size:8px;z-index:5;flex-wrap:wrap}
+.sec-pill{padding:2px 6px}
+.market-panel{position:absolute;top:130px;left:20px;width:300px;padding:10px 14px;z-index:5}
+.market-panel .big-val{font-size:16px;margin:3px 0}
+.market-row{display:flex;justify-content:space-between;font-size:8.5px;padding:3px 0}
+.star-node{position:absolute}
+.star-card{position:absolute;width:150px;padding:8px 10px;top:14px;left:-60px;font-size:8px}
+.chain-strip{position:absolute;top:230px;left:20px;width:300px;padding:10px 14px;z-index:5}
+.chain-row{display:flex;align-items:center;gap:0;margin-top:6px}
+.chain-node{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.chain-link{width:20px;height:1.5px}
+.chain-needs{margin-top:8px;font-size:8px;line-height:1.6}
+.colony-row{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;gap:26px}
+.my-colony{width:150px;text-align:center}
+.my-planet{width:80px;height:80px;margin:0 auto 10px;position:relative;display:flex;align-items:center;justify-content:center}
+.my-planet .ring{position:absolute;inset:-8px}
+.cc-badge{font-size:9px}
+.my-colony .sysname{font-size:11px}
+.my-colony .sub{font-size:7.5px;margin-top:1px}
+.my-colony .stat{font-size:8.5px;margin-top:4px}
+.capacity-panel{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:640px;padding:12px 18px}
+.cap-row{display:flex;justify-content:space-between;font-size:9.5px;padding:3px 0}
+.rank-bar{position:absolute;top:80px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
+.rank-sel{padding:6px 10px;font-size:9px}
+.rank-list{position:absolute;top:140px;left:50%;transform:translateX(-50%);width:560px}
+.rank-item{display:flex;align-items:center;gap:14px;padding:9px 14px;margin-bottom:6px;position:relative}
+.rank-glow{width:8px;height:34px;flex-shrink:0}
+.rank-item .nm{flex:1;font-size:11.5px}
+.rank-item .profit{font-size:12px}
+.rank-item .margin{font-size:8.5px}
+.logi-node{position:absolute;width:64px;height:64px;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:8px}
+.logi-node .designation{font-size:10px}
+.logi-role{position:absolute;font-size:7px;white-space:nowrap;z-index:2}
+.role-pill{position:absolute;font-size:6.5px;padding:1px 5px;cursor:pointer;white-space:nowrap;user-select:none}
+.role-menu{z-index:9999;padding:4px;min-width:130px;font-size:10px}
+.role-menu-hdr{padding:3px 8px 5px;font-size:8px;margin-bottom:3px}
+.role-menu-item{padding:5px 8px;cursor:pointer;white-space:nowrap}
+.pilot-chip{cursor:pointer}
+.roles-fab{position:relative;font-size:10px;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:7px}
+.roles-fab .badge{font-size:9px;padding:1px 7px}
+.roles-drawer{position:fixed;top:0;right:-360px;width:340px;height:100vh;z-index:120;padding:22px;overflow-y:auto;transition:right .3s cubic-bezier(.2,.9,.3,1)}
+.roles-drawer.open{right:0}
+.roles-drawer-backdrop{position:fixed;inset:0;z-index:115;opacity:0;pointer-events:none;transition:.3s}
+.roles-drawer-backdrop.open{opacity:1;pointer-events:auto}
+.roles-drawer-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.roles-drawer-head h3{font-size:13px;margin:0}
+.roles-drawer-head .sub{font-size:9.5px;flex-basis:100%;margin-top:2px}
+.roles-drawer-close{margin-left:auto;cursor:pointer;font-size:14px}
+.roles-row{display:flex;align-items:center;gap:12px;padding:10px 8px}
+.roles-row .portrait{width:36px;height:36px;flex-shrink:0;cursor:pointer}
+.roles-row .rname{flex:1;font-size:11px}
+.roles-row .role-pill{position:static}
+.roles-empty{padding:20px 4px;font-size:10px}
+.import-btn{position:absolute;top:80px;right:20px;padding:7px 12px;font-size:9px;cursor:pointer;z-index:5}
+.buffer-panel{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);width:600px;padding:10px 16px;font-size:8.5px}
+.buffer-panel .buf-row{display:flex;justify-content:space-between;padding:3px 0}
+.route-row{display:flex;justify-content:space-between;padding:3px 0;font-size:8.5px}
+.route-row .stop-idx{margin-right:5px}
+.route-summary{font-size:8.5px;padding-top:4px}
+.header-controls{position:absolute;top:20px;right:20px;display:flex;align-items:center;gap:10px;z-index:6}
+.product-chips{display:flex;gap:6px}
+.pchip{width:24px;height:24px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pchip img{width:100%;height:100%;object-fit:cover}
+.theme-picker{display:flex;gap:5px;padding:0 8px}
+.theme-swatch{width:13px;height:13px;cursor:pointer;padding:0}
+.sync-chip{display:flex;align-items:center;gap:5px;font-size:8px;cursor:pointer}
+.sync-dot{width:6px;height:6px}
+.gear-btn{font-size:11px;cursor:pointer;padding:2px 4px}
+.nav-tabs{top:56px}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Saira:wght@400;500;600&family=Quicksand:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=Teko:wght@500;600&family=Michroma&family=Cinzel:wght@500;600&family=Comfortaa:wght@400;600&family=Saira+Stencil+One&display=swap" rel="stylesheet">
+<style>
+
+</style>
+<link rel="stylesheet" href="themes.css">
 </head>
 <body>
 <div id="uiScaleWrap">
@@ -154,6 +113,7 @@
   <div class="header-controls">
     <div class="product-chips" title="Selected products"></div>
     <div class="theme-picker">
+      <button class="theme-swatch" data-theme="default" style="background:#8a94a0;color:#8a94a0"></button>
       <button class="theme-swatch on" data-theme="amarr" style="background:#e8a850;color:#e8a850"></button>
       <button class="theme-swatch" data-theme="caldari" style="background:#4a90c4;color:#4a90c4"></button>
       <button class="theme-swatch" data-theme="gallente" style="background:#4ac89a;color:#4ac89a"></button>
@@ -213,6 +173,7 @@
   <div class="header-controls">
     <div class="product-chips" title="Selected products"></div>
     <div class="theme-picker">
+      <button class="theme-swatch" data-theme="default" style="background:#8a94a0;color:#8a94a0"></button>
       <button class="theme-swatch on" data-theme="amarr" style="background:#e8a850;color:#e8a850"></button>
       <button class="theme-swatch" data-theme="caldari" style="background:#4a90c4;color:#4a90c4"></button>
       <button class="theme-swatch" data-theme="gallente" style="background:#4ac89a;color:#4ac89a"></button>
@@ -243,6 +204,7 @@
   <div class="header-controls">
     <div class="product-chips" title="Selected products"></div>
     <div class="theme-picker">
+      <button class="theme-swatch" data-theme="default" style="background:#8a94a0;color:#8a94a0"></button>
       <button class="theme-swatch on" data-theme="amarr" style="background:#e8a850;color:#e8a850"></button>
       <button class="theme-swatch" data-theme="caldari" style="background:#4a90c4;color:#4a90c4"></button>
       <button class="theme-swatch" data-theme="gallente" style="background:#4ac89a;color:#4ac89a"></button>
@@ -264,6 +226,9 @@
     <select id="mkBasisSel" class="rank-sel float">
       <option value="P1" selected>Basis: Buy P1 inputs</option><option value="P0">Basis: Buy raw P0</option>
     </select>
+    <select id="mkPocoTax" class="rank-sel float" title="POCO export tax rate — imports are charged at half this rate (standard customs-office behavior). Tax = rate × per-tier reference base values (P0 5 / P1 400 / P2 7,200 / P3 60,000 / P4 1,200,000 ISK per unit) — reference figures, pick the rate your POCOs actually charge.">
+      <option value="0">POCO: 0% (none)</option><option value="5">POCO: 5%</option><option value="8">POCO: 8%</option><option value="10" selected>POCO: 10% (NPC)</option><option value="12">POCO: 12%</option><option value="15">POCO: 15%</option><option value="17">POCO: 17%</option>
+    </select>
     <span id="mkMsg" style="color:#6a5a48;font-size:9px;align-self:center">(7.5% sales tax assumed — real-time prices via Fuzzwork)</span>
   </div>
   <div class="rank-list" id="mkRankList"></div>
@@ -278,6 +243,7 @@
   <div class="header-controls">
     <div class="product-chips" title="Selected products"></div>
     <div class="theme-picker">
+      <button class="theme-swatch" data-theme="default" style="background:#8a94a0;color:#8a94a0"></button>
       <button class="theme-swatch on" data-theme="amarr" style="background:#e8a850;color:#e8a850"></button>
       <button class="theme-swatch" data-theme="caldari" style="background:#4a90c4;color:#4a90c4"></button>
       <button class="theme-swatch" data-theme="gallente" style="background:#4ac89a;color:#4ac89a"></button>
@@ -321,6 +287,12 @@
   </div>
 </div>
 
+<div class="roles-drawer-backdrop" id="colonyBackdrop"></div>
+<div class="roles-drawer" id="colonyDrawer">
+  <div class="roles-drawer-head"><h3 id="colonyDrawerTitle">Colony</h3><span class="roles-drawer-close" id="colonyDrawerClose">✕</span>
+    <span class="sub" id="colonyDrawerSub"></span></div>
+  <div id="colonyDrawerBody"></div>
+</div>
 <div class="roles-drawer-backdrop" id="rolesBackdrop"></div>
 <div class="roles-drawer" id="rolesDrawer">
   <div class="roles-drawer-head"><h3>Character Roles</h3><span class="roles-drawer-close" id="rolesDrawerClose">✕</span>
@@ -660,7 +632,7 @@ async function renderMyColonies(){
     document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on', b.dataset.theme===name));
   }
   document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
-  setTheme(document.documentElement.dataset.theme||'amarr');
+  setTheme(document.documentElement.dataset.theme||'default');
 
   // ===== real chain-tier + market panel (Fuzzwork pricing) =====
   function bom(targetId, units){ const consume={};
@@ -991,7 +963,7 @@ try{ const savedCap=localStorage.getItem('pi_haul_capacity'); if(savedCap) haulC
     if(cap) cap.addEventListener('input', ()=>{ haulCapacity=+cap.value||1; try{ localStorage.setItem('pi_haul_capacity', haulCapacity); }catch(e){} renderLogistics(); });
   }
 }
-/* Reference volumes (m³/unit) by PI tier — approximate, since exact figures vary by item; edit per stage if you know the real numbers. */
+/* Fallback volumes by tier — kept only as a safety net; exact per-item volumes (PI_VOL, embedded from the weekly SDE mirror) are used whenever the type is known. */
 const REF_VOLUME_BY_TIER={0:0.4, 1:6, 2:8, 3:340, 4:6000};
 
 function systemOwnerMap(){ // which character (if any) owns an existing colony in each system
@@ -1153,7 +1125,7 @@ async function renderLogistics(){
         const cadence=Math.max(ctA,ctB);
         const qtyPerCadence= ra ? ra.out*Math.max(1,cadence/ctA) : 1;
         const tierForVol= PI.tier[a]!=null?PI.tier[a]:(PI.tier[b]!=null?PI.tier[b]:1);
-        const volPerUnit= REF_VOLUME_BY_TIER[tierForVol]!=null?REF_VOLUME_BY_TIER[tierForVol]:6;
+        const volPerUnit= PI_VOL[a]!=null?PI_VOL[a]:(REF_VOLUME_BY_TIER[tierForVol]!=null?REF_VOLUME_BY_TIER[tierForVol]:6);
         const totalM3= qtyPerCadence*volPerUnit;
         const trips= Math.max(1, Math.ceil(totalM3/haulCapacity));
         totalTripsAll+=trips;
@@ -1184,6 +1156,361 @@ async function renderLogistics(){
   { const cur=document.querySelector('.level.on'); const v=cur&&cur.dataset.view;
     if(v==='mycolonies') renderMyColonies(); else if(v==='whattomake') renderWhatToMake(); else if(v==='logistics') renderLogistics(); }
   renderUniverseMap(); renderChain(); renderMarket();
+
+/* ── supplemental PI data ──────────────────────────────────────────────
+   PI_SCHEM: full planet-schematic table (schematic_id → output/cycle/
+   inputs) and PIN_CAP (pin storage capacities in m³) come from SDE
+   snapshot 126.6.18 (June 2024) — both are long-stable game constants.
+   PI_VOL (exact m³/unit for every PI commodity) and PIN_KIND (pin
+   typeID → command/ecu/factory/launchpad/storage) come from a weekly-
+   refreshed SDE mirror (github tahnil/eve-sde, pulled July 2026), so
+   volumes reflect current game values rather than folklore. ── */
+const PI_SCHEM={"65":{"o":9838,"q":5,"ct":3600,"in":[[2389,40],[3645,40]]},"66":{"o":9832,"q":5,"ct":3600,"in":[[2390,40],[3645,40]]},"67":{"o":9830,"q":5,"ct":3600,"in":[[2389,40],[2390,40]]},"68":{"o":3691,"q":5,"ct":3600,"in":[[2390,40],[3683,40]]},"69":{"o":2317,"q":5,"ct":3600,"in":[[2392,40],[3683,40]]},"70":{"o":3697,"q":5,"ct":3600,"in":[[2392,40],[9828,40]]},"71":{"o":9840,"q":5,"ct":3600,"in":[[2389,40],[2401,40]]},"72":{"o":2328,"q":5,"ct":3600,"in":[[2398,40],[3645,40]]},"73":{"o":3689,"q":5,"ct":3600,"in":[[2398,40],[2399,40]]},"74":{"o":3828,"q":5,"ct":3600,"in":[[2398,40],[2400,40]]},"75":{"o":44,"q":5,"ct":3600,"in":[[2399,40],[2400,40]]},"76":{"o":9836,"q":5,"ct":3600,"in":[[2400,40],[2401,40]]},"77":{"o":9842,"q":5,"ct":3600,"in":[[2401,40],[9828,40]]},"78":{"o":2463,"q":5,"ct":3600,"in":[[2393,40],[2398,40]]},"79":{"o":2329,"q":5,"ct":3600,"in":[[2396,40],[2399,40]]},"80":{"o":2327,"q":5,"ct":3600,"in":[[2397,40],[9828,40]]},"81":{"o":3775,"q":5,"ct":3600,"in":[[2393,40],[3779,40]]},"82":{"o":3693,"q":5,"ct":3600,"in":[[2393,40],[2395,40]]},"83":{"o":15317,"q":5,"ct":3600,"in":[[2395,40],[3779,40]]},"84":{"o":3725,"q":5,"ct":3600,"in":[[2395,40],[2396,40]]},"85":{"o":3695,"q":5,"ct":3600,"in":[[2396,40],[2397,40]]},"86":{"o":2319,"q":5,"ct":3600,"in":[[2393,40],[3645,40]]},"87":{"o":2312,"q":5,"ct":3600,"in":[[3683,40],[3779,40]]},"88":{"o":2321,"q":5,"ct":3600,"in":[[2392,40],[2397,40]]},"89":{"o":17136,"q":3,"ct":3600,"in":[[3691,10],[9838,10]]},"90":{"o":2344,"q":3,"ct":3600,"in":[[2317,10],[9832,10]]},"91":{"o":2345,"q":3,"ct":3600,"in":[[3697,10],[9830,10]]},"92":{"o":2346,"q":3,"ct":3600,"in":[[2312,10],[2319,10]]},"94":{"o":17898,"q":3,"ct":3600,"in":[[2321,10],[9840,10]]},"95":{"o":2348,"q":3,"ct":3600,"in":[[2317,10],[2329,10],[9838,10]]},"96":{"o":2349,"q":3,"ct":3600,"in":[[2328,10],[9832,10],[9836,10]]},"97":{"o":9848,"q":3,"ct":3600,"in":[[3689,10],[9836,10]]},"98":{"o":2351,"q":3,"ct":3600,"in":[[3828,10],[9842,10]]},"99":{"o":2352,"q":3,"ct":3600,"in":[[44,10],[2327,10]]},"100":{"o":9834,"q":3,"ct":3600,"in":[[2328,10],[9840,10]]},"102":{"o":2354,"q":3,"ct":3600,"in":[[2329,10],[3697,10]]},"103":{"o":9846,"q":3,"ct":3600,"in":[[2312,10],[3689,10],[9842,10]]},"104":{"o":2358,"q":3,"ct":3600,"in":[[2463,10],[3725,10],[3828,10]]},"105":{"o":28974,"q":3,"ct":3600,"in":[[3725,10],[3775,10]]},"106":{"o":2360,"q":3,"ct":3600,"in":[[3693,10],[3695,10]]},"107":{"o":2361,"q":3,"ct":3600,"in":[[2321,10],[15317,10]]},"108":{"o":12836,"q":3,"ct":3600,"in":[[2329,10],[2463,10]]},"109":{"o":17392,"q":3,"ct":3600,"in":[[2312,10],[2327,10]]},"110":{"o":2366,"q":3,"ct":3600,"in":[[3695,10],[3775,10],[9840,10]]},"111":{"o":2367,"q":3,"ct":3600,"in":[[2319,10],[3691,10],[3693,10]]},"112":{"o":2870,"q":1,"ct":3600,"in":[[2344,6],[2393,40],[9848,6]]},"113":{"o":2875,"q":1,"ct":3600,"in":[[2351,6],[3645,40],[28974,6]]},"114":{"o":2869,"q":1,"ct":3600,"in":[[2360,6],[2398,40],[17136,6]]},"115":{"o":2872,"q":1,"ct":3600,"in":[[2345,6],[2352,6],[2361,6]]},"116":{"o":2871,"q":1,"ct":3600,"in":[[2346,6],[9834,6],[12836,6]]},"117":{"o":2867,"q":1,"ct":3600,"in":[[2354,6],[17392,6],[17898,6]]},"118":{"o":2868,"q":1,"ct":3600,"in":[[2348,6],[2366,6],[9846,6]]},"119":{"o":2876,"q":1,"ct":3600,"in":[[2349,6],[2358,6],[2367,6]]},"121":{"o":3645,"q":20,"ct":1800,"in":[[2268,3000]]},"122":{"o":2389,"q":20,"ct":1800,"in":[[2308,3000]]},"123":{"o":2390,"q":20,"ct":1800,"in":[[2309,3000]]},"124":{"o":3683,"q":20,"ct":1800,"in":[[2310,3000]]},"125":{"o":2392,"q":20,"ct":1800,"in":[[2311,3000]]},"126":{"o":2398,"q":20,"ct":1800,"in":[[2267,3000]]},"127":{"o":2399,"q":20,"ct":1800,"in":[[2270,3000]]},"128":{"o":2400,"q":20,"ct":1800,"in":[[2272,3000]]},"129":{"o":2401,"q":20,"ct":1800,"in":[[2306,3000]]},"130":{"o":9828,"q":20,"ct":1800,"in":[[2307,3000]]},"131":{"o":2393,"q":20,"ct":1800,"in":[[2073,3000]]},"132":{"o":3779,"q":20,"ct":1800,"in":[[2286,3000]]},"133":{"o":2395,"q":20,"ct":1800,"in":[[2287,3000]]},"134":{"o":2396,"q":20,"ct":1800,"in":[[2288,3000]]},"135":{"o":2397,"q":20,"ct":1800,"in":[[2305,3000]]}};
+const PI_VOL={"44":0.75,"2073":0.005,"2267":0.005,"2268":0.005,"2270":0.005,"2272":0.005,"2286":0.005,"2287":0.005,"2288":0.005,"2305":0.005,"2306":0.005,"2307":0.005,"2308":0.005,"2309":0.005,"2310":0.005,"2311":0.005,"2312":0.75,"2317":0.75,"2319":0.75,"2321":0.75,"2327":0.75,"2328":0.75,"2329":0.75,"2344":3.0,"2345":3.0,"2346":3.0,"2348":3.0,"2349":3.0,"2351":3.0,"2352":3.0,"2354":3.0,"2358":3.0,"2360":3.0,"2361":3.0,"2366":3.0,"2367":3.0,"2389":0.19,"2390":0.19,"2392":0.19,"2393":0.19,"2395":0.19,"2396":0.19,"2397":0.19,"2398":0.19,"2399":0.19,"2400":0.19,"2401":0.19,"2463":0.75,"2867":50.0,"2868":50.0,"2869":50.0,"2870":50.0,"2871":50.0,"2872":50.0,"2875":50.0,"2876":50.0,"3645":0.19,"3683":0.19,"3689":0.75,"3691":0.75,"3693":0.75,"3695":0.75,"3697":0.75,"3725":0.75,"3775":0.75,"3779":0.19,"3828":0.75,"9828":0.19,"9830":0.75,"9832":0.75,"9834":3.0,"9836":0.75,"9838":0.75,"9840":0.75,"9842":0.75,"9846":3.0,"9848":3.0,"12836":3.0,"15317":0.75,"17136":3.0,"17392":3.0,"17898":3.0,"28974":3.0};
+const PIN_KIND={"2474":"factory","2473":"factory","2524":"command","2848":"ecu","2475":"factory","2544":"launchpad","2541":"storage","2494":"factory","2492":"factory","2534":"command","3060":"ecu","2543":"launchpad","2536":"storage","2491":"factory","2493":"factory","2533":"command","3061":"ecu","2552":"launchpad","2257":"storage","2470":"factory","2469":"factory","2549":"command","3062":"ecu","2555":"launchpad","2558":"storage","2485":"factory","2490":"factory","2525":"command","3063":"ecu","2542":"launchpad","2535":"storage","2472":"factory","2471":"factory","2551":"command","3064":"ecu","2556":"launchpad","2560":"storage","2484":"factory","2483":"factory","2550":"command","3067":"ecu","2557":"launchpad","2561":"storage","2480":"factory","2481":"factory","2254":"command","3068":"ecu","2482":"factory","2256":"launchpad","2562":"storage"};
+const PIN_CAP={"2524":500.0,"2544":10000.0,"2541":12000.0,"2534":500.0,"2543":10000.0,"2536":12000.0,"2533":500.0,"2552":10000.0,"2257":12000.0,"2549":500.0,"2555":10000.0,"2558":12000.0,"2525":500.0,"2542":10000.0,"2535":12000.0,"2551":500.0,"2556":10000.0,"2560":12000.0,"2550":500.0,"2557":10000.0,"2561":12000.0,"2254":500.0,"2256":10000.0,"2562":12000.0};
+
+/* ════════════════════════════════════════════════════════════════════
+   PI PLANNER UPGRADES — live-data wiring on top of the existing UI.
+   Later function declarations intentionally override the earlier
+   versions (loadColonyDetail, renderMyColonies, fetchHubPrices,
+   renderWhatToMake). Data sources are labeled where used:
+   - PI_SCHEM / PIN_CAP: SDE snapshot 126.6.18 (June 2024) — schematic
+     recipes and pin capacities are long-stable game constants.
+   - PI_VOL / PIN_KIND: weekly-refreshed SDE mirror (pulled July 2026),
+     so per-item volumes reflect current game values.
+   - POCO_BASE_REF: editable reference values — the per-tier customs
+     base-value table isn't in the SDE, so it ships as defaults to
+     adjust rather than as claimed fact.
+   ════════════════════════════════════════════════════════════════════ */
+function pFmtDur(ms){
+  if(ms==null||!isFinite(ms)) return '—';
+  const s=Math.max(0,Math.round(ms/1000));
+  const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60);
+  if(d>0) return d+'d '+h+'h';
+  if(h>0) return h+'h '+String(m).padStart(2,'0')+'m';
+  return m+'m';
+}
+const PIN_CAP_LABEL={command:'command center', launchpad:'launchpad', storage:'storage'};
+let lastColonySync=null;   // ms timestamp of the most recent full colony fetch
+let colonyOwner={};        // planet_id -> charId
+
+/* ── richer colony detail: expiry, factory schematics, stored contents ── */
+async function loadColonyDetail(id, pid, force){
+  if(colDetail[pid] && !colDetail[pid].err && !force) return colDetail[pid];
+  try{
+    const d=await eGet(id,`/characters/${id}/planets/${pid}/`);
+    const now=Date.now();
+    const ex=[]; let factoryPins=0, ecuPins=0; const facSchem={}; const stores=[];
+    (d.pins||[]).forEach(p=>{
+      if(p.extractor_details){
+        ecuPins++;
+        const ed=p.extractor_details;
+        const perHr = ed.qty_per_cycle&&ed.cycle_time ? ed.qty_per_cycle/(ed.cycle_time/3600) : 0;
+        const expiry = p.expiry_time ? new Date(p.expiry_time).getTime() : null;
+        const expired = expiry!=null && expiry<=now;
+        ex.push({prod:ed.product_type_id, perHr:expired?0:perHr, rawPerHr:perHr,
+                 qty:ed.qty_per_cycle||0, cycle:ed.cycle_time||0, heads:(ed.heads||[]).length,
+                 expiry, expired});
+      } else if(p.schematic_id){
+        factoryPins++;
+        facSchem[p.schematic_id]=(facSchem[p.schematic_id]||0)+1;
+      }
+      const kind=PIN_KIND[p.type_id];
+      if(kind==='launchpad'||kind==='storage'||kind==='command'){
+        const cont=(p.contents||[]).map(c=>({t:c.type_id,q:c.amount}));
+        const used=cont.reduce((s,c)=>s+((PI_VOL[c.t]||0)*c.q),0);
+        stores.push({kind, typeId:p.type_id, cont, used, cap:PIN_CAP[p.type_id]||null});
+      }
+    });
+    colDetail[pid]={extractors:ex, factoryPins, ecuPins, facSchem, stores, fetched:Date.now()};
+  }catch(e){ colDetail[pid]={extractors:[],factoryPins:0,ecuPins:0,facSchem:{},stores:[],err:1}; }
+  return colDetail[pid];
+}
+/* net production per type for one colony (units/hr): extractors + factory outputs − factory inputs.
+   Factory rates assume the schematic keeps cycling (i.e. stays fed). */
+function colonyNets(det){
+  const net={};
+  (det.extractors||[]).forEach(e=>{ if(!e.expired) net[e.prod]=(net[e.prod]||0)+e.perHr; });
+  Object.entries(det.facSchem||{}).forEach(([sid,n])=>{
+    const s=PI_SCHEM[sid]; if(!s) return;
+    const perHrOut=n*s.q*3600/s.ct;
+    net[s.o]=(net[s.o]||0)+perHrOut;
+    s.in.forEach(([t,q])=>{ net[t]=(net[t]||0)-n*q*3600/s.ct; });
+  });
+  return net;
+}
+function updateSyncChips(){
+  const txt = lastColonySync
+    ? 'Synced '+(Date.now()-lastColonySync<90000?'just now':pFmtDur(Date.now()-lastColonySync)+' ago')
+    : (visibleCharIds().length?'Not synced — open My colonies':'Not signed in');
+  document.querySelectorAll('.sync-chip').forEach(ch=>{
+    ch.innerHTML='<span class="sync-dot"></span>'+txt;
+    ch.title='Colony data freshness (click to refresh from ESI)';
+    ch.onclick=()=>renderMyColonies(true);
+  });
+}
+setInterval(updateSyncChips, 30000);
+function writePiDashboard(nCol, nExpired){
+  try{
+    const d=JSON.parse(localStorage.getItem('eve_suite_dashboard')||'{}');
+    d.pi={text:nCol+' colon'+(nCol===1?'y':'ies')+(nExpired?' · '+nExpired+' extractor'+(nExpired===1?'':'s')+' expired':' · all extracting'),
+          level:nExpired?'warn':'ok', ts:Date.now()};
+    localStorage.setItem('eve_suite_dashboard', JSON.stringify(d));
+  }catch(e){}
+}
+
+/* ── My colonies: countdowns, storage fill, click-through drawer ── */
+async function renderMyColonies(force){
+  const grid=document.getElementById('myColoniesGrid'), capWrap=document.getElementById('capacityRows'), subEl=document.getElementById('myColSub');
+  if(!grid) return;
+  const ids=visibleCharIds();
+  if(!ids.length){ grid.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">Sign in from the launcher to see your live colonies, extractor rates, and outputs.</div>'; if(capWrap) capWrap.innerHTML=''; updateSyncChips(); return; }
+  grid.innerHTML='<div style="padding:14px;color:#8a7458;font-size:10px">Loading colonies…</div>';
+  if(force){ colonies={}; }
+  await Promise.all(ids.map(loadColonies));
+  const rows=[]; ids.forEach(id=>(colonies[id]||[]).forEach(c=>{ rows.push({id,c}); colonyOwner[c.planet_id]=id; }));
+  if(!rows.length){ grid.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">No planetary colonies found on your characters.</div>'; if(capWrap) capWrap.innerHTML=''; lastColonySync=Date.now(); updateSyncChips(); writePiDashboard(0,0); return; }
+  await Promise.all(rows.map(r=>loadColonyDetail(r.id, r.c.planet_id, force)));
+  lastColonySync=Date.now(); updateSyncChips();
+  const now=Date.now();
+  if(subEl) subEl.textContent=`${rows.length} colonies across ${ids.length} character${ids.length!==1?'s':''} — live from ESI`;
+
+  grid.innerHTML=rows.map(({id,c})=>{
+    const det=colDetail[c.planet_id]; const sysNm=SYS[c.system]?SYS[c.system][0]:('System '+c.system);
+    const ptype=c.type?String(c.type).charAt(0).toUpperCase()+String(c.type).slice(1):'';
+    const expiredHere=(det.extractors||[]).filter(e=>e.expired).length;
+    const hasAlert=!(det.extractors||[]).length || expiredHere>0;
+    const exLines=(det.extractors||[]).length
+      ? det.extractors.map(e=>{
+          const nm=PI.names[e.prod]||('type '+e.prod);
+          if(e.expired) return `⛏ ${nm} <b style="color:#d66a5a">EXPIRED</b>`;
+          const left=e.expiry!=null?e.expiry-now:null;
+          const soon=left!=null&&left<24*3600e3;
+          return `⛏ ${nm} <b style="color:#e8a850">${Math.round(e.perHr).toLocaleString()}/hr</b>${left!=null?` <span style="color:${soon?'#e8b860':'#8a7458'}">⏱ ${pFmtDur(left)}</span>`:''}`;
+        }).join('<br>')
+      : '<span style="color:#d66a5a">extractor idle</span>';
+    let storeLine='';
+    const withCap=(det.stores||[]).filter(s=>s.cap);
+    if(withCap.length){
+      const worst=withCap.slice().sort((a,b)=>(b.used/b.cap)-(a.used/a.cap))[0];
+      const pct=Math.min(100,Math.round(worst.used/worst.cap*100));
+      const col=pct>=95?'#d66a5a':pct>=80?'#e8b860':'#8a7458';
+      storeLine=`<div class="stat">📦 <span style="color:${col}">${PIN_CAP_LABEL[worst.kind]||worst.kind} ${pct}% full</span></div>`;
+    }
+    return `<div class="my-colony" data-pid="${c.planet_id}" style="cursor:pointer" title="Click for the full pin & storage breakdown"><div class="my-planet${hasAlert?' alert':''}"><div class="ring"></div><span class="cc-badge"${hasAlert?' style="color:#d66a5a"':''}>L${c.upgrade}</span></div>
+      <div class="sysname">${sysNm}</div><div class="sub">${ptype}</div>
+      <div class="stat">${exLines}</div>
+      <div class="stat">🏭 ${det.factoryPins||0} factory pin${det.factoryPins===1?'':'s'}</div>
+      ${storeLine}
+      <div class="stat" style="color:#6a5a48">${chars[id]?chars[id].charName:''}</div></div>`;
+  }).join('');
+  grid.querySelectorAll('.my-colony[data-pid]').forEach(el=>el.onclick=()=>openColonyDrawer(el.dataset.pid));
+
+  /* aggregates — same cap-row vocabulary as before */
+  const extAgg={}; let expiredTotal=0; let nextExpiry=null; let storedM3=0;
+  rows.forEach(({c})=>{ const det=colDetail[c.planet_id];
+    (det.extractors||[]).forEach(e=>{
+      if(e.expired){ expiredTotal++; return; }
+      extAgg[e.prod]=(extAgg[e.prod]||0)+e.perHr;
+      if(e.expiry!=null && (nextExpiry==null||e.expiry<nextExpiry)) nextExpiry=e.expiry;
+    });
+    (det.stores||[]).forEach(s=>storedM3+=s.used);
+  });
+  writePiDashboard(rows.length, expiredTotal);
+  const exKeys=Object.keys(extAgg);
+  if(capWrap){
+    capWrap.innerHTML=(exKeys.length? exKeys.map(t=>{ const perHr=extAgg[t]; const feeds=perHr/6000;
+      return `<div class="cap-row"><span>${PI.names[t]||t} (P0)</span><span>${Math.round(perHr).toLocaleString()}/hr</span><span style="color:#7ec87e">feeds ${feeds.toFixed(2)} Basic facilities</span></div>`;
+    }).join('') : '<div class="cap-row"><span style="color:#6a5a48">No active extractors right now.</span></div>')
+    +`<div class="cap-row"><span>Expired extraction programs</span><span style="color:${expiredTotal?'#d66a5a':'#7ec87e'}">${expiredTotal||'none'}</span><span>${expiredTotal?'restart them in-game to resume P0 flow':''}</span></div>`
+    +`<div class="cap-row"><span>Next extractor expiry</span><span>${nextExpiry?pFmtDur(nextExpiry-now):'—'}</span><span style="color:#6a5a48">${nextExpiry?new Date(nextExpiry).toUTCString().slice(5,22)+' EVE':''}</span></div>`
+    +`<div class="cap-row"><span>Stored on colonies</span><span>${Math.round(storedM3).toLocaleString()} m³</span><span id="piStoredVal" style="color:#6a5a48">pricing…</span></div>`
+    +`<div class="cap-row"><span>Est. net production value</span><span id="piIskDay">…</span><span style="color:#6a5a48">per day at hub buy, before POCO tax — assumes factories stay fed</span></div>`;
+  }
+  /* best-effort valuation via the same hub price cache the What-to-make view uses */
+  (async ()=>{
+    try{
+      const priceIds=new Set();
+      rows.forEach(({c})=>{ const det=colDetail[c.planet_id];
+        (det.stores||[]).forEach(s=>s.cont.forEach(x=>priceIds.add(x.t)));
+        Object.entries(colonyNets(det)).forEach(([t,v])=>{ if(v>0) priceIds.add(+t); });
+      });
+      if(priceIds.size) await fetchHubPrices(mkHub,[...priceIds]);
+      let storedVal=0, okS=true, iskDay=0;
+      rows.forEach(({c})=>{ const det=colDetail[c.planet_id];
+        (det.stores||[]).forEach(s=>s.cont.forEach(x=>{ const p=wpx(mkHub,x.t); if(p) storedVal+=p.buy*x.q; else okS=false; }));
+        Object.entries(colonyNets(det)).forEach(([t,v])=>{ if(v>0){ const p=wpx(mkHub,+t); if(p) iskDay+=v*24*p.buy; } });
+      });
+      const sv=document.getElementById('piStoredVal');
+      if(sv) sv.textContent=storedVal?('≈ '+Math.round(storedVal).toLocaleString()+' ISK at hub buy'+(okS?'':' (some unpriced)')):'—';
+      const idEl=document.getElementById('piIskDay');
+      if(idEl) idEl.textContent=iskDay?('≈ '+Math.round(iskDay).toLocaleString()+' ISK'):'—';
+    }catch(e){
+      const sv=document.getElementById('piStoredVal'); if(sv) sv.textContent='price fetch failed';
+      const idEl=document.getElementById('piIskDay'); if(idEl) idEl.textContent='—';
+    }
+  })();
+}
+
+/* ── colony detail drawer (same drawer vocabulary as Character Roles) ── */
+function openColonyDrawer(pid){
+  const id=colonyOwner[pid]; const det=colDetail[pid];
+  const d=document.getElementById('colonyDrawer'), bd=document.getElementById('colonyBackdrop'), body=document.getElementById('colonyDrawerBody');
+  if(!d||!det) return;
+  const colRec=(colonies[id]||[]).find(c=>String(c.planet_id)===String(pid))||{};
+  const sysNm=SYS[colRec.system]?SYS[colRec.system][0]:('System '+colRec.system);
+  document.getElementById('colonyDrawerTitle').textContent=sysNm+' — '+(colRec.type?String(colRec.type).charAt(0).toUpperCase()+String(colRec.type).slice(1):'colony');
+  document.getElementById('colonyDrawerSub').textContent=(chars[id]?chars[id].charName:'')+' · level '+(colRec.upgrade!=null?colRec.upgrade:'?')+' command center · fetched '+pFmtDur(Date.now()-(det.fetched||Date.now()))+' ago';
+  const now=Date.now();
+  let html='';
+  /* extractors */
+  html+='<div class="lbl" style="margin-top:6px">Extractors</div>';
+  html+=(det.extractors||[]).length? det.extractors.map(e=>{
+    const nm=PI.names[e.prod]||('type '+e.prod);
+    const state=e.expired?'<b style="color:#d66a5a">EXPIRED</b>':(e.expiry!=null?('⏱ '+pFmtDur(e.expiry-now)+' left'):'running');
+    return `<div class="cap-row"><span>⛏ ${nm}</span><span>${Math.round(e.rawPerHr).toLocaleString()}/hr · ${e.heads} head${e.heads===1?'':'s'}</span><span style="color:${e.expired?'#d66a5a':'#8a7458'}">${state}</span></div>`;
+  }).join(''):'<div class="cap-row"><span style="color:#6a5a48">No extractor control units.</span></div>';
+  /* factories, decoded via SDE schematics */
+  html+='<div class="lbl" style="margin-top:10px">Factories <span style="color:#6a5a48;text-transform:none;letter-spacing:0">(schematics from SDE snapshot)</span></div>';
+  const facEntries=Object.entries(det.facSchem||{});
+  html+=facEntries.length? facEntries.map(([sid,n])=>{
+    const s=PI_SCHEM[sid];
+    if(!s) return `<div class="cap-row"><span>🏭 ${n}× schematic ${sid}</span><span style="color:#6a5a48">unknown — newer than SDE snapshot</span><span></span></div>`;
+    const outHr=n*s.q*3600/s.ct;
+    const ins=s.in.map(([t,q])=>`${(PI.names[t]||t)} −${Math.round(n*q*3600/s.ct)}/hr`).join(' · ');
+    return `<div class="cap-row"><span>🏭 ${n}× ${PI.names[s.o]||s.o}</span><span style="color:#e8a850">+${Math.round(outHr).toLocaleString()}/hr</span><span style="color:#8a7458">${ins}</span></div>`;
+  }).join(''):'<div class="cap-row"><span style="color:#6a5a48">No processor pins.</span></div>';
+  /* balance */
+  const nets=colonyNets(det);
+  const netKeys=Object.keys(nets).filter(t=>Math.abs(nets[t])>0.01);
+  if(netKeys.length){
+    html+='<div class="lbl" style="margin-top:10px">Production balance <span style="color:#6a5a48;text-transform:none;letter-spacing:0">(units/hr, factories assumed fed)</span></div>';
+    html+=netKeys.sort((a,b)=>nets[b]-nets[a]).map(t=>{
+      const v=nets[t]; const col=v>=0?'#7ec87e':'#d66a5a';
+      return `<div class="cap-row"><span>${PI.names[t]||t}</span><span style="color:${col}">${v>=0?'+':''}${Math.round(v).toLocaleString()}/hr</span><span style="color:#6a5a48">${v>=0?'surplus — export or feed onward':'deficit — needs imports'}</span></div>`;
+    }).join('');
+  }
+  /* storage */
+  html+='<div class="lbl" style="margin-top:10px">Storage <span style="color:#6a5a48;text-transform:none;letter-spacing:0">(capacities from SDE)</span></div>';
+  html+=(det.stores||[]).length? det.stores.map(s=>{
+    const pct=s.cap?Math.min(100,Math.round(s.used/s.cap*100)):null;
+    const col=pct!=null&&pct>=95?'#d66a5a':pct!=null&&pct>=80?'#e8b860':'#e8a850';
+    const bar=pct!=null?`<div style="height:4px;background:rgba(220,160,90,.15);margin:3px 0 5px"><div style="height:100%;width:${pct}%;background:${col}"></div></div>`:'';
+    const cont=s.cont.slice().sort((a,b)=>((PI_VOL[b.t]||0)*b.q)-((PI_VOL[a.t]||0)*a.q)).slice(0,6)
+      .map(x=>`<div class="cap-row"><span style="color:#8a7458">· ${PI.names[x.t]||x.t}</span><span>${x.q.toLocaleString()}</span><span style="color:#6a5a48">${Math.round((PI_VOL[x.t]||0)*x.q).toLocaleString()} m³</span></div>`).join('');
+    return `<div class="cap-row"><span>📦 ${PIN_CAP_LABEL[s.kind]||s.kind}</span><span>${Math.round(s.used).toLocaleString()}${s.cap?' / '+s.cap.toLocaleString():''} m³</span><span style="color:${col}">${pct!=null?pct+'% full':''}</span></div>${bar}${cont}`;
+  }).join(''):'<div class="cap-row"><span style="color:#6a5a48">No launchpads or storage pins.</span></div>';
+  body.innerHTML=html;
+  d.classList.add('open'); bd.classList.add('open');
+}
+(function wireColonyDrawer(){
+  const d=document.getElementById('colonyDrawer'), bd=document.getElementById('colonyBackdrop'), c=document.getElementById('colonyDrawerClose');
+  const close=()=>{ if(d) d.classList.remove('open'); if(bd) bd.classList.remove('open'); };
+  if(c) c.onclick=close; if(bd) bd.onclick=close;
+})();
+
+/* ── hub prices: Fuzzwork first, ESI region-wide averages as a labeled fallback ── */
+let wtmApproxUsed=false;
+async function fetchHubPrices(station, ids){
+  const miss=ids.filter(t=>wtmPriceCache[station+':'+t]===undefined);
+  if(!miss.length) return;
+  try{
+    const url=`https://market.fuzzwork.co.uk/aggregates/?station=${station}&types=${miss.join(',')}`;
+    const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status); const j=await r.json();
+    miss.forEach(t=>{ const d=j[t]||{}; wtmPriceCache[station+':'+t]={ sell:d.sell?+d.sell.min:0, buy:d.buy?+d.buy.max:0 }; });
+  }catch(e){
+    try{
+      const r=await fetch('https://esi.evetech.net/latest/markets/prices/');
+      if(!r.ok) throw new Error('ESI '+r.status);
+      const avg={}; (await r.json()).forEach(row=>{ if(row.average_price) avg[row.type_id]=row.average_price; });
+      miss.forEach(t=>{ wtmPriceCache[station+':'+t]= avg[t]?{sell:avg[t],buy:avg[t],approx:1}:null; });
+      wtmApproxUsed=true;
+    }catch(e2){
+      miss.forEach(t=>{ if(wtmPriceCache[station+':'+t]===undefined) wtmPriceCache[station+':'+t]=null; });
+      throw e2;
+    }
+  }
+}
+
+/* ── What to make: POCO customs tax folded into the ranking ── */
+const POCO_BASE_REF={0:5,1:400,2:7200,3:60000,4:1200000}; // reference base values (ISK/unit) — editable via the tax selector's rate; adjust mentally if CCP rebalances the table
+let pocoTaxRate=10;
+try{ const s=localStorage.getItem('pi_poco_tax'); if(s!=null&&s!=='') pocoTaxRate=parseFloat(s); }catch(e){}
+{ const s=document.getElementById('mkPocoTax');
+  if(s){ if(![...s.options].some(o=>+o.value===pocoTaxRate)){ const o=document.createElement('option'); o.value=pocoTaxRate; o.textContent='POCO: '+pocoTaxRate+'%'; s.appendChild(o); }
+    s.value=String(pocoTaxRate);
+    s.addEventListener('change', ()=>{ pocoTaxRate=+s.value; try{ localStorage.setItem('pi_poco_tax', String(pocoTaxRate)); }catch(e){} renderWhatToMake(); }); } }
+function pocoExportTax(tid, qty){ const base=POCO_BASE_REF[PI.tier[tid]]||0; return base*qty*pocoTaxRate/100; }
+function pocoImportTax(tid, qty){ const base=POCO_BASE_REF[PI.tier[tid]]||0; return base*qty*pocoTaxRate/200; } // imports charged at half the export rate — standard POCO behavior
+async function renderWhatToMake(){
+  const list=document.getElementById('mkRankList'), msg=document.getElementById('mkMsg'); if(!list) return;
+  const prods=Object.keys(PI.recipe).filter(o=>PI.tier[o]===mkTier);
+  const idset=new Set(); prods.forEach(o=>chainTypeIds(o).forEach(t=>idset.add(t)));
+  list.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">Loading prices for '+prods.length+' P'+mkTier+' products…</div>';
+  let fetchFailed=false;
+  try{ await fetchHubPrices(mkHub,[...idset]); }
+  catch(e){ fetchFailed=true; }
+  if(msg) msg.textContent = fetchFailed
+    ? '(price fetch failed — check network)'
+    : `(7.5% sales tax · POCO ${pocoTaxRate}% export / ${pocoTaxRate/2}% import on reference tier base values · prices via ${wtmApproxUsed?'ESI region averages — Fuzzwork unreachable, treat as approximate':'Fuzzwork'})`;
+  const SALES_TAX=0.075;
+  let rows=prods.map(o=>{ const e=unitEconomics(o,mkHub); if(!e) return {o,na:true};
+    const consume=bom(o, e.out);
+    const rev=e.rev*(1-SALES_TAX) - pocoExportTax(o, e.out);
+    let inCost = mkBasis==='P1'?e.costP1:e.costP0;
+    if(inCost!=null){
+      const inKeys=Object.keys(consume).filter(t=>mkBasis==='P1'?PI.tier[t]===1:PI.p0pt[t]);
+      inKeys.forEach(t=>{ inCost+=pocoImportTax(t, Math.ceil(consume[t])); });
+    }
+    const profitRun=(inCost!=null)?rev-inCost:null;
+    const margin=(inCost!=null && rev>0)?(rev-inCost)/rev:null;
+    return {o,rev,inCost,profitRun,margin,outN:e.out}; }).filter(r=>!r.na);
+  rows=rows.filter(r=>r.profitRun!=null);
+  rows.sort((a,b)=>(b.profitRun/b.outN)-(a.profitRun/a.outN));
+  if(!rows.length){ list.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">No priced P'+mkTier+' products found at this hub right now.</div>'; return; }
+  const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.profitRun/r.outN)));
+  list.innerHTML=rows.slice(0,25).map(r=>{
+    const perUnit=r.profitRun/r.outN; const pct=Math.round(Math.abs(perUnit)/maxAbs*100);
+    const col=perUnit>=0?'#7ec87e':'#d66a5a';
+    const marginTxt=r.margin!=null?Math.round(r.margin*100)+'% margin':'—';
+    return `<div class="rank-item float"><div class="rank-glow" style="background:${col};box-shadow:0 0 ${Math.max(2,pct/10)}px ${col}"></div>
+      <span class="nm">${PI.recipe[r.o].name}</span><span class="profit" style="color:${col}">${perUnit>=0?'+':''}${Math.round(perUnit).toLocaleString()}/unit</span><span class="margin">${marginTxt}</span></div>`;
+  }).join('');
+}
+
+/* ── background load: dashboard badge + sync chips without opening the tab ── */
+updateSyncChips();
+if(visibleCharIds().length){
+  setTimeout(async ()=>{
+    try{
+      const ids=visibleCharIds();
+      await Promise.all(ids.map(loadColonies));
+      const rows=[]; ids.forEach(id=>(colonies[id]||[]).forEach(c=>{ rows.push({id,c}); colonyOwner[c.planet_id]=id; }));
+      await Promise.all(rows.map(r=>loadColonyDetail(r.id, r.c.planet_id)));
+      let expired=0; rows.forEach(({c})=>{ (colDetail[c.planet_id].extractors||[]).forEach(e=>{ if(e.expired) expired++; }); });
+      lastColonySync=Date.now(); updateSyncChips();
+      writePiDashboard(rows.length, expired);
+    }catch(e){}
+  }, 1200);
+}
+
+</script>
+<script>
+/* Suite-wide theme, improved: picking a faction theme in any tool now
+   recolors every other open suite tab instantly (same shared key). */
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+    document.querySelectorAll('.theme-swatch').forEach(function(b){
+      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
+    });
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
 </script>
 </body>
 </html>

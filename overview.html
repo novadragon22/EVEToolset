@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html data-app="overview">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Fleet Briefing</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0}
+.radar{position:fixed;top:-140px;right:-140px;width:520px;height:520px;pointer-events:none;z-index:0;opacity:.8}
+.radar::before{content:'';position:absolute;inset:70px}
+.radar::after{content:'';position:absolute;inset:0;animation:sweep 9s linear infinite}
+.radar .ring3{position:absolute;inset:150px}
+@keyframes sweep{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){
+.radar::after{animation:none;opacity:.4}
+}
+.page{max-width:1360px;margin:0 auto;padding:26px 34px 70px;position:relative;z-index:1}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:14px;flex-wrap:wrap}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.backlink{font-size:10px;padding:7px 12px;margin-top:10px;display:none;align-items:center;white-space:nowrap}
+.kicker{font-size:9px;margin-bottom:6px}
+h1{font-size:30px;margin:0;line-height:1}
+h1 .diamond{margin:0 12px;transform:translateY(-4px)}
+.subline{font-size:12px;margin-top:7px;max-width:620px}
+.masthead-rule{height:1px;margin-top:12px;position:relative}
+.masthead-rule::after{content:'';position:absolute;left:0;top:-2px;width:46px;height:5px}
+.tb-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end}
+.eveclock{font-size:11px;white-space:nowrap}
+.pilots{display:flex;flex-wrap:wrap;gap:5px;max-width:420px;justify-content:flex-end}
+.pchip{width:28px;height:28px;cursor:pointer;transition:all var(--dur-fast)}
+.pchip:hover{transform:translateY(-1px)}
+.nochars{font-size:10px}
+.theme-picker{display:flex;gap:6px;padding-left:14px}
+.theme-swatch{width:15px;height:15px;cursor:pointer;padding:0}
+.srvline{display:flex;gap:22px;align-items:center;font-size:11px;flex-wrap:wrap;margin-bottom:18px;padding:8px 14px}
+.srvline::before{content:'⌁ UPLINK';font-size:9px}
+.srvline::after{content:'▮';animation:blink 1.2s steps(1) infinite;margin-left:auto}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion: reduce){
+.srvline::after{animation:none}
+}
+.srv-dot{width:8px;height:8px;display:inline-block;margin-right:6px;vertical-align:-1px}
+.refresh-all{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0;margin-bottom:20px;position:relative;overflow:hidden}
+.kv-grid::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;opacity:.55}
+.kcard{padding:16px 20px 14px}
+.kcard .l{font-size:9px}
+.kcard .n{font-size:31px;margin-top:5px;line-height:1}
+.kcard .s{font-size:10px;margin-top:5px}
+.pilotcard{margin-bottom:16px;position:relative;overflow:hidden;transition:border-color var(--dur-base),box-shadow var(--dur-base)}
+.pilotcard::after{content:'';position:absolute;top:0;bottom:0;width:80px;left:-120px;pointer-events:none}
+.pilotcard:hover::after{transition:left .7s ease;left:110%}
+@media (prefers-reduced-motion: reduce){
+.pilotcard::after{display:none}
+}
+.pilotcard .panel-hd{padding:12px 18px}
+.panel{position:relative;margin-bottom:16px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.panel-hd h2{font-size:11px;margin:0}
+.panel-hd .hint{font-size:11px}
+.panel-bd{padding:14px 16px}
+.charhead{display:flex;align-items:center;gap:12px}
+.charhead img{width:46px;height:46px}
+.charhead .cn{font-size:17px}
+.charhead .cc{font-size:10.5px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0}
+.pcell{padding:12px 18px}
+.pcell .l{font-size:8.5px}
+.pcell .v{font-size:13.5px;margin-top:6px}
+.pcell .s{font-size:10px;margin-top:3px}
+.sec{font-size:10px;margin-left:6px}
+.btn{font-size:10px;padding:7px 13px;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:default}
+input[type=text],textarea,select{font-size:12px;padding:8px 10px}
+textarea{width:100%;resize:vertical;line-height:1.5}
+table{width:100%;border-collapse:collapse}
+th{font-size:9.5px;text-align:left;padding:7px 10px}
+td{padding:7px 10px;font-size:12.5px}
+td.num,th.num{text-align:right}
+.badge{font-size:9px;padding:2px 7px}
+.empty{padding:34px 20px;text-align:center;font-size:12.5px}
+.warnbar{font-size:12px;padding:10px 14px;margin-bottom:16px}
+.note{font-size:11px;line-height:1.55}
+.hint{font-size:11px}
+.spin{display:inline-block;width:11px;height:11px;animation:sp 0.8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(12px);font-size:11.5px;padding:10px 18px;opacity:0;pointer-events:none;transition:all .25s;z-index:99}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+canvas.chart{width:100%;display:block}
+details.grp summary{cursor:pointer;font-size:11.5px;padding:6px 0;list-style:none}
+details.grp summary::before{content:'▸ '}
+details.grp[open] summary::before{content:'▾ '}
+@media (max-width:860px){
+.page{padding:18px 14px 60px}
+.topbar{flex-direction:column}
+.tb-right{justify-content:flex-start}
+.radar{display:none}
+}
+</style>
+<link rel="stylesheet" href="themes.css">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Saira:wght@400;500;600&family=Quicksand:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=Teko:wght@500;600&family=Michroma&family=Cinzel:wght@500;600&family=Comfortaa:wght@400;600&family=Saira+Stencil+One&display=swap" rel="stylesheet">
+</head>
+
+<body>
+<div class="page">
+
+<div class="radar" aria-hidden="true"><span class="ring3"></span></div>
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">New Eden · Daily Sitrep</div>
+      <h1>Fleet<span class="diamond"></span>Briefing</h1>
+      <div class="subline">The morning briefing: every pilot's ISK, training, industry, colonies and whereabouts on one screen.</div>
+      <div class="masthead-rule"></div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+
+    <div class="theme-picker" id="themePicker">
+      <button class="theme-swatch" data-theme="default" title="Default" style="--sw:#8a94a0"></button>
+      <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
+      <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
+      <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
+      <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
+      <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
+    </div>
+  </div>
+</header>
+<div class="srvline" id="srvline"><span><span class="srv-dot" id="srvDot"></span>Tranquility</span><span id="srvPlayers">—</span><span id="srvVer"></span></div>
+<div class="refresh-all">
+  <button class="btn primary" id="loadBtn">Refresh briefing</button>
+  <span class="hint" id="loadNote"></span>
+</div>
+<div id="agg"></div>
+<div id="out"><div class="empty">Loading…</div></div>
+</div>
+<div id="toast"></div>
+<script>
+const MY_SECTION='overview';
+
+'use strict';
+/* ================================================================== */
+/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
+/* Sign-in happens exclusively in index.html; this tool reads the      */
+/* pre-authorised characters from eve_suite_chars and refreshes their  */
+/* tokens itself. No scopes beyond the suite set are ever requested.   */
+/* ================================================================== */
+const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5';
+const SHARED_KEY='eve_suite_chars';
+const SECTION_KEY='eve_suite_char_sections';
+const DASHBOARD_KEY='eve_suite_dashboard';
+const ESI='https://esi.evetech.net/latest';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const now=()=>Date.now();
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
+let chars=loadChars();
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
+function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
+function visibleIds(){return Object.keys(chars).filter(sectionOn);}
+function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
+function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
+function fmtISK(n){if(n==null||isNaN(n))return '—';const a=Math.abs(n),s=n<0?'−':'';
+  if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+a.toFixed(a>0&&a<10?2:0);}
+function fmtFull(n){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('en-US',{maximumFractionDigits:2});}
+function fmtInt(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function timeago(ts){const m=(now()-ts)/60000;if(m<1)return 'just now';if(m<60)return Math.round(m)+'m ago';if(m<1440)return Math.round(m/60)+'h ago';return Math.round(m/1440)+'d ago';}
+function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
+  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
+function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
+async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
+async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
+  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:SUITE_CLIENT_ID}).toString());
+  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[id]=ns;saveChars();return ns;}
+async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
+  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
+async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
+  if(o.body!==undefined)h['Content-Type']='application/json';
+  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
+  return {json:await r.json(),res:r};}
+async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
+async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
+async function esiGetPaged(path,token,cap){const sep=path.includes('?')?'&':'?';
+  const first=await esiFetch(path+sep+'page=1',{token});let out=first.json;
+  const pages=Math.min(parseInt(first.res.headers.get('X-Pages')||'1',10),cap||10);
+  for(let p=2;p<=pages;p++){try{out=out.concat((await esiFetch(path+sep+'page='+p,{token})).json);}catch(e){}}
+  return out;}
+function pLimit(n){let act=0;const q=[];
+  const next=()=>{if(act>=n||!q.length)return;act++;const [fn,res,rej]=q.shift();
+    Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});};
+  return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();});}
+/* ---- persistent id→name cache: types, stations, systems, chars, corps… ---- */
+const NAME_CACHE_KEY='eve_suite_namecache_v1';
+let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
+function saveNameCache(){try{const ks=Object.keys(nameCache);
+  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
+  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
+async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
+    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
+  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
+      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
+    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
+async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
+  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
+  if(need.length)saveNameCache();
+  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
+function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
+async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
+  try{const s=await esiGet('/universe/structures/'+id+'/',token);
+    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
+  catch(e){return 'Structure '+id;}}
+async function locationName(id,token){if(id==null)return '—';
+  if(id>=1e12)return structureName(id,token);
+  await resolveNames([id]);return nameOf(id,'Location '+id);}
+/* ---- persistent type-info cache (volume, group) ---- */
+const TYPE_CACHE_KEY='eve_suite_typeinfo_v1';
+let typeCache={};try{typeCache=JSON.parse(localStorage.getItem(TYPE_CACHE_KEY)||'{}');}catch(e){}
+function saveTypeCache(){try{const ks=Object.keys(typeCache);
+  if(ks.length>6000)ks.slice(0,ks.length-5000).forEach(k=>delete typeCache[k]);
+  localStorage.setItem(TYPE_CACHE_KEY,JSON.stringify(typeCache));}catch(e){}}
+const typeLimit=pLimit(6);
+async function typeInfo(id){if(typeCache[id])return typeCache[id];
+  const t=await typeLimit(()=>esiGet('/universe/types/'+id+'/'));
+  typeCache[id]={name:t.name,volume:t.volume,pv:t.packaged_volume,gid:t.group_id};
+  nameCache[id]={n:t.name,c:'inventory_type'};saveTypeCache();return typeCache[id];}
+/* ---- pilot strip (suite roster, per-tool include toggles) ---- */
+function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
+  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
+  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
+    const t=esc(c.charName||('Char '+id))+(c.corpName?' · '+esc(c.corpName):'')+' — click to '+(on?'exclude from':'include in')+' this tool';
+    return '<div class="pchip'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'" style="background-image:url(https://images.evetech.net/characters/'+id+'/portrait?size=64)"></div>';}).join('');
+  el.querySelectorAll('.pchip').forEach(ch=>{ch.onclick=()=>{const id=ch.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
+window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
+/* ---- clock, theme, back link ---- */
+function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
+  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
+setInterval(tickClock,15000);tickClock();
+function setTheme(name){document.documentElement.dataset.theme=name;
+  try{localStorage.setItem('eve_suite_theme',name);}catch(e){}
+  document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));}
+document.querySelectorAll('.theme-swatch').forEach(b=>{b.onclick=()=>setTheme(b.dataset.theme);});
+setTheme(document.documentElement.dataset.theme||'default');
+try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
+renderPilots();
+function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
+  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
+  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a portrait above to include one.</div>';return true;}
+  return false;}
+
+/* ================= Pilot Overview ================= */
+const SYS_CACHE_KEY='eve_suite_syscache_v1';
+let sysCache={};try{sysCache=JSON.parse(localStorage.getItem(SYS_CACHE_KEY)||'{}');}catch(e){}
+function saveSysCache(){try{localStorage.setItem(SYS_CACHE_KEY,JSON.stringify(sysCache));}catch(e){}}
+async function systemInfo(id){if(sysCache[id])return sysCache[id];
+  const s=await esiGet('/universe/systems/'+id+'/');
+  let region='';
+  try{const c=await esiGet('/universe/constellations/'+s.constellation_id+'/');
+    await resolveNames([c.region_id]);region=nameOf(c.region_id,'');}catch(e){}
+  sysCache[id]={n:s.name,sec:s.security_status,r:region};saveSysCache();return sysCache[id];}
+function secColor(sec){return sec>=0.5?'var(--green)':sec>0?'var(--amber)':'var(--red)';}
+async function serverStatus(){
+  try{const s=await esiGet('/status/');
+    $('srvDot').classList.remove('off');
+    $('srvPlayers').innerHTML='<b>'+fmtInt(s.players)+'</b> pilots online';
+    $('srvVer').textContent='server '+s.server_version;}
+  catch(e){$('srvDot').classList.add('off');$('srvPlayers').textContent='status unreachable';}}
+serverStatus();setInterval(serverStatus,300000);
+const JOB_ACT={1:'manufacturing',3:'TE research',4:'ME research',5:'copying',8:'invention',9:'reactions',11:'reactions'};
+async function loadPilot(id){
+  const t=await getTok(id);
+  const rec={id,name:chars[id].charName||('Char '+id)};
+  if(!t){rec.err='token expired — re-add from the Toolset menu';return rec;}
+  const a=t.access;
+  const jobs={};
+  const grab=(key,fn)=>fn().then(v=>{jobs[key]=v;},e=>{jobs[key+'_err']=e.message;});
+  await Promise.all([
+    grab('wallet',()=>esiGet('/characters/'+id+'/wallet/',a)),
+    grab('skills',()=>esiGet('/characters/'+id+'/skills/',a)),
+    grab('queue',()=>esiGet('/characters/'+id+'/skillqueue/',a)),
+    grab('ind',()=>esiGet('/characters/'+id+'/industry/jobs/',a)),
+    grab('planets',()=>esiGet('/characters/'+id+'/planets/',a)),
+    grab('orders',()=>esiGet('/characters/'+id+'/orders/',a)),
+    grab('loc',()=>esiGet('/characters/'+id+'/location/',a)),
+  ]);
+  rec.d=jobs;
+  if(jobs.loc){try{rec.sys=await systemInfo(jobs.loc.solar_system_id);}catch(e){}}
+  if(jobs.queue){const active=jobs.queue.filter(q=>q.finish_date&&new Date(q.finish_date).getTime()>now());
+    if(active.length){active.sort((x,y)=>x.queue_position-y.queue_position);
+      rec.qHead=active[0];rec.qEnd=new Date(active[active.length-1].finish_date).getTime();
+      await resolveNames([rec.qHead.skill_id]);}
+    else rec.qEmpty=!jobs.queue.some(q=>!q.finish_date)?'empty':'paused';}
+  return rec;}
+async function loadAll(){
+  if(noPilotsGuard('out'))return;
+  const out=$('out');out.innerHTML='<div class="empty"><span class="spin"></span> compiling the briefing…</div>';
+  const per=await Promise.all(visibleIds().map(loadPilot));
+  render(per);}
+function render(per){
+  const out=$('out');
+  let totIsk=0,totSp=0,training=0,emptyQ=0,jobsRun=0;
+  const cards=per.map(p=>{
+    if(p.err)return '<div class="panel pilotcard"><div class="panel-hd"><div class="charhead">'+
+      '<img src="https://images.evetech.net/characters/'+p.id+'/portrait?size=64"><div class="cn">'+esc(p.name)+'</div></div>'+
+      '<span class="badge bad">'+esc(p.err)+'</span></div></div>';
+    const d=p.d;
+    if(d.wallet!=null)totIsk+=d.wallet;
+    if(d.skills)totSp+=d.skills.total_sp;
+    const activeJobs=(d.ind||[]).filter(j=>j.status==='active');
+    jobsRun+=activeJobs.length;
+    const nextJob=activeJobs.slice().sort((a,b)=>new Date(a.end_date)-new Date(b.end_date))[0];
+    let qCell;
+    if(p.qHead){training++;
+      qCell='<div class="v">'+esc(nameOf(p.qHead.skill_id))+' '+roman(p.qHead.finished_level)+'</div>'+
+        '<div class="s">done '+fmtDur(new Date(p.qHead.finish_date).getTime()-now())+' · queue dry '+fmtDur(p.qEnd-now())+'</div>';}
+    else if(p.qEmpty==='paused')qCell='<div class="v"><span class="warn">⏸ paused</span></div>';
+    else if(p.qEmpty==='empty'){emptyQ++;qCell='<div class="v"><span class="warn">⚠ EMPTY</span></div>';}
+    else qCell='<div class="v">'+(d.queue_err?'<span class="warn">unavailable</span>':'—')+'</div>';
+    const locCell=p.sys?'<div class="v">'+esc(p.sys.n)+'<span class="sec" style="color:'+secColor(p.sys.sec)+'">'+p.sys.sec.toFixed(1)+'</span></div>'+
+      '<div class="s">'+esc(p.sys.r||'')+(d.loc&&d.loc.structure_id?' · docked':d.loc&&d.loc.station_id?' · docked':' · in space')+'</div>'
+      :'<div class="v">'+(d.loc_err?'<span class="warn">unavailable</span>':'—')+'</div>';
+    return '<div class="panel pilotcard"><div class="panel-hd"><div class="charhead">'+
+      '<img src="https://images.evetech.net/characters/'+p.id+'/portrait?size=64">'+
+      '<div><div class="cn">'+esc(p.name)+'</div><div class="cc">'+esc(chars[p.id].corpName||'')+'</div></div></div>'+
+      '</div><div class="pgrid">'+
+      '<div class="pcell"><div class="l">Wallet</div><div class="v gold">'+(d.wallet!=null?fmtISK(d.wallet):'—')+'</div>'+
+        (d.wallet!=null?'<div class="s">'+fmtFull(d.wallet)+' ISK</div>':'')+'</div>'+
+      '<div class="pcell"><div class="l">Skillpoints</div><div class="v cy">'+(d.skills?fmtISK(d.skills.total_sp).replace('.00',''):'—')+'</div>'+
+        ((d.skills&&d.skills.unallocated_sp)?'<div class="s">'+fmtInt(d.skills.unallocated_sp)+' unallocated</div>':'')+'</div>'+
+      '<div class="pcell"><div class="l">Training</div>'+qCell+'</div>'+
+      '<div class="pcell"><div class="l">Industry</div><div class="v">'+(d.ind?activeJobs.length+' active':'—')+'</div>'+
+        (nextJob?'<div class="s">'+esc(JOB_ACT[nextJob.activity_id]||'job')+' done '+fmtDur(new Date(nextJob.end_date).getTime()-now())+'</div>':'')+'</div>'+
+      '<div class="pcell"><div class="l">Colonies</div><div class="v">'+(d.planets?d.planets.length+' / 6':'—')+'</div>'+
+        (d.planets&&d.planets.length?'<div class="s">'+d.planets.reduce((s,x)=>s+x.num_pins,0)+' pins</div>':'')+'</div>'+
+      '<div class="pcell"><div class="l">Orders</div><div class="v">'+(d.orders?d.orders.length:'—')+'</div></div>'+
+      '<div class="pcell"><div class="l">Location</div>'+locCell+'</div>'+
+      '</div></div>';}).join('');
+  $('agg').innerHTML='<div class="kv-grid">'+
+    '<div class="kcard"><div class="l">Combined ISK</div><div class="n">'+fmtISK(totIsk)+'</div></div>'+
+    '<div class="kcard"><div class="l">Combined SP</div><div class="n cy">'+fmtISK(totSp).replace('.00','')+'</div></div>'+
+    '<div class="kcard"><div class="l">Industry jobs</div><div class="n">'+jobsRun+'</div><div class="s">active right now</div></div>'+
+    '<div class="kcard"><div class="l">Queues</div><div class="n '+(emptyQ?'rd':'gr')+'">'+(emptyQ?emptyQ+' empty':training+' training')+'</div></div>'+
+    '</div>';
+  out.innerHTML=cards;
+  reportDashboard(per.length+' pilot'+(per.length!==1?'s':'')+' · Σ '+fmtISK(totIsk),emptyQ?'warn':'ok');
+  $('loadNote').textContent='compiled '+new Date().toLocaleTimeString();}
+$('loadBtn').onclick=loadAll;
+window.onRosterChange=loadAll;
+loadAll();
+</script>
+<script>
+/* Suite-wide theme, improved: picking a faction theme in any tool now
+   recolors every other open suite tab instantly (same shared key). */
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+    document.querySelectorAll('.theme-swatch').forEach(function(b){
+      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
+    });
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
+</script>
+</body>
+</html>

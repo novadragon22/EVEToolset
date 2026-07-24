@@ -1,154 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html data-app="structures">
 <head>
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'amarr';}catch(e){}</script>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
 <meta charset="utf-8">
-<title>EVE Structure Browser</title>
+<title>EVE Citadel Watch</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{ --accent:#c9a868; --accent-rgb:201,168,104; }
-  [data-theme="amarr"]{ --accent:#c9a868; --accent-rgb:201,168,104; }
-  [data-theme="caldari"]{ --accent:#4a90c4; --accent-rgb:74,144,196; }
-  [data-theme="gallente"]{ --accent:#4ac89a; --accent-rgb:74,200,154; }
-  [data-theme="minmatar"]{ --accent:#c86a3a; --accent-rgb:200,106,58; }
-  [data-theme="triglavian"]{ --accent:#c8395a; --accent-rgb:200,57,90; }
-  *{box-sizing:border-box}
-  body{margin:0;background:#0d0f14;font-family:-apple-system,'Inter',sans-serif;color:#e4e6ea}
-  .page{max-width:1200px;margin:0 auto;padding:32px 36px}
-  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
-  .topbar h1{font-size:20px;font-weight:700;margin:0;letter-spacing:-.01em}
-  .topbar .sub{font-size:12.5px;color:#8a8f9a;margin-top:2px}
-  .header-controls{display:flex;align-items:center;gap:16px}
-  .roster{display:flex;gap:6px}
-  .rchip{position:relative;width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a3018,#0f0d06);border:1.5px solid rgba(201,168,104,.4);box-shadow:0 0 10px rgba(201,168,104,.2)}
-  .rchip img{position:absolute;inset:3px;width:26px;height:26px;border-radius:50%;object-fit:cover}
-  .theme-picker{display:flex;gap:6px;padding-left:14px;border-left:1px solid #2a2e38}
-  .theme-swatch{width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:0}
-  .theme-swatch.on{box-shadow:0 0 0 2px #0d0f14,0 0 0 3px currentColor}
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .cal-strip{display:flex;gap:3px}
-  .cal-tile{flex:1;text-align:center;padding:6px 2px;border:1px solid #232631;border-radius:6px;font-size:9px;position:relative}
-  .cal-tile.today{border-color:var(--accent)}
-  .cal-tile.lo{background:rgba(90,216,90,.1)}
-  .cal-tile.hi{background:rgba(224,168,96,.18)}
-  .cal-dow{display:block;color:#6a707c;font-size:8px}
-  .cal-dom{display:block;color:#e4e6ea;font-weight:600;margin-top:1px}
-  .cal-count{position:absolute;top:2px;right:3px;font-size:7px;color:var(--accent)}
-  .cal-list{margin-top:10px;font-size:11px}
-  .cal-day-row{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #1c1f28}
-  .cal-day-date{color:#8a8f9a;width:100px;flex-shrink:0}
-  .cal-chip{color:#e4e6ea}
-  .cal-chip i{color:#6a707c;font-style:normal}
-  .plan-row{display:flex;justify-content:space-between;align-items:center;padding:8px 18px;border-bottom:1px solid #1c1f28;font-size:12.5px}
-  .plan-row .dim{color:#6a707c}
-  .char-x{background:none;border:none;color:#6a707c;cursor:pointer;padding:4px}
-  .char-x:hover{color:#f0796a}
-  .empty{padding:16px;text-align:center;color:#6a707c;font-size:12px}
-  .hint{font-size:11.5px;color:#8a8f9a}
-  .tbl-wrap table{width:100%;border-collapse:collapse;margin-top:6px}
-  .tbl-wrap th,.tbl-wrap td{padding:8px 10px;font-size:12.5px;text-align:left;border-bottom:1px solid #1c1f28}
-  .tbl-wrap th{color:#6a707c;font-size:11px;font-weight:500}
-
-  .card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
-  .kcard{background:#161920;border:1px solid #232631;border-radius:12px;padding:16px 18px}
-  .kcard .l{font-size:11.5px;color:#8a8f9a;font-weight:500}
-  .kcard .n{font-size:28px;font-weight:700;margin-top:6px;letter-spacing:-.01em}
-  .kcard .spark{height:24px;margin-top:8px}
-  .kcard.alert{border-color:#4a2a2a}
-  .kcard.alert .n{color:#f0796a}
-
-  .struct-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px}
-  .struct-card{background:#161920;border:1px solid #232631;border-radius:12px;padding:16px 18px;transition:border-color .15s}
-  .struct-card:hover{border-color:#33384a}
-  .struct-card.flagged{border-color:#4a2a2a}
-  .struct-card .top-row{display:flex;align-items:center;gap:10px}
-  .struct-card .esi-age{margin-left:auto;font-size:10px;color:#5ae082}
-  .struct-card .esi-age.stale{color:#e8b860}
-  .struct-card .avatar{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#3a4a5a,#1a2530);flex-shrink:0}
-  .struct-card .nm{font-weight:600;font-size:13.5px}
-  .struct-card .type-sub{font-size:11px;color:#6a707c;margin-top:1px}
-  .struct-card .mid-row{display:flex;justify-content:space-between;margin-top:12px;font-size:12px}
-  .struct-card .loc-txt{color:#a4a8b2}
-  .struct-card .status-txt{font-size:12px}
-  .struct-card .status-txt.mining{color:#5ae082}
-  .struct-card .status-txt.idle{color:#8a8f9a}
-  .struct-card .status-txt.crit{color:#f0796a;font-weight:600}
-  .struct-card .fuel-row{display:flex;align-items:center;gap:10px;margin-top:12px}
-
-  .panel{background:#161920;border:1px solid #232631;border-radius:12px;margin-bottom:16px;overflow:hidden}
-  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #232631}
-  .panel-head h2{font-size:13.5px;font-weight:600;margin:0}
-  .panel-head .c{font-size:11.5px;color:#6a707c}
-  .pill{font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px}
-  .pill.green{background:rgba(74,216,130,.15);color:#5ae082}
-  .pill.amber{background:rgba(230,180,80,.15);color:#e8b860}
-  .pill.red{background:rgba(240,110,90,.15);color:#f0796a}
-
-  table{width:100%;border-collapse:collapse}
-  thead th{text-align:left;font-size:11px;color:#6a707c;font-weight:500;padding:8px 18px;border-bottom:1px solid #232631}
-  tbody tr{border-bottom:1px solid #1c1f28}
-  tbody tr:last-child{border-bottom:none}
-  tbody tr:hover{background:#1a1d26}
-  tbody td{padding:12px 18px;vertical-align:middle;font-size:13px}
-  .nm-cell{display:flex;align-items:center;gap:10px}
-  .avatar{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#3a4a5a,#1a2530);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
-  .struct-render{width:100%;height:100%;object-fit:cover}
-  .sdot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:2px}
-  .sdot.pulse{animation:sdot-pulse 1.5s ease-in-out infinite}
-  @keyframes sdot-pulse{0%,100%{opacity:1}50%{opacity:.25}}
-  .nm{font-weight:600}
-  .type-sub{font-size:11px;color:#6a707c;margin-top:1px}
-  .loc-txt{color:#a4a8b2}
-  .bar-cell{display:flex;align-items:center;gap:10px}
-  .bar-track{width:90px;height:6px;background:#232631;border-radius:3px;overflow:hidden}
-  .bar-fill{height:100%;border-radius:3px;background:#5ae082}
-  .bar-fill.amber{background:#e8b860}
-  .bar-fill.red{background:#f0796a}
-  .fuel-n{font-size:12px;color:#a4a8b2;width:32px}
-
-  .tabs-row{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid #232631;padding-bottom:0}
-  .tab-btn{background:none;border:none;color:#8a8f9a;font-size:13px;font-weight:500;padding:10px 16px;cursor:pointer;
-    border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;font-family:inherit}
-  .tab-btn.on{color:#e4e6ea;border-bottom-color:var(--accent)}
-  .tab-btn .cnt{background:#232631;color:#8a8f9a;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:10px}
-  .tab-btn.on .cnt{background:var(--accent);color:#0d0f14}
-  .tab-page{display:none}
-  .tab-page.on{display:block}
-  .subtabs-row{display:flex;gap:8px;margin-bottom:16px}
-  .subtab-btn{background:#161920;border:1px solid #232631;color:#8a8f9a;font-size:11.5px;padding:6px 14px;border-radius:20px;cursor:pointer;font-family:inherit}
-  .subtab-btn.on{background:var(--accent);color:#0d0f14;border-color:var(--accent);font-weight:600}
-  .subtab-page{display:none}
-  .subtab-page.on{display:block}
-  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .list-row{display:flex;justify-content:space-between;padding:9px 18px;font-size:12.5px;border-bottom:1px solid #1c1f28}
-  .list-row:last-child{border-bottom:none}
-  .list-row .dim{color:#6a707c}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0}
+.page{max-width:1200px;margin:0 auto;padding:32px 36px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;gap:14px;flex-wrap:wrap}
+.topbar h1{font-size:23px;margin:0}
+.topbar h1::before{content:'⌂ '}
+.topbar .sub{font-size:12px;margin-top:3px}
+.header-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.roster{display:flex;gap:6px}
+.rchip{position:relative;width:32px;height:32px}
+.rchip img{position:absolute;inset:3px;width:26px;height:26px;object-fit:cover}
+.theme-picker{display:flex;gap:6px;padding-left:14px}
+.theme-swatch{width:16px;height:16px;cursor:pointer;padding:0}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+@media (max-width:900px){
+.card-grid{grid-template-columns:repeat(2,1fr)}
+}
+.kcard{padding:15px 18px;position:relative}
+.kcard::before,.kcard::after{content:'';position:absolute;width:11px;height:11px;opacity:.7}
+.kcard::before{top:-1px;left:-1px}
+.kcard::after{bottom:-1px;right:-1px}
+.kcard .l{font-size:9.5px}
+.kcard .n{font-size:29px;margin-top:6px}
+.kcard .spark{height:24px;margin-top:8px}
+.tabs-row{display:flex;gap:4px;margin-bottom:20px;padding-bottom:0;flex-wrap:wrap}
+.tab-btn{font-size:12.5px;padding:10px 16px;cursor:pointer;margin-bottom:-2px;display:flex;align-items:center;gap:7px}
+.tab-btn .cnt{font-size:10.5px;padding:1px 7px}
+.tab-page{display:none}
+.tab-page.on{display:block}
+.subtabs-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.subtab-btn{font-size:11px;padding:6px 14px;cursor:pointer}
+.subtab-page{display:none}
+.subtab-page.on{display:block}
+.panel{margin-bottom:16px;overflow:visible;position:relative}
+.panel::before,.panel::after{content:'';position:absolute;width:13px;height:13px;opacity:.65;pointer-events:none}
+.panel::before{top:-1px;left:-1px}
+.panel::after{bottom:-1px;right:-1px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:13px 18px}
+.panel-head h2{font-size:12.5px;margin:0}
+.panel-head .c{font-size:11.5px}
+.pill{font-size:9.5px;padding:2px 9px}
+.struct-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px}
+@media (max-width:980px){
+.struct-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:680px){
+.struct-grid{grid-template-columns:1fr}
+}
+.struct-card{padding:16px 18px;transition:all var(--dur-base)}
+.struct-card .top-row{display:flex;align-items:center;gap:10px}
+.struct-card .esi-age{margin-left:auto;font-size:10px}
+.struct-card .avatar{width:32px;height:32px;flex-shrink:0}
+.struct-card .nm{font-size:13.5px}
+.struct-card .type-sub{font-size:11px;margin-top:1px}
+.struct-card .mid-row{display:flex;justify-content:space-between;margin-top:12px;font-size:12px}
+.struct-card .status-txt{font-size:12px}
+.struct-card .fuel-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:10px;padding:8px 18px}
+tbody td{padding:12px 18px;vertical-align:middle;font-size:13px}
+.tbl-wrap table{width:100%;border-collapse:collapse;margin-top:6px}
+.tbl-wrap th,.tbl-wrap td{padding:8px 10px;font-size:12.5px;text-align:left}
+.tbl-wrap th{font-size:11px}
+.nm-cell{display:flex;align-items:center;gap:10px}
+.avatar{width:28px;height:28px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.struct-render{width:100%;height:100%;object-fit:cover}
+.sdot{display:inline-block;width:6px;height:6px;margin-right:2px}
+.sdot.pulse{animation:sdot-pulse 1.5s ease-in-out infinite}
+@keyframes sdot-pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){
+.sdot.pulse{animation:none}
+}
+.type-sub{font-size:11px;margin-top:1px}
+.bar-cell{display:flex;align-items:center;gap:10px}
+.bar-track{width:90px;height:9px;overflow:hidden;position:relative}
+.bar-track::after{content:'';position:absolute;inset:0;pointer-events:none}
+.bar-fill{height:100%}
+.fuel-n{font-size:12px;width:32px}
+.cal-strip{display:flex;gap:3px}
+.cal-tile{flex:1;text-align:center;padding:6px 2px;font-size:9px;position:relative}
+.cal-dow{display:block;font-size:8px}
+.cal-dom{display:block;margin-top:1px}
+.cal-count{position:absolute;top:2px;right:3px;font-size:7px}
+.cal-list{margin-top:10px;font-size:11px}
+.cal-day-row{display:flex;gap:8px;padding:5px 0}
+.cal-day-date{width:100px;flex-shrink:0}
+.plan-row{display:flex;justify-content:space-between;align-items:center;padding:8px 18px;font-size:12.5px}
+.char-x{cursor:pointer;padding:4px}
+.empty{padding:16px;text-align:center;font-size:12px}
+.hint{font-size:11.5px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:860px){
+.two-col{grid-template-columns:1fr}
+.page{padding:20px 16px}
+}
+.list-row{display:flex;justify-content:space-between;padding:9px 18px;font-size:12.5px}
 </style>
+<link rel="stylesheet" href="themes.css">
 <style>
 .pilot-strip{position:fixed;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:5px;z-index:9999;max-width:480px}
-.pilot-chip{width:22px;height:22px;border-radius:6px;background:radial-gradient(circle at 35% 30%,#3a2818,#0f0a06);border:1.5px solid rgba(220,160,90,.35)}
+.pilot-chip{width:22px;height:22px}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Saira:wght@400;500;600&family=Quicksand:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=Teko:wght@500;600&family=Michroma&family=Cinzel:wght@500;600&family=Comfortaa:wght@400;600&family=Saira+Stencil+One&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="pilot-strip"></div>
 <div class="page">
   <div class="topbar">
-    <div><h1>Structures</h1><div class="sub" id="topSub">Loading…</div></div>
+    <div><h1>Citadel Watch</h1><div class="sub" id="topSub">Loading…</div></div>
     <div class="header-controls">
       <div class="roster" id="roster"></div>
       <div class="theme-picker" id="themePicker">
+        <button class="theme-swatch" data-theme="default" title="Default" style="background:#8a94a0"></button>
         <button class="theme-swatch" data-theme="amarr" title="Amarr" style="background:#c9a868"></button>
         <button class="theme-swatch" data-theme="caldari" title="Caldari" style="background:#4a90c4"></button>
         <button class="theme-swatch" data-theme="gallente" title="Gallente" style="background:#4ac89a"></button>
         <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="background:#c86a3a"></button>
         <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="background:#9ad84a"></button>
       </div>
-      <button class="btn" id="gateAuth" style="display:none;background:var(--accent);border:1px solid var(--accent);color:#0d0f14;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer">Sign in</button>
-      <button class="btn" id="syncBtn" style="background:#232631;border:1px solid #33384a;color:#e4e6ea;border-radius:8px;padding:7px 14px;font-size:12.5px;cursor:pointer">Sync</button>
+      <button class="btn" id="gateAuth" style="display:none;background:var(--accent);border:1px solid var(--accent);color:var(--bg);border-radius:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.06em;text-transform:uppercase">Sign in</button>
+      <button class="btn" id="syncBtn" style="background:transparent;border:1px solid var(--line2);color:var(--text);border-radius:0;padding:7px 14px;font-size:12px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase">Sync</button>
     </div>
   </div>
 
-  <div id="corpAccessBanner" style="display:none;flex-direction:column;gap:4px;background:rgba(240,121,106,.08);border:1px solid rgba(240,121,106,.3);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0796a"></div>
-  <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);opacity:0;transition:all .25s;background:#161920;border:1px solid #232631;border-radius:10px;padding:10px 18px;font-size:12.5px;color:#e4e6ea;z-index:50;pointer-events:none"></div>
+  <div id="corpAccessBanner" style="display:none;flex-direction:column;gap:4px;background:rgba(214,106,90,.08);border:1px solid rgba(214,106,90,.3);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--red)"></div>
+  <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);opacity:0;transition:all .25s;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:10px 18px;font-size:12.5px;color:var(--text);z-index:50;pointer-events:none"></div>
 
   <div class="card-grid">
     <div class="kcard"><div class="l">Extracting</div><div class="n" id="kExtract">0</div></div>
@@ -201,19 +186,19 @@
           <span class="c">stagger extraction starts across your scan-plan queue so chunks don't all land the same day</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-          <label style="font-size:11.5px;color:#8a8f9a">Window</label>
-          <input id="optWindow" type="number" value="14" min="3" max="60" style="width:56px;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:5px 8px;font-size:12px">
-          <span style="font-size:11.5px;color:#8a8f9a">days</span>
-          <label style="font-size:11.5px;color:#8a8f9a">Constellation</label>
-          <select id="optConst" style="background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:5px 8px;font-size:12px"><option value="all">All constellations</option></select>
-          <label style="font-size:11.5px;color:#8a8f9a">Exclude keywords</label>
-          <input id="optExclude" placeholder="e.g. staging, test" style="width:140px;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:5px 8px;font-size:12px">
+          <label style="font-size:11.5px;color:var(--muted)">Window</label>
+          <input id="optWindow" type="number" value="14" min="3" max="60" style="width:56px;background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px">
+          <span style="font-size:11.5px;color:var(--muted)">days</span>
+          <label style="font-size:11.5px;color:var(--muted)">Constellation</label>
+          <select id="optConst" style="background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px"><option value="all">All constellations</option></select>
+          <label style="font-size:11.5px;color:var(--muted)">Exclude keywords</label>
+          <input id="optExclude" placeholder="e.g. staging, test" style="width:140px;background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px">
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-          <label style="font-size:11.5px;color:#8a8f9a">Gap between starts</label>
-          <input id="optDuration" type="number" value="7" min="0.5" step="0.5" style="width:60px;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:5px 8px;font-size:12px">
-          <span style="font-size:11.5px;color:#8a8f9a">days</span>
-          <button class="btn" id="genPatternBtn" style="margin-left:auto;background:var(--accent);color:#0d0f14;border:none">Generate optimal pattern</button>
+          <label style="font-size:11.5px;color:var(--muted)">Gap between starts</label>
+          <input id="optDuration" type="number" value="7" min="0.5" step="0.5" style="width:60px;background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px">
+          <span style="font-size:11.5px;color:var(--muted)">days</span>
+          <button class="btn" id="genPatternBtn" style="margin-left:auto;background:var(--accent);color:var(--bg);border:none">Generate optimal pattern</button>
         </div>
         <div id="patternResult"></div>
       </div>
@@ -225,9 +210,9 @@
         <div class="panel">
           <div class="panel-head"><h2>Scan plan queue</h2></div>
           <div id="planList"></div>
-          <div style="display:flex;gap:8px;padding:12px 18px;border-top:1px solid #232631">
-            <input id="planSystem" placeholder="System name" style="flex:1;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:6px 10px;font-size:12px">
-            <input id="planConst" list="constDatalist" placeholder="Constellation (optional)" style="flex:1;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:6px 10px;font-size:12px">
+          <div style="display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line2)">
+            <input id="planSystem" placeholder="System name" style="flex:1;background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px">
+            <input id="planConst" list="constDatalist" placeholder="Constellation (optional)" style="flex:1;background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px">
             <datalist id="constDatalist"></datalist>
             <button class="btn" id="addPlanBtn">+ Add</button>
           </div>
@@ -242,9 +227,9 @@
         <h2>Metenox Calculator</h2>
         <span class="c">moon-drill value @ 40% efficiency — 12,000 m³ ore/hr per drill · output is always reprocessed materials</span>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:#8a8f9a">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)">
         <span>Hub</span>
-        <select id="metHub" style="background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:5px 8px;font-size:12px">
+        <select id="metHub" style="background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px">
           <option>Jita</option><option>Amarr</option><option>Dodixie</option><option>Rens</option><option>Hek</option>
         </select>
         <button class="btn" id="metFetch" style="margin-left:auto">⟳ Fetch ESI prices</button>
@@ -255,31 +240,31 @@
     <div id="metDrills"></div>
     <button class="btn" id="metAddDrill" style="width:100%;margin-bottom:14px">+ Add moon drill</button>
 
-    <div class="panel" style="padding:18px;border-color:#33384a">
+    <div class="panel" style="padding:18px;border-color:var(--line2)">
       <div class="panel-head" style="border:none;padding:0 0 12px"><h2>Total — all moon drills (<span id="metDrillCount">0</span>)</h2></div>
       <div style="display:flex;gap:20px;flex-wrap:wrap">
         <div style="flex:1;min-width:280px">
-          <div style="font-size:11.5px;color:#8a8f9a;margin-bottom:8px;font-weight:600">Yield</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;font-weight:600">Yield</div>
           <div style="display:flex;gap:20px;font-size:15px;font-weight:700;color:#5ac8ff">
-            <div><div style="font-size:9px;color:#6a707c;font-weight:400">per hour</div><b id="metPerHr">0</b></div>
-            <div><div style="font-size:9px;color:#6a707c;font-weight:400">per day</div><b id="metPerDay">0</b></div>
-            <div><div style="font-size:9px;color:#6a707c;font-weight:400">per 30 days</div><b id="metPerMo">0</b></div>
+            <div><div style="font-size:9px;color:var(--muted2);font-weight:400">per hour</div><b id="metPerHr">0</b></div>
+            <div><div style="font-size:9px;color:var(--muted2);font-weight:400">per day</div><b id="metPerDay">0</b></div>
+            <div><div style="font-size:9px;color:var(--muted2);font-weight:400">per 30 days</div><b id="metPerMo">0</b></div>
           </div>
         </div>
         <div style="flex:1;min-width:280px">
-          <div style="font-size:11.5px;color:#8a8f9a;margin-bottom:8px;font-weight:600">Fuel cost <span style="font-weight:400">(5 blocks + 200 gas /hr/drill)</span></div>
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;font-weight:600">Fuel cost <span style="font-weight:400">(5 blocks + 200 gas /hr/drill)</span></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:11px">
-            <span>Fuel block</span><input id="metFbPrice" type="number" min="0" step="100" style="width:80px;text-align:right;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:4px 6px">
-            <span>Gas</span><input id="metGasPrice" type="number" min="0" step="10" style="width:80px;text-align:right;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:4px 6px">
+            <span>Fuel block</span><input id="metFbPrice" type="number" min="0" step="100" style="width:80px;text-align:right;background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:4px 6px">
+            <span>Gas</span><input id="metGasPrice" type="number" min="0" step="10" style="width:80px;text-align:right;background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:4px 6px">
           </div>
-          <div style="display:flex;gap:20px;font-size:15px;font-weight:700;color:#f0796a">
-            <div><div style="font-size:9px;color:#6a707c;font-weight:400">per day</div><b id="metFuelDay">0</b></div>
-            <div><div style="font-size:9px;color:#6a707c;font-weight:400">per week</div><b id="metFuelWk">0</b></div>
-            <div><div style="font-size:9px;color:#6a707c;font-weight:400">per 30 days</div><b id="metFuelMo">0</b></div>
+          <div style="display:flex;gap:20px;font-size:15px;font-weight:700;color:var(--red)">
+            <div><div style="font-size:9px;color:var(--muted2);font-weight:400">per day</div><b id="metFuelDay">0</b></div>
+            <div><div style="font-size:9px;color:var(--muted2);font-weight:400">per week</div><b id="metFuelWk">0</b></div>
+            <div><div style="font-size:9px;color:var(--muted2);font-weight:400">per 30 days</div><b id="metFuelMo">0</b></div>
           </div>
         </div>
       </div>
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #232631;font-size:11.5px;color:#8a8f9a">
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2);font-size:11.5px;color:var(--muted)">
         Net profit (yield − fuel): <b id="metRProfDay" style="font-size:13px">0</b>/day · <b id="metRProfWk">0</b>/week · <b id="metRProfMo">0</b>/30d
       </div>
     </div>
@@ -325,7 +310,7 @@
         <div class="struct-card flagged">
           <div class="top-row"><div class="avatar"></div><div><div class="nm">Amamake Athanor</div><div class="type-sub">Athanor</div></div><span class="esi-age">1m</span></div>
           <div class="mid-row"><span class="loc-txt">0.4 Amamake</span><span class="status-txt crit">Unanchors 3h 58m</span></div>
-          <div class="fuel-row"><div class="bar-track" style="flex:1"><div class="bar-fill red" style="width:12%"></div></div><span class="fuel-n" style="color:#f0796a">12%</span></div>
+          <div class="fuel-row"><div class="bar-track" style="flex:1"><div class="bar-fill red" style="width:12%"></div></div><span class="fuel-n" style="color:var(--red)">12%</span></div>
         </div>
       </div>
     </div>
@@ -372,7 +357,7 @@ function renderPlanList(){
   const wrap=document.getElementById('planList'); if(!wrap) return;
   const list=extractionPlans.filter(p=>(optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation));
   wrap.innerHTML=list.length?list.map(p=>{ const ex=isExcluded(p.system,p.system);
-    return `<div class="plan-row" style="${ex?'opacity:.45':''}"><span>${esc(p.system)}${ex?' <i style="color:#f0796a;font-style:normal">excluded</i>':''}</span><span class="dim">${esc(p.constellation||'Unspecified')}</span><button class="char-x" onclick="removePlan('${p.id}')">&#10005;</button></div>`; }).join('')
+    return `<div class="plan-row" style="${ex?'opacity:.45':''}"><span>${esc(p.system)}${ex?' <i style="color:var(--red);font-style:normal">excluded</i>':''}</span><span class="dim">${esc(p.constellation||'Unspecified')}</span><button class="char-x" onclick="removePlan('${p.id}')">&#10005;</button></div>`; }).join('')
     :`<div class="empty"><p>No systems queued for scheduling yet.</p></div>`;
 }
 window.removePlan=async(id)=>{ extractionPlans=extractionPlans.filter(p=>p.id!==id); await savePlans(); };
@@ -401,7 +386,7 @@ window.removePlan=async(id)=>{ extractionPlans=extractionPlans.filter(p=>p.id!==
   });
   const N=units.length, cycleDays=Math.round(N*gap);
   const results=units.map((u,i)=>{ const startDate=addDays(today,Math.round(i*gap)); return {...u,startDate,nextDate:addDays(startDate,cycleDays)}; });
-  out.innerHTML=`<div class="hint" style="margin-top:14px;margin-bottom:10px">${N} extraction${N!==1?'s':''} across ${plansToSchedule.length} system${plansToSchedule.length!==1?'s':''} · one full cycle every <b style="color:#e4e6ea">${cycleDays}d</b>. Each system's refineries are all scheduled before the cycle returns to the first.</div>
+  out.innerHTML=`<div class="hint" style="margin-top:14px;margin-bottom:10px">${N} extraction${N!==1?'s':''} across ${plansToSchedule.length} system${plansToSchedule.length!==1?'s':''} · one full cycle every <b style="color:var(--text)">${cycleDays}d</b>. Each system's refineries are all scheduled before the cycle returns to the first.</div>
   <div class="tbl-wrap"><table>
     <thead><tr><th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Suggested start</th><th>Next cycle</th></tr></thead>
     <tbody>${results.map((r,i)=>`<tr><td class="dim">${i+1}</td><td><div class="nm">${esc(r.system)}</div></td><td>${r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>'}</td><td class="dim">${esc(r.constellation||'Unspecified')}</td>
@@ -446,10 +431,10 @@ function metOreOptions(sel){ return MOON_ORES.map(o=>`<option value="${o.n}" ${o
 let metDrillSeq=0;
 function metOreRowHtml(oreN,pct){
   return `<td style="text-align:left"><select class="metOre">${metOreOptions(oreN)}</select></td>`+
-    `<td><input class="metPct" type="number" min="0" step="0.1" value="${pct!=null?pct:''}" style="width:70px;text-align:right;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;border-radius:6px;padding:4px 6px"></td>`+
+    `<td><input class="metPct" type="number" min="0" step="0.1" value="${pct!=null?pct:''}" style="width:70px;text-align:right;background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:4px 6px"></td>`+
     `<td class="metUnits" style="text-align:right">0</td>`+
     `<td class="metValHr" style="text-align:right">0</td>`+
-    `<td style="text-align:right"><span class="metRm" title="Remove" style="cursor:pointer;color:#f0796a">&#10005;</span></td>`;
+    `<td style="text-align:right"><span class="metRm" title="Remove" style="cursor:pointer;color:var(--red)">&#10005;</span></td>`;
 }
 function metAddRow(drillEl,ore,pct){ const tb=drillEl.querySelector('.metRows'); if(!tb)return; const oreN=ore||MOON_ORES[0].n;
   const tr=document.createElement('tr'); tr.innerHTML=metOreRowHtml(oreN,pct);
@@ -463,15 +448,15 @@ function metAddDrill(){
   const id=++metDrillSeq;
   const wrap=document.getElementById('metDrills'); if(!wrap) return;
   const div=document.createElement('div'); div.className='met-drill'; div.dataset.drillId=id;
-  div.style.cssText='border:1px solid #232631;border-radius:10px;padding:14px 16px;margin-bottom:12px;background:#161920';
+  div.style.cssText='border:1px solid var(--line2);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--panel)';
   div.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <b>Drill ${id}</b><span class="metRmDrill" title="Remove this drill" style="cursor:pointer;color:#f0796a;font-size:12px">&#10005; Remove drill</span></div>
+      <b>Drill ${id}</b><span class="metRmDrill" title="Remove this drill" style="cursor:pointer;color:var(--red);font-size:12px">&#10005; Remove drill</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px">
-      <textarea class="metSurvey" placeholder="Optional: paste moon survey composition (e.g. Zeolites 34%  Sylvite 22% ...) then Parse." style="flex:1;min-width:260px;height:52px;background:#0d0f14;border:1px solid #232631;color:#e4e6ea;font-size:12px;padding:8px;border-radius:6px;resize:vertical"></textarea>
+      <textarea class="metSurvey" placeholder="Optional: paste moon survey composition (e.g. Zeolites 34%  Sylvite 22% ...) then Parse." style="flex:1;min-width:260px;height:52px;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:12px;padding:8px;border-radius:6px;resize:vertical"></textarea>
       <button class="btn metParseBtn">Parse survey</button>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:12.5px">
-      <thead><tr style="color:#6a707c;font-size:11px"><th style="text-align:left">Moon ore</th><th>Comp %</th><th>Units/hr</th><th>Reprocessed value/hr</th><th></th></tr></thead>
+      <thead><tr style="color:var(--muted2);font-size:11px"><th style="text-align:left">Moon ore</th><th>Comp %</th><th>Units/hr</th><th>Reprocessed value/hr</th><th></th></tr></thead>
       <tbody class="metRows"></tbody>
       <tfoot style="font-weight:600"><tr><td style="text-align:left">Drill total</td><td class="metPctTot">0%</td><td style="text-align:right" class="metM3Tot">0 m³/hr</td><td class="metValTot" style="text-align:right">0</td><td></td></tr></tfoot>
     </table>
@@ -508,7 +493,7 @@ function metRecomputeAll(){
   set('metDrillCount',count);
   set('metPerHr',metFmt(grandVal)); set('metPerDay',metFmt(grandVal*24)); set('metPerMo',metFmt(grandVal*720));
   set('metFuelDay',metFmt(fuelHr*24)); set('metFuelWk',metFmt(fuelHr*168)); set('metFuelMo',metFmt(fuelHr*720));
-  const setP=(id,v)=>{ const el=document.getElementById(id); if(!el)return; el.textContent=metFmt(v); el.style.color=v>=0?'#5ae082':'#f0796a'; };
+  const setP=(id,v)=>{ const el=document.getElementById(id); if(!el)return; el.textContent=metFmt(v); el.style.color=v>=0?'var(--green)':'var(--red)'; };
   const rProfHr=grandVal-fuelHr;
   setP('metRProfDay',rProfHr*24); setP('metRProfWk',rProfHr*168); setP('metRProfMo',rProfHr*720);
 }
@@ -873,7 +858,7 @@ function structCardHtml(s){
   </div>`;
 }
 
-function emptyState(msg){ return `<div style="grid-column:1/-1;padding:30px;text-align:center;color:#6a707c;font-size:13px">${msg}</div>`; }
+function emptyState(msg){ return `<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--muted2);font-size:13px">${msg}</div>`; }
 
 function renderAll(){
   const active=structures.filter(s=>!['anchoring','decommissioning'].includes(statusOf(s)));
@@ -965,7 +950,7 @@ setInterval(()=>{ if(structures.length) renderAll(); }, 120000);
     document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
   }
   document.querySelectorAll('.theme-swatch').forEach(b=>{ b.style.color=b.style.background; b.onclick=()=>setTheme(b.dataset.theme); });
-  setTheme(document.documentElement.dataset.theme||'amarr');
+  setTheme(document.documentElement.dataset.theme||'default');
 
   // ===== tab / subtab switching (from the mockup) =====
   document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{
@@ -980,6 +965,22 @@ setInterval(()=>{ if(structures.length) renderAll(); }, 120000);
     btn.classList.add('on');
     document.querySelector(`.subtab-page[data-subpage="${btn.dataset.sub}"]`).classList.add('on');
   }));
+</script>
+<script>
+/* Suite-wide theme, improved: picking a faction theme in any tool now
+   recolors every other open suite tab instantly (same shared key). */
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+    document.querySelectorAll('.theme-swatch').forEach(function(b){
+      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
+    });
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
 </script>
 </body>
 </html>
