@@ -83,10 +83,10 @@
   .rank-item .profit{font-size:12px;font-weight:600}
   .rank-item .margin{font-size:8.5px;color:#8a7458}
 
-  .logi-node{position:absolute;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2a1c10,#0f0a06);
+  .logi-node{position:absolute;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2a1c10,#0f0a06);z-index:2;
     border:1px solid rgba(220,160,90,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:8px;color:#c89860}
   .logi-node .designation{color:#f0dcc0;font-weight:600;font-size:10px}
-  .logi-role{position:absolute;font-size:7px;color:#8a7458;white-space:nowrap}
+  .logi-role{position:absolute;font-size:7px;color:#8a7458;white-space:nowrap;z-index:2}
   .role-pill{position:absolute;font-size:6.5px;padding:1px 5px;border-radius:8px;cursor:pointer;white-space:nowrap;border:1px solid transparent;user-select:none}
   .role-pill.role-full{color:#e8a850;border-color:rgba(220,160,90,.4)}
   .role-pill.role-extractor{color:#7ec8e0;border-color:rgba(126,200,224,.4)}
@@ -304,7 +304,10 @@
   <div class="pilot-strip readonly"></div>
   <button class="roles-fab" id="charRolesBtn" style="position:absolute;bottom:56px;left:20px;z-index:5" title="Assign colony roles per character">⚑ Character Roles<span class="badge" id="charRolesBadge">0</span></button>
 
-  <svg id="logiSvg" style="position:absolute;inset:0;pointer-events:none"></svg>
+  <svg id="systemMapSvg" style="position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none"></svg>
+  <div class="tag" id="systemMapLabel" style="position:absolute;top:80px;left:20px;z-index:1"></div>
+
+  <svg id="logiSvg" style="position:absolute;inset:0;pointer-events:none;z-index:1"></svg>
   <div id="logiNodes"></div>
 
   <div class="buffer-panel float">
@@ -393,6 +396,7 @@ function selectCandidateSystem(id){
   try{ localStorage.setItem('pi_selected_system', id); }catch(e){}
   renderCandidateResults();
   renderLogistics();
+  renderSystemMap();
 }
 function renderCandidateResults(){
   const wrap=document.getElementById('candidateList'); if(!wrap) return;
@@ -1022,7 +1026,43 @@ function bestSystemFor(prodId, near, owners, usedOwners){ // real scoring: which
 
 function fmtHrs(sec){ const h=sec/3600; return h<1?Math.round(sec/60)+'m':(h===Math.round(h)?h+'h':h.toFixed(1)+'h'); }
 
+// Flat, top-down (2D) system map — star at center, planets on evenly-spaced
+// concentric rings. The SDE only gives us a per-system planet-type count
+// (e.g. {"T":2,"B":1,"G":4}), not real orbital radii/angles, so this is a
+// stylized layout, not a to-scale orrery. Coordinates are kept in the same
+// 0-100 percent space the logistics chain nodes use (no SVG viewBox), so the
+// chain diagram below can anchor its stage nodes directly onto real planets
+// instead of floating in empty space.
+let systemMapPlanets=[]; // [{type, leftPct, topPct, angleDeg, rPct}, ...] for the currently selected system
+function renderSystemMap(){
+  const svg=document.getElementById('systemMapSvg'), label=document.getElementById('systemMapLabel');
+  if(!svg) return;
+  const sysId=selectedSystemId;
+  const sys= sysId ? SYS[sysId] : null;
+  systemMapPlanets=[];
+  if(!sys){ svg.innerHTML=''; if(label) label.textContent=''; return; }
+  const [name,, , , , have] = sys;
+  const planets=[]; Object.entries(have||{}).forEach(([t,n])=>{ for(let i=0;i<n;i++) planets.push(t); });
+  if(label) label.textContent = name+' — '+planets.length+' planet'+(planets.length===1?'':'s');
+  if(!planets.length){ svg.innerHTML=''; return; }
+  const cx=50, cy=50, ringGap=Math.min(38/planets.length, 6), startR=12;
+  const typeColor={T:'#4ac89a',I:'#8fd6f0',G:'#c8a0e8',O:'#4a90c4',L:'#e86a3a',B:'#a8906a',S:'#e8d060',P:'#e85a5a',H:'#7a7a7a'};
+  let svgHtml = `<circle cx="${cx}%" cy="${cy}%" r="3.4%" fill="#f0c060" opacity="0.9"/><circle cx="${cx}%" cy="${cy}%" r="3.4%" fill="none" stroke="#f0c060" stroke-width="1" opacity="0.4"><animate attributeName="r" values="3.4%;4.6%;3.4%" dur="4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="4s" repeatCount="indefinite"/></circle>`;
+  planets.forEach((t,i)=>{
+    const r = startR + i*ringGap; // percent of container
+    const angle = (i * 137.5) % 360; // golden-angle spacing so rings don't visually align radially
+    const rad = angle*Math.PI/180;
+    const leftPct = cx + r*Math.cos(rad), topPct = cy + r*Math.sin(rad);
+    const color = typeColor[t] || '#c89860';
+    systemMapPlanets.push({type:t, leftPct, topPct, angleDeg:angle, rPct:r});
+    svgHtml += `<circle cx="${cx}%" cy="${cy}%" r="${r}%" fill="none" stroke="rgba(220,160,90,.12)" stroke-width="1"/>`;
+    svgHtml += `<circle cx="${leftPct}%" cy="${topPct}%" r="1%" fill="${color}" opacity="0.85"><title>${PTN[t]||t}</title></circle>`;
+  });
+  svg.innerHTML = svgHtml;
+}
+
 async function renderLogistics(){
+  renderSystemMap();
   const svgWrap=document.getElementById('logiSvg'), nodesWrap=document.getElementById('logiNodes'), bufWrap=document.getElementById('logiBuffer'), noteEl=document.getElementById('logiNote');
   if(!nodesWrap) return;
   const basketIds=Object.keys(sel);
@@ -1039,6 +1079,7 @@ async function renderLogistics(){
   const routeStops=new Map(); // system id -> {sysName, jumps} deduped across the whole plan
   let totalTripsAll=0;
   const rowCount=targets.length;
+  const usedPlanetIdx=new Set(); // don't anchor two chains onto the same planet marker
   targets.forEach((t,rowIdx)=>{
     const stages=traceChain(t);
     // single product keeps the original zigzag layout centered in the pane;
@@ -1048,7 +1089,27 @@ async function renderLogistics(){
     const stagger = rowCount===1 ? 7 : Math.min(5, rowHeight*0.22);
     const upOff = rowCount===1 ? 6 : Math.min(6, rowHeight*0.22);
     const downOff = rowCount===1 ? 21 : Math.min(14, rowHeight*0.34);
-    const positions=stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: rowCenter + ((i%2===0)?-stagger:stagger) }));
+    // Anchor stage I (the raw material) onto a real planet on the system map
+    // that actually produces it, then radiate the rest of the chain outward
+    // along that same angle — so the diagram reads as "built up from this
+    // planet" instead of floating in a generic zigzag. Falls back to the old
+    // zigzag when no system is selected, or the system lacks that resource.
+    let anchor=null;
+    if(stages.length && systemMapPlanets.length){
+      const rawTypes = PI.p0pt[stages[0]] || [];
+      for(let pi=0; pi<systemMapPlanets.length; pi++){
+        if(usedPlanetIdx.has(pi)) continue;
+        if(rawTypes.includes(systemMapPlanets[pi].type)){ anchor=systemMapPlanets[pi]; usedPlanetIdx.add(pi); break; }
+      }
+    }
+    const positions = anchor
+      ? stages.map((_,i)=>{
+          const angle = anchor.angleDeg + rowIdx*10; // small per-row fan-out so overlapping chains from the same planet don't stack exactly
+          const rad = angle*Math.PI/180;
+          const r = anchor.rPct + i*9; // percent — grows outward one "stage ring" at a time past the planet's own orbit
+          return { left: Math.max(6, Math.min(92, 50 + r*Math.cos(rad))), top: Math.max(8, Math.min(88, 50 + r*Math.sin(rad))) };
+        })
+      : stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: rowCenter + ((i%2===0)?-stagger:stagger) }));
     const picks=stages.map((s,i)=>{
       // the final stage is the target product itself — if a system was explicitly selected on Candidates, build there directly rather than re-scoring
       if(i===stages.length-1 && selectedSystemId && SYS[selectedSystemId]){
