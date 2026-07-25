@@ -241,7 +241,7 @@ const SCOPE_INFO=[
   {scope:'esi-fittings.write_fittings.v1', tool:'Fitting Hangar', desc:'Save fittings to your ship'},
   {scope:'esi-corporations.read_structures.v1', tool:'Citadel Watch', desc:'Read corp Upwell structures'},
   {scope:'esi-universe.read_structures.v1', tool:'Citadel Watch · Industry Console · The Exchange · Cargo Holds', desc:'Resolve structure names & locations'},
-  {scope:'esi-industry.read_corporation_mining.v1', tool:'Citadel Watch', desc:'Read moon-mining extraction timers'},
+  {scope:'esi-industry.read_corporation_mining.v1', tool:'Citadel Watch \u00b7 Moon Watch', desc:'Read moon-mining extraction timers'},
   {scope:'esi-assets.read_corporation_assets.v1', tool:'Citadel Watch · Industry Console', desc:'Read corp assets (fuel, gas, materials)'},
   {scope:'esi-industry.read_character_jobs.v1', tool:'Industry Console · Command Briefing', desc:'Read your manufacturing/reaction jobs'},
   {scope:'esi-industry.read_corporation_jobs.v1', tool:'Industry Console', desc:'Read corp manufacturing/reaction jobs'},
@@ -380,6 +380,12 @@ const APPS=[
   { key:'citadel', name:'Citadel Watch', tag:'Citadels · Fuel', url:'citadel.html',
     desc:'The corp skyline — every Upwell structure as a tower with a fuel tube, services and state. The full Structure Browser (dogma fuel modelling) remains available as structures.html.',
     feats:['Skyline','Fuel tubes','Services'] },
+  { key:'chains', name:'Chain Works', tag:'PI · P0→P4 Draft', url:'chains.html',
+    desc:'Draft planetary production: full P0→P4 chain trees with hourly quantities, planet-type coverage, a gate-network candidate-system hunt, and a pilot chalkboard for extractor/factory duty. The original PI Planner (pi.html) keeps the full universe map and colony logistics.',
+    feats:['Chain trees','Planet coverage','System hunt','Pilot roles'] },
+  { key:'moons', name:'Moon Watch', tag:'Extractions · Optimiser', url:'moons.html',
+    desc:'Athanors and Tataras in three lanes — chunks inbound, chunks landed, drills idle — with an arrivals calendar and the chunk stagger optimiser (plans shared with structures.html).',
+    feats:['Idle alerts','Chunk clocks','Arrivals','Optimiser'] },
   { key:'lanes', name:'Freight Lanes', tag:'Logistics · Flight plan', url:'lanes.html',
     desc:'A flight-plan strip for jump freighters — legs, light-years and fuel from live coordinates and your real skills. The full Jump Freight Planner (map, fatigue, threat) remains available as jump.html.',
     feats:['Flight plan','LY & fuel','Midpoints'] },
@@ -425,16 +431,18 @@ const STAR_POS={
   briefing:[27,50],
   mining:[30,10],    colonies:[33,29], industry:[33,71], clones:[30,90],
   exchange:[56,12],  academy:[54,35],  treasury:[54,65], lanes:[56,88],
-  hangar:[80,27],    holdings:[84,50], citadel:[80,73],  contracts:[82,90] };
+  hangar:[80,27],    holdings:[84,50], citadel:[80,73],  contracts:[82,90],
+  moons:[55,50], chains:[8,29] };
 const STAR_LINKS=[
   ['briefing','colonies'],['briefing','industry'],
   ['colonies','academy'],['industry','treasury'],['colonies','exchange'],['industry','lanes'],
   ['academy','treasury'],['academy','hangar'],['treasury','citadel'],
   ['exchange','hangar'],['lanes','citadel'],['hangar','holdings'],['citadel','holdings'],
-  ['mining','colonies'],['mining','exchange'],['clones','lanes'],['contracts','lanes'],['contracts','citadel']];
+  ['mining','colonies'],['mining','exchange'],['clones','lanes'],['contracts','lanes'],['contracts','citadel'],
+  ['moons','citadel'],['moons','mining'],['chains','colonies'],['chains','briefing']];
 const STAR_ACCENT={ industry:'#e8a850', colonies:'#4ac89a', lanes:'#4a90c4', hangar:'#c86a3a', citadel:'#9ad84a',
   briefing:'#e8d296', exchange:'#d8a24a', treasury:'#6ad86a', academy:'#a48ad6', holdings:'#7ab8c8',
-  contracts:'#c8c88a', mining:'#8aa0b8', clones:'#5ad8c8' };
+  contracts:'#c8c88a', mining:'#8aa0b8', clones:'#5ad8c8', moons:'#c0c8d8', chains:'#b8d86a' };
 const STAR_BG={
   industry:'radial-gradient(circle at 35% 30%,#3a2818,#0f0a06)',
   colonies:'radial-gradient(circle at 35% 30%,#1a3428,#0a0f0c)',
@@ -448,11 +456,14 @@ const STAR_BG={
   holdings:'radial-gradient(circle at 35% 30%,#182c34,#060c0f)',
   contracts:'repeating-linear-gradient(0deg,rgba(200,200,138,.06) 0 1px,transparent 1px 9px),radial-gradient(circle at 35% 30%,#2e2c14,#0d0c05)',
   mining:'repeating-linear-gradient(-45deg,rgba(138,160,184,.07) 0 6px,transparent 6px 14px),radial-gradient(circle at 35% 30%,#20262e,#08090c)',
-  clones:'radial-gradient(circle at 35% 30%,#12302e,#060e0d)'
+  clones:'radial-gradient(circle at 35% 30%,#12302e,#060e0d)',
+  moons:'radial-gradient(circle at 62% 30%,#262c38 22%,#10141c 60%,#06080c)',
+  chains:'radial-gradient(circle at 30% 35%,#243018,#0a0e06)'
 };
 const STAR_SUB={ industry:'manufacturing · planner', colonies:'planetary interaction', lanes:'capital logistics', hangar:'ship fittings', citadel:'fuel & fleet assets',
   briefing:'pilot briefing', exchange:'prices & appraisal', treasury:'isk ledger', academy:'training queues', holdings:'holdings & value',
-  contracts:'couriers & exchanges', mining:'extraction ledger', clones:'implants & jump clones' };
+  contracts:'couriers & exchanges', mining:'extraction ledger', clones:'implants & jump clones',
+  moons:'moon chunks & stagger', chains:'PI chain drafting' };
 function buildCards(){
   const cont=document.getElementById('constellation');
   cont.classList.toggle('compact',APPS.length>6);

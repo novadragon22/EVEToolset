@@ -38,6 +38,8 @@
   html[data-app="colonies"]{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--hdr-bg:linear-gradient(90deg,rgba(var(--gold-rgb),.06),transparent 70%);--hdr-border-left:2px solid var(--gold-dim);--hdr-radius:0 2px 2px 0;--hdr-clip:none;--hdr-tick-display:block;--radius-btn:2px;--radius-card:0;--card-clip:none;--card-bracket-display:block;--bullet-clip:polygon(50% 0,100% 50%,50% 100%,0 50%);--gold-rgb:201,168,104;--cyan-rgb:122,184,200;--bg:#030507;--panel:#0a0d10;--panel2:#0c1015;--line:#1a2028;--line2:#2a4050;--gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--gold-deep:#3a2e18;--gold-soft:#c8a868;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;--cyan-edge:#1a3550;--green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;--violet:#a48ad6;--violet-soft:#8f78bd;--violet-edge:#2a2055;--steel:#6a92c8;--steel-soft:#7a9cd0;--steel-edge:#2a3a55;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--orbitf:'Comfortaa',var(--sans)}
   html[data-app="hangar"]{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--hdr-bg:linear-gradient(90deg,rgba(var(--gold-rgb),.06),transparent 70%);--hdr-border-left:2px solid var(--gold-dim);--hdr-radius:0 2px 2px 0;--hdr-clip:none;--hdr-tick-display:block;--radius-btn:2px;--radius-card:0;--card-clip:none;--card-bracket-display:block;--bullet-clip:polygon(50% 0,100% 50%,50% 100%,0 50%);--gold-rgb:201,168,104;--cyan-rgb:122,184,200;--bg:#030507;--panel:#0a0d10;--panel2:#0c1015;--line:#1a2028;--line2:#2a4050;--gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--gold-deep:#3a2e18;--gold-soft:#c8a868;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;--cyan-edge:#1a3550;--green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;--violet:#a48ad6;--violet-soft:#8f78bd;--violet-edge:#2a2055;--steel:#6a92c8;--steel-soft:#7a9cd0;--steel-edge:#2a3a55;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--bayf:'Russo One',var(--sans)}
   html[data-app="lanes"]{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--hdr-bg:linear-gradient(90deg,rgba(var(--gold-rgb),.06),transparent 70%);--hdr-border-left:2px solid var(--gold-dim);--hdr-radius:0 2px 2px 0;--hdr-clip:none;--hdr-tick-display:block;--radius-btn:2px;--radius-card:0;--card-clip:none;--card-bracket-display:block;--bullet-clip:polygon(50% 0,100% 50%,50% 100%,0 50%);--gold-rgb:201,168,104;--cyan-rgb:122,184,200;--bg:#030507;--panel:#0a0d10;--panel2:#0c1015;--line:#1a2028;--line2:#2a4050;--gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--gold-deep:#3a2e18;--gold-soft:#c8a868;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;--cyan-edge:#1a3550;--green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;--violet:#a48ad6;--violet-soft:#8f78bd;--violet-edge:#2a2055;--steel:#6a92c8;--steel-soft:#7a9cd0;--steel-edge:#2a3a55;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--lanef:'Unica One',var(--mono)}
+  html[data-app="moons"]{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--hdr-bg:linear-gradient(90deg,rgba(var(--gold-rgb),.06),transparent 70%);--hdr-border-left:2px solid var(--gold-dim);--hdr-radius:0 2px 2px 0;--hdr-clip:none;--hdr-tick-display:block;--radius-btn:2px;--radius-card:0;--card-clip:none;--card-bracket-display:block;--bullet-clip:polygon(50% 0,100% 50%,50% 100%,0 50%);--gold-rgb:201,168,104;--cyan-rgb:122,184,200;--bg:#030507;--panel:#0a0d10;--panel2:#0c1015;--line:#1a2028;--line2:#2a4050;--gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--gold-deep:#3a2e18;--gold-soft:#c8a868;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;--cyan-edge:#1a3550;--green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;--violet:#a48ad6;--violet-soft:#8f78bd;--violet-edge:#2a2055;--steel:#6a92c8;--steel-soft:#7a9cd0;--steel-edge:#2a3a55;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--lunar:'Syncopate',var(--mono)}
+  html[data-app="chains"]{--dur-fast:.12s;--dur-base:.18s;--dur-slow:.3s;--hdr-bg:linear-gradient(90deg,rgba(var(--gold-rgb),.06),transparent 70%);--hdr-border-left:2px solid var(--gold-dim);--hdr-radius:0 2px 2px 0;--hdr-clip:none;--hdr-tick-display:block;--radius-btn:2px;--radius-card:0;--card-clip:none;--card-bracket-display:block;--bullet-clip:polygon(50% 0,100% 50%,50% 100%,0 50%);--gold-rgb:201,168,104;--cyan-rgb:122,184,200;--bg:#030507;--panel:#0a0d10;--panel2:#0c1015;--line:#1a2028;--line2:#2a4050;--gold:#c9a868;--gold-bright:#e8d296;--gold-dim:#8a7048;--gold-deep:#3a2e18;--gold-soft:#c8a868;--cyan:#7ab8c8;--cyan-bright:#a0d0e0;--cyan-edge:#1a3550;--green:#8cc86a;--red:#d66a5a;--amber:#d8a24a;--text:#c9d4db;--muted:#7a8fa0;--muted2:#5a6b78;--violet:#a48ad6;--violet-soft:#8f78bd;--violet-edge:#2a2055;--steel:#6a92c8;--steel-soft:#7a9cd0;--steel-edge:#2a3a55;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--draftf:'Electrolize',var(--mono)}
 
 /* ============ APP LOOKS — the complete visual skin of every tool ============
    Each app file is now a structural wireframe (layout, sizing, behavior only).
@@ -1880,6 +1882,166 @@ html[data-app="lanes"] .empty{color:var(--muted)}
 html[data-app="lanes"] #toast{background:var(--panel);border:1px solid var(--steel);color:var(--steel-soft);font-family:var(--mono)}
 html[data-app="lanes"] #toast.bad{border-color:var(--red);color:var(--red)}
 html[data-app="lanes"] .spin{border:2px solid var(--line2);border-top-color:var(--steel);border-radius:50%}
+
+
+/* -------- MOON WATCH (moons.html) — observatory baseline --------
+   Identity: pale moonlight silver over slate, Syncopate wide caps, phase
+   discs per refinery (half-lit=extracting, full=ready, dark=idle), colour-
+   coded swimlane spines, a heat-tinted arrivals strip. */
+html[data-app="moons"],html[data-app="moons"] body{color:var(--text);font-family:var(--sans);background:
+  radial-gradient(900px 560px at 82% -12%,rgba(200,208,220,.08),transparent 60%),var(--bg)}
+html[data-app="moons"] body::before{background:radial-gradient(2px 2px at 18% 22%,rgba(200,208,220,.25),transparent 60%),radial-gradient(1.5px 1.5px at 64% 12%,rgba(200,208,220,.2),transparent 60%),radial-gradient(1.5px 1.5px at 88% 52%,rgba(200,208,220,.16),transparent 60%)}
+html[data-app="moons"] body::after{background:radial-gradient(140% 120% at 50% 40%,transparent 62%,rgba(0,0,0,.55) 100%)}
+html[data-app="moons"] .diamond{background:#c0c8d8;clip-path:var(--bullet-clip)}
+html[data-app="moons"] .topbar{border-bottom:1px solid var(--line2)}
+html[data-app="moons"] .kicker{font-family:var(--mono);letter-spacing:.34em;text-transform:uppercase;color:var(--muted)}
+html[data-app="moons"] h1{font-family:var(--lunar);letter-spacing:.1em;text-transform:uppercase;color:#d8dee8;text-shadow:0 0 16px rgba(200,208,220,.35)}
+html[data-app="moons"] .subline{color:var(--muted)}
+html[data-app="moons"] .backlink{font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);text-decoration:none;border-radius:var(--radius-btn)}
+html[data-app="moons"] .backlink:hover{color:#d8dee8;border-color:#8a94a8}
+html[data-app="moons"] .eveclock{font-family:var(--mono);color:var(--cyan);border:1px solid var(--line);background:var(--panel)}
+html[data-app="moons"] .ptag{font-family:var(--mono);letter-spacing:.06em;color:#c0c8d8;background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius-btn)}
+html[data-app="moons"] .ptag.off{color:var(--muted2);border-color:var(--line);text-decoration:line-through}
+html[data-app="moons"] .ptag:hover{color:#e8ecf2}
+html[data-app="moons"] .nochars{color:var(--muted2);font-family:var(--mono)}
+html[data-app="moons"] .ctl .btn{font-family:var(--lunar);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--bg);background:#c0c8d8;border:none;border-radius:var(--radius-btn)}
+html[data-app="moons"] .ctl .btn:hover{background:#e8ecf2}
+html[data-app="moons"] .ctl .btn:disabled{opacity:.5}
+html[data-app="moons"] .ctl .hint{color:var(--muted2)}
+html[data-app="moons"] .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card)}
+html[data-app="moons"] .swim-hd h2,html[data-app="moons"] .panel-hd2 h2,html[data-app="moons"] .optdesk h2{font-family:var(--lunar);letter-spacing:.14em;text-transform:uppercase}
+html[data-app="moons"] .swim.extracting{border-left:5px solid var(--cyan)}
+html[data-app="moons"] .swim.extracting .swim-hd h2{color:var(--cyan)}
+html[data-app="moons"] .swim.ready{border-left:5px solid var(--amber)}
+html[data-app="moons"] .swim.ready .swim-hd h2{color:var(--amber)}
+html[data-app="moons"] .swim.idle{border-left:5px solid var(--red)}
+html[data-app="moons"] .swim.idle .swim-hd h2{color:var(--red)}
+html[data-app="moons"] .swim.drill{border-left:5px solid var(--muted2)}
+html[data-app="moons"] .swim.drill .swim-hd h2{color:var(--muted)}
+html[data-app="moons"] .swim-hd .cnt{font-family:var(--mono);color:var(--text);border:1px solid var(--line2);border-radius:9px}
+html[data-app="moons"] .swim-hd .desc{color:var(--muted2)}
+html[data-app="moons"] .swim-hd{border-bottom:1px solid var(--line)}
+html[data-app="moons"] .mchip{background:var(--bg);border:1px solid var(--line2);border-radius:var(--radius-card)}
+html[data-app="moons"] .mchip .phase{background:#0a0e14;border:1px solid var(--line2)}
+html[data-app="moons"] .mchip .phase.ph-extracting::after{background:linear-gradient(90deg,#c0c8d8 50%,transparent 50%);opacity:.85}
+html[data-app="moons"] .mchip .phase.ph-ready::after{background:#e8d8a0;box-shadow:0 0 10px rgba(232,216,160,.8)}
+html[data-app="moons"] .mchip .phase.ph-idle::after{background:radial-gradient(circle at 30% 30%,#242a34,#0a0e14)}
+html[data-app="moons"] .mchip .phase.ph-drill::after{background:conic-gradient(#c0c8d8 0 25%,#1a2028 25% 100%);opacity:.5}
+html[data-app="moons"] .mchip .mn{color:var(--text)}
+html[data-app="moons"] .mchip .mt{color:var(--muted2);font-family:var(--mono)}
+html[data-app="moons"] .mchip.st-extracting .ms{color:var(--cyan)}
+html[data-app="moons"] .mchip.st-ready .ms{color:var(--amber)}
+html[data-app="moons"] .mchip.st-idle .ms{color:var(--red)}
+html[data-app="moons"] .mchip.st-drill .ms{color:var(--muted)}
+html[data-app="moons"] .mchip .md{color:var(--muted2);font-family:var(--mono)}
+html[data-app="moons"] .calctl label,html[data-app="moons"] .optdesk label{font-family:var(--mono);letter-spacing:.18em;color:var(--muted2)}
+html[data-app="moons"] .calctl input,html[data-app="moons"] .calctl select,html[data-app="moons"] .optdesk input,html[data-app="moons"] .optdesk select{background:var(--bg);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);border-radius:var(--radius-btn)}
+html[data-app="moons"] .calctl input:focus,html[data-app="moons"] .optdesk input:focus{outline:none;border-color:#8a94a8}
+html[data-app="moons"] .cal-tile{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-btn)}
+html[data-app="moons"] .cal-tile.today{border-color:#c0c8d8}
+html[data-app="moons"] .cal-tile.lo{background:rgba(122,184,200,.09)}
+html[data-app="moons"] .cal-tile.hi{background:rgba(216,162,74,.14);border-color:var(--amber)}
+html[data-app="moons"] .cal-tile .cal-dow{color:var(--muted2);font-family:var(--mono)}
+html[data-app="moons"] .cal-tile .cal-dom{color:var(--text);font-family:var(--lunar)}
+html[data-app="moons"] .cal-tile .cal-count{background:var(--amber);color:var(--bg);font-family:var(--mono)}
+html[data-app="moons"] .cal-day-date{color:var(--muted);font-family:var(--mono)}
+html[data-app="moons"] .cal-chip{background:var(--bg);border:1px solid var(--line2);color:var(--text);border-radius:9px}
+html[data-app="moons"] .cal-chip i{color:var(--muted2)}
+html[data-app="moons"] .optdesk .c{color:var(--muted2)}
+html[data-app="moons"] .optdesk .btn{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:none;border:1px dashed var(--line2);border-radius:var(--radius-btn)}
+html[data-app="moons"] .optdesk .btn.primary{color:var(--bg);background:#c0c8d8;border:none}
+html[data-app="moons"] .optdesk .btn.primary:hover{background:#e8ecf2}
+html[data-app="moons"] .optdesk .btn:hover{color:#d8dee8;border-color:#8a94a8}
+html[data-app="moons"] .plan-row{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-btn);color:var(--text)}
+html[data-app="moons"] .plan-row .dim{color:var(--muted2)}
+html[data-app="moons"] .plan-row .char-x{color:var(--red)}
+html[data-app="moons"] .plan-row i{color:var(--red)}
+html[data-app="moons"] .hint2{color:var(--muted)}
+html[data-app="moons"] .hint2 b{color:var(--text)}
+html[data-app="moons"] th{font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line2)}
+html[data-app="moons"] td{border-bottom:1px solid var(--line)}
+html[data-app="moons"] td .nm{color:var(--text)}
+html[data-app="moons"] td.dim{color:var(--muted2)}
+html[data-app="moons"] .charerr{color:var(--amber);font-family:var(--mono)}
+html[data-app="moons"] .empty{color:var(--muted)}
+html[data-app="moons"] #toast{background:var(--panel);border:1px solid #8a94a8;color:#d8dee8;font-family:var(--mono)}
+html[data-app="moons"] #toast.bad{border-color:var(--red);color:var(--red)}
+html[data-app="moons"] .spin{border:2px solid var(--line2);border-top-color:#c0c8d8;border-radius:50%}
+
+
+/* -------- CHAIN WORKS (chains.html) — drafting table baseline --------
+   Identity: chlorophyll lime chalk on deep moss slate, Electrolize labels,
+   dashed connector spines down the chain tree, tier-tinted node cards,
+   chalk-pill pilots. */
+html[data-app="chains"],html[data-app="chains"] body{color:var(--text);font-family:var(--sans);background:
+  radial-gradient(1000px 600px at 12% -10%,rgba(184,216,106,.07),transparent 60%),var(--bg)}
+html[data-app="chains"] body::after{background:radial-gradient(140% 120% at 50% 40%,transparent 62%,rgba(0,0,0,.5) 100%)}
+html[data-app="chains"] .diamond{background:#b8d86a;clip-path:var(--bullet-clip)}
+html[data-app="chains"] .topbar{border-bottom:1px dashed var(--line2)}
+html[data-app="chains"] .kicker{font-family:var(--mono);letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+html[data-app="chains"] h1{font-family:var(--draftf);letter-spacing:.08em;text-transform:uppercase;color:#d4e8a8;text-shadow:0 0 14px rgba(184,216,106,.3)}
+html[data-app="chains"] .subline{color:var(--muted)}
+html[data-app="chains"] .backlink{font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);text-decoration:none;border-radius:var(--radius-btn)}
+html[data-app="chains"] .backlink:hover{color:#d4e8a8;border-color:#8aa050}
+html[data-app="chains"] .eveclock{font-family:var(--mono);color:var(--cyan);border:1px solid var(--line);background:var(--panel)}
+html[data-app="chains"] .ptag{font-family:var(--mono);letter-spacing:.06em;color:#b8d86a;background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius-btn)}
+html[data-app="chains"] .ptag.off{color:var(--muted2);border-color:var(--line);text-decoration:line-through}
+html[data-app="chains"] .ptag:hover{color:#e0f0c0}
+html[data-app="chains"] .nochars{color:var(--muted2);font-family:var(--mono)}
+html[data-app="chains"] .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card)}
+html[data-app="chains"] .desk h2,html[data-app="chains"] .rpanel h2,html[data-app="chains"] .roleboard h2{font-family:var(--draftf);letter-spacing:.14em;text-transform:uppercase;color:#d4e8a8}
+html[data-app="chains"] .searchwrap input,html[data-app="chains"] .huntctl input,html[data-app="chains"] .huntctl select{background:var(--bg);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);border-radius:var(--radius-btn)}
+html[data-app="chains"] .searchwrap input:focus,html[data-app="chains"] .huntctl input:focus{outline:none;border-color:#8aa050}
+html[data-app="chains"] .tierchips span{font-family:var(--mono);color:var(--muted);border:1px dashed var(--line2);border-radius:9px}
+html[data-app="chains"] .tierchips span.on{color:var(--bg);background:#b8d86a;border-style:solid;border-color:#b8d86a}
+html[data-app="chains"] .tierchips span:hover{color:#d4e8a8;border-color:#8aa050}
+html[data-app="chains"] .sugg{background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius-card);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+html[data-app="chains"] .s-row{border-bottom:1px solid var(--line);color:var(--text)}
+html[data-app="chains"] .s-row:hover{background:rgba(184,216,106,.08)}
+html[data-app="chains"] .s-row .stier{color:var(--muted2);font-family:var(--mono)}
+html[data-app="chains"] .ct-tlabel{font-family:var(--mono);letter-spacing:.22em;color:var(--muted2)}
+html[data-app="chains"] .ct-node{background:var(--bg);border:1px solid var(--line2);border-radius:var(--radius-btn);color:var(--text)}
+html[data-app="chains"] .ct-node.t4{border-left:4px solid #b8d86a}
+html[data-app="chains"] .ct-node.t3{border-left:4px solid #9cc47a}
+html[data-app="chains"] .ct-node.t2{border-left:4px solid #7ab08a}
+html[data-app="chains"] .ct-node.t1{border-left:4px solid #5a9c9a}
+html[data-app="chains"] .ct-node.t0{border-left:4px solid var(--muted2)}
+html[data-app="chains"] .ct-node .q{color:var(--muted);font-family:var(--mono)}
+html[data-app="chains"] .ct-conn{background:transparent;border-left:1px dashed var(--line2)}
+html[data-app="chains"] .deskfoot{color:var(--muted)}
+html[data-app="chains"] .deskfoot b{color:#d4e8a8}
+html[data-app="chains"] .cov{background:var(--bg);border:1px solid var(--line2);border-radius:var(--radius-card)}
+html[data-app="chains"] .cov .pn{color:var(--text)}
+html[data-app="chains"] .cov .pt i{background:rgba(184,216,106,.1);border:1px solid var(--line2);color:#c0d89a;border-radius:8px;font-family:var(--mono)}
+html[data-app="chains"] .huntctl label{font-family:var(--mono);letter-spacing:.18em;color:var(--muted2)}
+html[data-app="chains"] .huntctl .btn{font-family:var(--draftf);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:none;border:1px dashed var(--line2);border-radius:var(--radius-btn)}
+html[data-app="chains"] .huntctl .btn.primary{color:var(--bg);background:#b8d86a;border:none}
+html[data-app="chains"] .huntctl .btn.primary:hover{background:#d4e8a8}
+html[data-app="chains"] .huntctl .chk{color:var(--muted)}
+html[data-app="chains"] th{font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);border-bottom:1px dashed var(--line2)}
+html[data-app="chains"] td{border-bottom:1px solid var(--line)}
+html[data-app="chains"] td .sysn{color:var(--text)}
+html[data-app="chains"] td .reg{color:var(--muted2);font-family:var(--mono)}
+html[data-app="chains"] td.sec-hi{color:var(--cyan)}
+html[data-app="chains"] td.sec-lo{color:var(--amber)}
+html[data-app="chains"] td.sec-nu{color:var(--red)}
+html[data-app="chains"] .pcell i{background:var(--bg);border:1px solid var(--line);color:var(--muted);border-radius:8px;font-family:var(--mono)}
+html[data-app="chains"] .miss{color:var(--amber)}
+html[data-app="chains"] .roleboard .c{color:var(--muted2)}
+html[data-app="chains"] .rolepill{background:var(--bg);border:1px solid var(--line2);border-radius:var(--radius-btn);color:var(--text)}
+html[data-app="chains"] .rolepill:hover{border-color:#8aa050}
+html[data-app="chains"] .rolepill .r{font-family:var(--mono);border-radius:8px;border:1px solid var(--line2);color:var(--muted2)}
+html[data-app="chains"] .rolepill .r-1{color:var(--cyan);border-color:var(--cyan)}
+html[data-app="chains"] .rolepill .r-2{color:#b8d86a;border-color:#8aa050}
+html[data-app="chains"] .rolepill .r-3{color:var(--amber);border-color:var(--amber)}
+html[data-app="chains"] .rolemenu{background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius-card);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+html[data-app="chains"] .rolemenu div:hover{background:rgba(184,216,106,.1);color:#d4e8a8}
+html[data-app="chains"] .rolesum{color:var(--muted);font-family:var(--mono)}
+html[data-app="chains"] .charerr{color:var(--amber);font-family:var(--mono)}
+html[data-app="chains"] .empty{color:var(--muted)}
+html[data-app="chains"] #toast{background:var(--panel);border:1px solid #8aa050;color:#d4e8a8;font-family:var(--mono)}
+html[data-app="chains"] #toast.bad{border-color:var(--red);color:var(--red)}
+html[data-app="chains"] .spin{border:2px solid var(--line2);border-top-color:#b8d86a;border-radius:50%}
 
 /* ============ FACTION THEMES · v3 EXACT TRANSCRIPTION ============
    Generated by build_faction_layer.py from faction-themes-preview.html.
