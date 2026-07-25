@@ -85,8 +85,6 @@ td .reg{font-size:9px}
 .rolerow{display:flex;gap:9px;flex-wrap:wrap}
 .rolepill{position:relative;font-size:11px;padding:7px 13px;cursor:pointer;display:flex;gap:8px;align-items:center}
 .rolepill .r{font-size:8.5px;padding:1.5px 8px}
-.rolemenu{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:130px}
-.rolemenu div{padding:7px 12px;font-size:10.5px;cursor:pointer;white-space:nowrap}
 .rolesum{font-size:10.5px;margin-top:12px}
 
 /* universe map */
@@ -97,7 +95,12 @@ td .reg{font-size:9px}
 .maplegend{position:absolute;left:12px;bottom:10px;font-size:9px;z-index:5;display:flex;gap:14px;align-items:center}
 .maplegend i{font-style:normal;display:inline-flex;align-items:center;gap:5px}
 .maplegend .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
-.maphint{position:absolute;right:12px;top:10px;font-size:9px;z-index:5}
+.maphint{position:absolute;left:12px;top:10px;font-size:9px;z-index:5}
+.candstrip{position:absolute;right:10px;top:10px;bottom:40px;width:248px;overflow-y:auto;z-index:6;padding:8px}
+.candstrip .cs-h{font-size:8.5px;margin-bottom:6px}
+.cand-row{font-size:10px;padding:6px 8px;margin-top:4px;cursor:pointer;line-height:1.5}
+.cand-row .cn{font-size:11px;display:flex;justify-content:space-between;gap:6px}
+.cand-row .cm{font-size:9px}
 /* logistics deck */
 .logideck{padding:16px;margin-top:20px;display:none}
 .logideck.on{display:block}
@@ -182,6 +185,7 @@ td .reg{font-size:9px}
         <div id="uniTip" class="panel"></div>
         <div class="maphint">scroll to zoom · drag to pan · click a lit system to plan its logistics</div>
         <div class="maplegend"><i><span class="dot d-full"></span>whole chain</i><i><span class="dot d-part"></span>partial</i><i><span class="dot d-home"></span>home</i><i><span class="dot d-sel"></span>selected</i></div>
+        <div class="candstrip" id="candStrip"></div>
       </div>
     </div>
   </div>
@@ -204,7 +208,7 @@ td .reg{font-size:9px}
 
 <div class="roleboard panel">
   <h2>Pilot chalkboard</h2>
-  <span class="c">Chalk each pilot onto colony duty for this draft — extractors pull P0, factories cook it up the chain. Roles are remembered per pilot. Toggle pilots in the Toolset menu.</span>
+  <span class="c">Chalk each pilot onto colony duty for this draft — extractors pull P0, factories cook it up the chain. Roles are remembered per pilot and shared with Colony Orbit, which watches the extractor clocks of pilots chalked Extractor or Full chain. Toggle pilots in the Toolset menu.</span>
   <div class="rolerow" id="roleRow"></div>
   <div class="rolesum" id="roleSum"></div>
 </div>
@@ -508,13 +512,26 @@ function hunt(){
   $('mapPanel').classList.add('on');
   mapZoom=1;mapPanX=0;mapPanY=0;
   requestAnimationFrame(renderUniverseMap);
-  if(!rows.length){out.innerHTML='<div class="empty" style="padding:12px">no systems within '+maxJ+' jumps cover '+(whole?'the whole chain':'any of the chain')+' — widen the hunt, or click any lit system on the map below to plan a split</div>';return;}
-  out.innerHTML='<div style="overflow-x:auto"><table><thead><tr><th>System</th><th>Sec</th><th>Jumps</th><th>P0 coverage</th><th>Feeding planets</th></tr></thead><tbody>'+
-    rows.slice(0,25).map(r=>'<tr class="huntrow" data-id="'+r.id+'" title="click to plan colony logistics here"><td><div class="sysn">'+esc(r.name)+'</div><div class="reg">'+esc(r.region)+'</div></td><td class="sec-'+(r.sec>=0.45?'hi':r.sec>0?'lo':'nu')+'">'+r.sec.toFixed(1)+'</td><td>'+r.jumps+'</td>'+
-      '<td>'+r.covered+' / '+p0s.length+(r.covered<p0s.length?' <span class="miss">— missing '+p0s.filter(p=>!coversP0(UNIVERSE.systems[r.id],p)).map(p=>esc(PI.names[p])).join(', ')+'</span>':'')+'</td>'+
-      '<td><div class="pcell">'+Object.keys(r.counts).map(t=>'<i>'+(PT_LONG[t]||t)+' ×'+r.counts[t]+'</i>').join('')+'</div></td></tr>').join('')+
-    '</tbody></table></div>'+(rows.length>25?'<div class="miss" style="padding:8px 10px">'+(rows.length-25)+' more matches beyond the top 25 — tighten the hunt</div>':'');
-  out.querySelectorAll('.huntrow').forEach(tr=>{tr.onclick=()=>selectSystem(tr.dataset.id);});
+  if(!rows.length){
+    out.innerHTML='<div class="empty" style="padding:12px">no systems within '+maxJ+' jumps cover '+(whole?'the whole basket':'any of the basket')+' — widen the hunt, drop the whole-chain requirement, or plan a split</div>';
+    renderCandStrip([]);return;
+  }
+  out.innerHTML='<div class="miss" style="padding:8px 2px">'+rows.length+' candidate system'+(rows.length===1?'':'s')+' lit on the map — pick one to plan its colony logistics</div>';
+  renderCandStrip(rows);
+}
+function renderCandStrip(rows){
+  const strip=$('candStrip');if(!strip)return;
+  const p0n=lastHunt?lastHunt.p0s.length:0;
+  if(!rows.length){strip.innerHTML='<div class="cs-h">CANDIDATES</div><div class="cm" style="font-size:9px;padding:4px 2px">none in range</div>';return;}
+  strip.innerHTML='<div class="cs-h">CANDIDATES — TOP '+Math.min(rows.length,25)+'</div>'+
+    rows.slice(0,25).map(r=>{
+      const full=r.covered===p0n;
+      const missing=full?'':lastHunt.p0s.filter(p=>!coversP0(UNIVERSE.systems[r.id],+p)).map(p=>PI.names[p]||p).join(', ');
+      return '<div class="cand-row card'+(String(r.id)===String(selectedSystemId)?' on':'')+'" data-id="'+r.id+'">'+
+        '<div class="cn"><span>'+(full?'\u2713 ':'')+esc(r.name)+'</span><span class="sec-'+(r.sec>=0.45?'hi':r.sec>0?'lo':'nu')+'">'+r.sec.toFixed(1)+'</span></div>'+
+        '<div class="cm">'+r.covered+'/'+p0n+' \u00b7 '+r.jumps+'j \u00b7 '+esc(r.region)+(missing?'<br>missing: '+esc(missing):'')+'</div></div>';
+    }).join('');
+  strip.querySelectorAll('.cand-row').forEach(el=>{el.onclick=(ev)=>{ev.stopPropagation();selectSystem(el.dataset.id);};});
 }
 $('huntBtn').onclick=hunt;
 
@@ -698,6 +715,7 @@ function selectSystem(id){
   if(!basketIds().length)return;
   selectedSystemId=id;
   renderUniverseMap();
+  if(lastHunt)renderCandStrip(lastHunt.rows);
   renderLogistics();
   $('logiDeck').classList.add('on');
   $('logiDeck').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -795,31 +813,41 @@ function renderRoles(){
   const counts={};ids.forEach(id=>{const r=roles[id]||'—';counts[r]=(counts[r]||0)+1;});
   $('roleSum').textContent='Chalked: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
 }
+/* The role menu mounts on document.body with fixed positioning: faction
+   themes clip-path/restyle .card elements, which cropped a menu nested
+   inside the pill into invisibility. A body-mounted menu is immune to any
+   theme's clipping, overflow or stacking contexts. */
 function openRoleMenu(pill,id){
   closeRoleMenus();
-  const m=document.createElement('div');m.className='rolemenu panel';
+  const rect=pill.getBoundingClientRect();
+  const m=document.createElement('div');m.className='rolemenu';
+  m.dataset.for=id;
+  m.style.cssText='position:fixed;z-index:9999;left:'+Math.round(rect.left)+'px;top:'+Math.round(rect.bottom+4)+'px;min-width:'+Math.max(130,Math.round(rect.width))+'px';
   m.innerHTML=ROLES.map(r=>'<div class="ropt" data-r="'+r+'">'+r+'</div>').join('');
-  pill.appendChild(m);
+  m.addEventListener('click',ev=>{
+    const opt=ev.target.closest('.ropt');
+    if(opt){
+      roles[id]=opt.dataset.r;
+      try{localStorage.setItem(ROLE_KEY,JSON.stringify(roles));}catch(e){}
+      closeRoleMenus();renderRoles();
+    }
+    ev.stopPropagation();
+  });
+  document.body.appendChild(m);
 }
 function closeRoleMenus(){document.querySelectorAll('.rolemenu').forEach(m=>m.remove());}
 /* one delegated listener — survives re-renders and theme decor injection */
 $('roleRow').addEventListener('click',ev=>{
-  const opt=ev.target.closest('.ropt');
-  if(opt){
-    const pill=opt.closest('.rolepill');
-    if(pill){roles[pill.dataset.id]=opt.dataset.r;
-      try{localStorage.setItem(ROLE_KEY,JSON.stringify(roles));}catch(e){}}
-    closeRoleMenus();renderRoles();
-    ev.stopPropagation();return;
-  }
   const pill=ev.target.closest('.rolepill');
   if(pill){
-    const open=pill.querySelector('.rolemenu');
+    const open=document.querySelector('.rolemenu[data-for="'+pill.dataset.id+'"]');
     if(open)closeRoleMenus();else openRoleMenu(pill,pill.dataset.id);
     ev.stopPropagation();
   }
 });
 document.addEventListener('click',closeRoleMenus);
+window.addEventListener('scroll',closeRoleMenus,{passive:true});
+window.addEventListener('resize',closeRoleMenus);
 
 $('prodSearch').addEventListener('input',renderSugg);
 $('prodSearch').addEventListener('focus',renderSugg);

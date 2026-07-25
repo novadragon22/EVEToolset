@@ -36,7 +36,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
 .ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
 .ctl .hint{font-size:10.5px}
-/* three swimlanes: extracting / chunk ready / idle */
+/* two swimlanes: extracting / idle */
 .lanes3{display:flex;flex-direction:column;gap:16px;margin-bottom:24px}
 .swim{position:relative}
 .swim-hd{display:flex;align-items:center;gap:12px;padding:11px 16px}
@@ -45,14 +45,14 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .swim-hd .desc{font-size:10px}
 .moonchips{display:flex;flex-wrap:wrap;gap:10px;padding:4px 16px 15px}
 .mchip{flex:1 1 250px;max-width:340px;padding:11px 13px;position:relative;display:flex;gap:11px;align-items:flex-start}
-.mchip .phase{width:30px;height:30px;flex:none;border-radius:50%;position:relative;overflow:hidden;margin-top:2px}
+.mchip .mimg-wrap{position:relative;flex:none;margin-top:2px}
+.mchip .mimg{display:block;width:44px;height:44px;border-radius:7px;object-fit:cover;background:#0a0e14}
+.mchip .phase{width:16px;height:16px;border-radius:50%;position:absolute;right:-5px;bottom:-5px;overflow:hidden}
 .mchip .phase::after{content:'';position:absolute;inset:0;border-radius:50%}
 .mchip .mn{font-size:11.5px;line-height:1.4;word-break:break-word}
 .mchip .mt{font-size:9px;margin-top:2px}
 .mchip .ms{font-size:10.5px;margin-top:5px}
 .mchip .md{font-size:9.5px;margin-top:2px}
-.swim.ready .mchip .ms{animation:blink 1.2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:.55}50%{opacity:1}}
 /* arrivals calendar */
 .calpanel{margin-bottom:24px}
 .calpanel .panel-hd2{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
@@ -105,7 +105,7 @@ td.dim{font-size:10.5px}
     <div>
       <div class="kicker">Refinery Extractions · Corp Moons</div>
       <h1>Moon<span class="diamond"></span>Watch</h1>
-      <div class="subline">Every Athanor and Tatara in three lanes — chunks inbound, chunks landed, and drills sitting idle — with an arrivals calendar and the chunk stagger optimiser. Metenox drills are listed but their gas draw is not modelled — chunk lanes cover Athanors and Tataras.</div>
+      <div class="subline">Every Athanor and Tatara in two lanes — chunks inbound and drills sitting idle — with an arrivals calendar and the chunk stagger optimiser.</div>
     </div>
   </div>
   <div class="tb-right">
@@ -276,9 +276,8 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
    carried over from the original Structure Browser. Plans
    and exclusions share its localStorage keys, so both tools stay in step. */
 const REFINERY_TYPES={35835:'Athanor',35836:'Tatara'};
-const METENOX_TYPE=81826;
 const PLAN_KEY='eve_extraction_plans_v1', EXCLUDE_KEY='eve_extraction_exclude_v1';
-let refineries=[];    // {name,type,typeId,system,constellation,sec,corp, start,arrive,decay, metenox}
+let refineries=[];    // {name,type,typeId,system,constellation,sec,corp, start,arrive,decay}
 let extractionPlans=[]; let optFilter={constellation:'all'}; let excludeKeywords=[];
 try{extractionPlans=JSON.parse(localStorage.getItem(PLAN_KEY)||'[]')||[];}catch(e){}
 let excludeRaw='';try{excludeRaw=JSON.parse(localStorage.getItem(EXCLUDE_KEY)||'""')||'';}catch(e){try{excludeRaw=localStorage.getItem(EXCLUDE_KEY)||'';}catch(e2){}}
@@ -291,7 +290,6 @@ function startOfDay(ts){const d=new Date(ts);d.setHours(0,0,0,0);return d;}
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
 function dayLabel(d){return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});}
 function statusOf(r){
-  if(r.metenox)return 'drill';
   if(r.arrive)return Date.parse(r.arrive)>now()?'extracting':'ready';
   return 'idle';}
 
@@ -315,10 +313,10 @@ async function loadAll(){
       catch(e){if(e.status===403)errs.push((s.corpName||'corp')+': extraction timers unreadable (corp-mining scope/role) — refineries shown without chunk clocks');}
       const exMap={};extractions.forEach(x=>{exMap[x.structure_id]=x;});
       for(const st of list){
-        const isRef=REFINERY_TYPES[st.type_id];const isMet=st.type_id===METENOX_TYPE;
-        if(!isRef&&!isMet)continue;
+        const isRef=REFINERY_TYPES[st.type_id];
+        if(!isRef)continue;
         const ex=exMap[st.structure_id]||{};
-        refineries.push({sid:st.structure_id,typeId:st.type_id,type:isRef||'Metenox Moon Drill',metenox:isMet,
+        refineries.push({sid:st.structure_id,typeId:st.type_id,type:isRef,
           sysId:st.system_id,corp:s.corpName||'',tok:s.access,
           start:ex.extraction_start_time,arrive:ex.chunk_arrival_time,decay:ex.natural_decay_time});
       }
@@ -351,12 +349,10 @@ function phaseChip(r){
   let line,sub='';
   if(st==='extracting'){line='Chunk lands in '+fmtDur(Date.parse(r.arrive)-now());
     if(r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';}
-  else if(st==='ready'){line='CHUNK ARRIVED '+fmtDur(now()-Date.parse(r.arrive)).replace('done','just now')+' ago — frack it';
-    if(r.decay)sub=Date.parse(r.decay)>now()?'decays in '+fmtDur(Date.parse(r.decay)-now()):'decay time passed';}
-  else if(st==='drill'){line='passive drill — no chunk schedule';sub='gas draw not modelled here';}
   else{line='No extraction scheduled';sub='drill is dark — schedule a chunk';}
   return '<div class="mchip card st-'+st+'">'+
-    '<span class="phase ph-'+st+'"></span>'+
+    '<span class="mimg-wrap"><img class="mimg" src="https://images.evetech.net/types/'+r.typeId+'/render?size=64" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'+
+    '<span class="phase ph-'+st+'"></span></span>'+
     '<div><div class="mn">'+esc(r.name)+'</div>'+
     '<div class="mt">'+esc(r.type)+' · '+sec+' '+esc(r.system)+' · '+esc(r.constellation||'')+'</div>'+
     '<div class="ms">'+line+'</div>'+(sub?'<div class="md">'+sub+'</div>':'')+'</div></div>';
@@ -365,10 +361,10 @@ function phaseChip(r){
 function render(errs){
   const errHtml=(errs||[]).map(e=>'<div class="charerr">⚠ '+esc(e)+'</div>').join('');
   if(!refineries.length){
-    $('out').innerHTML=errHtml+'<div class="empty">no Athanors, Tataras or Metenoxes on the corp books</div>';
+    $('out').innerHTML=errHtml+'<div class="empty">no Athanors or Tataras on the corp books</div>';
     reportDashboard('no refineries readable','muted');return;
   }
-  const lanes={extracting:[],ready:[],idle:[],drill:[]};
+  const lanes={extracting:[],ready:[],idle:[]};
   refineries.forEach(r=>lanes[statusOf(r)].push(r));
   lanes.extracting.sort((a,b)=>Date.parse(a.arrive)-Date.parse(b.arrive));
   const lane=(key,title,desc,list)=>'<div class="swim panel '+key+'"><div class="swim-hd"><h2>'+title+'</h2>'+
@@ -377,19 +373,17 @@ function render(errs){
       :'<div class="empty" style="padding:14px">none</div>')+'</div>';
   $('out').innerHTML=errHtml+'<div class="lanes3">'+
     lane('extracting','Extracting','chunks inbound, soonest first',lanes.extracting)+
-    lane('ready','Chunk ready','landed and waiting to be fracked',lanes.ready)+
     lane('idle','Idle','no extraction scheduled — dead time',lanes.idle)+
-    (lanes.drill.length?lane('drill','Metenox drills','passive drills — no chunk schedule',lanes.drill):'')+
     '</div>';
   $('calPanel').style.display='';$('optGrid').style.display='';
   refreshOptFilters();renderCalendar();renderPlanList();
-  reportDashboard(lanes.extracting.length+' extracting'+(lanes.ready.length?' · '+lanes.ready.length+' ready':'')+(lanes.idle.length?' · '+lanes.idle.length+' idle!':''),
-    lanes.idle.length||lanes.ready.length?'bad':'ok');
+  reportDashboard(lanes.extracting.length+' extracting'+(lanes.idle.length?' · '+lanes.idle.length+' idle!':''),
+    lanes.idle.length?'bad':'ok');
   $('loadNote').textContent='Moons sighted '+new Date().toUTCString().slice(17,25)+' EVE · '+refineries.length+' refineries';
 }
 
 /* ---- arrivals calendar (algorithm carried over from the Structure Browser) ---- */
-function refineryArrivals(){return refineries.filter(r=>!r.metenox&&r.arrive&&!isExcluded(r.name,r.system))
+function refineryArrivals(){return refineries.filter(r=>r.arrive&&!isExcluded(r.name,r.system))
   .map(r=>({name:r.name,system:r.system,constellation:r.constellation||'Unknown',date:new Date(r.arrive)}));}
 function refreshOptFilters(){
   const sel=$('optConst');if(!sel)return;
@@ -446,7 +440,7 @@ $('genPatternBtn').onclick=()=>{
   if(!plansToSchedule.length){out.innerHTML='<div class="empty" style="padding:20px">No systems to schedule — add one, or it may be hidden by your exclusion keywords.</div>';return;}
   const units=[];
   plansToSchedule.forEach(p=>{
-    const refs=refineries.filter(r=>!r.metenox&&(r.system||'').toLowerCase()===p.system.toLowerCase()&&!isExcluded(r.name,r.system));
+    const refs=refineries.filter(r=>(r.system||'').toLowerCase()===p.system.toLowerCase()&&!isExcluded(r.name,r.system));
     if(refs.length)refs.forEach(r=>units.push({system:p.system,constellation:p.constellation||r.constellation||'Unknown',refinery:r.name}));
     else units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null});
   });
