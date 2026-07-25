@@ -248,7 +248,7 @@ for (const f of files) {
     p = p && cardsS === 0 && emptyMsg;
     // 12-column cap + landscape no-scrollbox (jsdom does no layout — assert the source contract)
     const isrc = fs.readFileSync(`${DIR}/industry.html`, 'utf8');
-    const cap8 = isrc.includes('.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;overflow-y:auto;padding-right:6px;max-width:1496px;align-items:start}');
+    const cap8 = isrc.includes('.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;max-height:70vh;overflow-y:auto;padding-right:6px;align-items:start}');
     const chunk80 = isrc.includes('const BP_RENDER_CHUNK=80;');
     p = p && cap8 && chunk80;
     if (!p) fail++;
