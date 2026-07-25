@@ -129,6 +129,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 .app{animation:hud-reveal .6s ease-out}
 </style>
 <link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
 <style>
 *{box-sizing: border-box}
 html,body{margin:0;min-height:100vh}
@@ -302,11 +303,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
     <button class="theme-swatch" data-theme="triglavian" style="--sw:#c8283a"></button>
   </div>
   <button class="jobs-fab" id="jobsFab" title="Job queue">⚒<span class="badge" id="jobsFabBadge" style="display:none">0</span></button>
-  <button class="signin-btn" id="structRegBtn">🏭 Structure Registry</button>
+  <button class="signin-btn btn" id="structRegBtn">🏭 Structure Registry</button>
 </div>
 
 <div class="hero">
-  <div class="hero-strip" id="heroStrip">
+  <div class="hero-strip panel-hd" id="heroStrip">
     <div><h2 id="heroTitle">Build Planner</h2><div class="sub" id="heroSub">Material shopping list for the selected build</div></div>
     <div class="hero-rivets"><span></span><span></span><span></span><span></span></div>
   </div>
@@ -318,7 +319,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
   <div class="foundry-line" id="foundryLine">
     <div class="sub" style="padding:10px 4px">Open this drawer with pilots signed in to load live jobs.</div>
   </div>
-  <button class="parse-btn" id="jobsRefreshBtn" type="button" style="margin-top:16px;padding:8px 18px">⟳ Refresh jobs</button>
+  <button class="parse-btn btn" id="jobsRefreshBtn" type="button" style="margin-top:16px;padding:8px 18px">⟳ Refresh jobs</button>
 </div>
 <div class="jobs-drawer-backdrop" id="jobsBackdrop"></div>
 
@@ -370,25 +371,25 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:12px;margin-bottom:14px">
     <label>Check ownership for <select id="libraryCharSelect"></select></label>
     <label>Also include corp hangar <select id="libraryCorpSelect"><option value="">— none selected —</option></select></label>
-    <button class="parse-btn" id="libraryLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
+    <button class="parse-btn btn" id="libraryLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
     <span id="libraryLoadStatus" class="sub"></span>
   </div>
   <div class="bp-subtabs" style="align-items:center;justify-content:space-between">
     <div style="display:flex;gap:8px">
-      <button class="bp-sub-btn on" data-sub="blueprint" id="bpSubBlueprint">Blueprints (0)</button>
-      <button class="bp-sub-btn" data-sub="reaction" id="bpSubReaction">Reactions (0)</button>
+      <button class="bp-sub-btn on btn" data-sub="blueprint" id="bpSubBlueprint">Blueprints (0)</button>
+      <button class="bp-sub-btn btn" data-sub="reaction" id="bpSubReaction">Reactions (0)</button>
     </div>
     <input id="bpSearchInput" type="text" placeholder="Search by name…" style="font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.03);border:1px solid var(--line2);color:var(--text);padding:7px 12px;min-width:220px">
   </div>
   <div class="bp-filter">
-    <button class="bp-filt-btn on" data-filt="all" id="bpFiltAll">All (0)</button>
-    <button class="bp-filt-btn" data-filt="owned" id="bpFiltOwned">Owned (0)</button>
-    <button class="bp-filt-btn" data-filt="missing" id="bpFiltMissing">Missing (0)</button>
+    <button class="bp-filt-btn on btn" data-filt="all" id="bpFiltAll">All (0)</button>
+    <button class="bp-filt-btn btn" data-filt="owned" id="bpFiltOwned">Owned (0)</button>
+    <button class="bp-filt-btn btn" data-filt="missing" id="bpFiltMissing">Missing (0)</button>
   </div>
   <div class="bp-filter" id="bpSourceFilter">
-    <button class="bp-src-btn on" data-src="all" id="bpSrcAll">All Sources (0)</button>
-    <button class="bp-src-btn" data-src="personal" id="bpSrcPersonal">Personal (0)</button>
-    <button class="bp-src-btn" data-src="corp" id="bpSrcCorp">Corp (0)</button>
+    <button class="bp-src-btn on btn" data-src="all" id="bpSrcAll">All Sources (0)</button>
+    <button class="bp-src-btn btn" data-src="personal" id="bpSrcPersonal">Personal (0)</button>
+    <button class="bp-src-btn btn" data-src="corp" id="bpSrcCorp">Corp (0)</button>
   </div>
   <div class="bp-grid" id="bpGrid">
     <div class="sub" style="padding:20px 4px">Loading blueprint catalog…</div>
@@ -416,7 +417,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
         <div id="planMatsTable" style="margin-top:16px"></div>
       </div>
     </div>
-    <div class="side-panel">
+    <div class="side-panel panel">
       <h3>Summary</h3>
       <div class="side-stat"><span>Est. cost</span><b id="ssCost">—</b></div>
       <div class="side-stat"><span>· materials</span><b id="ssMats" style="font-size:13px">—</b></div>
@@ -430,7 +431,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
       <div class="side-stat"><span>Wallet (all chars)</span><b id="ssWallet">—</b></div>
       <div class="side-stat"><span>Affordability</span><b id="ssAfford">—</b></div>
       <div class="side-stat"><span>Active sell orders</span><b id="ssOrders">—</b></div>
-      <div class="structreg-io" style="margin-top:14px"><button class="io-btn" id="copyShopBtn">⧉ Copy shopping list</button></div>
+      <div class="structreg-io" style="margin-top:14px"><button class="io-btn btn" id="copyShopBtn">⧉ Copy shopping list</button></div>
       <div class="sub" id="ssNote" style="font-size:10px;margin-top:8px"></div>
     </div>
   </div>
@@ -445,7 +446,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
       <div style="display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;margin-bottom:16px">
         <label>Read from <select id="researchAssetSource"><option value="personal">Personal hangar</option><option value="corp">Corporation hangar</option></select></label>
         <label>Character <select id="researchCharSelect"></select></label>
-        <button class="parse-btn" id="researchLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
+        <button class="parse-btn btn" id="researchLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
       </div>
       <div id="researchBpList" class="sub" style="padding:8px 4px 16px;max-height:60vh;overflow-y:auto">No blueprints loaded yet — pick a character and load.</div>
 
@@ -458,7 +459,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
         <div id="researchResult" class="sub" style="padding:8px 4px"></div>
       </div>
     </div>
-    <div class="side-panel research-side">
+    <div class="side-panel research-side panel">
       <h3>Research slots</h3>
       <div class="sub" style="font-size:11px;margin-bottom:10px">Slots come from your real Laboratory Operation skill lines via ESI; usage comes from live jobs.</div>
       <div class="side-stat"><span>Free slots</span><b id="rsSlots">—</b></div>
@@ -474,24 +475,24 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 
 <div class="view" data-view="structreg">
   <div class="panel-body">
-  <div class="structreg-wrap">
+  <div class="structreg-wrap panel">
     <div>
       <div class="research-subhead">Add a structure <span class="sub">paste a structure fit in EFT format, or enter it manually</span></div>
       <div class="add-mode-tabs">
-        <button class="add-mode-btn on" data-mode="eft">Paste EFT fit</button>
-        <button class="add-mode-btn" data-mode="manual">Manual entry</button>
+        <button class="add-mode-btn on btn" data-mode="eft">Paste EFT fit</button>
+        <button class="add-mode-btn btn" data-mode="manual">Manual entry</button>
       </div>
 
-      <div class="add-mode-panel on" data-mode="eft">
+      <div class="add-mode-panel on panel" data-mode="eft">
         <textarea class="eft-paste" placeholder="[Raitaru, Nova Dragon's Foundry]&#10;Standup Composite Reinforcement Rig I&#10;Standup Basic Capital Shipyard Service Module&#10;Standup Manufacturing Material Efficiency I&#10;&#10;...">[Raitaru, Nova Dragon's Foundry]
 Standup Composite Reinforcement Rig I
 Standup Basic Capital Shipyard Service Module
 Standup Manufacturing Material Efficiency I</textarea>
-        <button class="parse-btn" id="parseEftBtn">Parse &amp; Add Structure ▸</button>
+        <button class="parse-btn btn" id="parseEftBtn">Parse &amp; Add Structure ▸</button>
         <div class="eft-hint">Recognizes the structure hull from the EFT header line, plus any rigs and service modules listed below it — same paste format used for ship fits.</div>
       </div>
 
-      <div class="add-mode-panel" data-mode="manual">
+      <div class="add-mode-panel panel" data-mode="manual">
         <div class="manual-grid">
           <label>Structure name<input type="text" placeholder="e.g. Nova Dragon's Foundry"></label>
           <label>Hull type<select id="manualHullSelect"><option>Raitaru</option><option>Azbel</option><option>Sotiyo</option><option>Athanor</option><option>Tatara</option></select></label>
@@ -510,28 +511,28 @@ Standup Manufacturing Material Efficiency I</textarea>
           <label>System cost index % (optional)
             <div style="display:flex;gap:8px;align-items:center">
               <input type="number" id="manualCostIndex" placeholder="e.g. 2.5" step="0.1" min="0" style="flex:1">
-              <button type="button" class="sr-action-btn" id="fetchCostIndexBtn" style="white-space:nowrap">⭱ Fetch (ESI)</button>
+              <button type="button" class="sr-action-btn btn" id="fetchCostIndexBtn" style="white-space:nowrap">⭱ Fetch (ESI)</button>
             </div>
           </label>
         </div>
         <div class="rig-preview" id="costIndexStatus"></div>
         <div class="eft-hint">Rig choices are filtered to what actually fits this hull's size (M/L/XL). Names follow the in-game Standup naming convention — double check against your fitting window if anything looks off.</div>
-        <button class="parse-btn" id="manualAddBtn">Add Structure ▸</button>
-        <button class="sr-action-btn" id="manualCancelEditBtn" style="display:none;margin-left:10px;padding:11px 18px">Cancel edit</button>
+        <button class="parse-btn btn" id="manualAddBtn">Add Structure ▸</button>
+        <button class="sr-action-btn btn" id="manualCancelEditBtn" style="display:none;margin-left:10px;padding:11px 18px">Cancel edit</button>
       </div>
     </div>
 
-    <div class="side-panel">
+    <div class="side-panel panel">
       <h3>Registered structures</h3>
       <div id="structregList"></div>
       <div class="side-stat" style="margin-top:14px"><span>Total registered</span><b id="structregTotal">0</b></div>
       <div class="structreg-io">
-        <button class="io-btn" id="exportJsonBtn">⭳ Export JSON</button>
-        <label class="io-btn" for="importJsonFile">⭱ Import JSON</label>
+        <button class="io-btn btn" id="exportJsonBtn">⭳ Export JSON</button>
+        <label class="io-btn btn" for="importJsonFile">⭱ Import JSON</label>
         <input type="file" id="importJsonFile" accept="application/json" style="display:none">
       </div>
       <div class="structreg-io">
-        <button class="io-btn" id="refreshAllCostIndexBtn">⭯ Refresh all system cost indices (ESI)</button>
+        <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh all system cost indices (ESI)</button>
       </div>
       <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px;margin-top:8px"></div>
     </div>
@@ -798,11 +799,11 @@ function structureAppliesTo(structure, capability, group){
 const CATEGORY_LABELS = { ship_small:'Small ships', ship_medium:'Medium ships', ship_large:'Large ships', ship_capital:'Capital ships', component:'Components', equipment:'Equipment', ammunition:'Ammunition', drone:'Drones', subsystem:'Subsystems', structure:'Structures', reaction_composite:'Composite reactions', reaction_hybrid:'Hybrid reactions', reaction_biochem:'Biochemical reactions' };
 function capBadges(capabilities, rigs){
   const labels = { manufacture:'Manufacturing', research:'Research', reaction:'Reactions' };
-  if(!capabilities.length) return '<span class="ri-tag" style="opacity:.6">No production rigs</span>';
+  if(!capabilities.length) return '<span class="ri-tag pill" style="opacity:.6">No production rigs</span>';
   return capabilities.map(c=>{
     const cats = Array.from(new Set((rigs||[]).filter(r=>r.capabilities.includes(c)).flatMap(r=>r.categories)));
     const scope = cats.length ? cats.map(x=>CATEGORY_LABELS[x]||x).join('/') : 'all sizes';
-    return '<span class="ri-tag">'+labels[c]+' — '+scope+'</span>';
+    return '<span class="ri-tag pill">'+labels[c]+' — '+scope+'</span>';
   }).join(' ');
 }
 
@@ -1054,12 +1055,12 @@ function renderStructRegList(){
     const hasCapitalService = services.some(sv=>sv.includes('Capital Shipyard')||sv.includes('Supercapital Shipyard'));
     const capWarning = (capitalHull && !hasCapitalService) ? '<div class="sr-sub" style="color:#e0a05a">⚠ No Capital Shipyard service module — can\'t build capitals here yet</div>' : '';
     const costLine = (s.costIndex!=null && s.costIndex!=='') ? '<div class="sr-sub">System cost index: '+s.costIndex+'%'+(s.taxPct!=null?' · facility tax '+s.taxPct+'%':'')+'</div>' : (s.taxPct!=null?'<div class="sr-sub">Facility tax: '+s.taxPct+'%</div>':'');
-    return '<div class="structreg-row" draggable="true" data-order-idx="'+i+'"><div style="display:flex;align-items:flex-start;gap:8px">'+
+    return '<div class="structreg-row card" draggable="true" data-order-idx="'+i+'"><div style="display:flex;align-items:flex-start;gap:8px">'+
       '<span class="sr-drag-handle" title="Drag to reorder">⠿</span><div style="flex:1">'+
       '<div class="sr-name">'+s.name+'</div><div class="sr-sub">'+[s.hull, s.system, s.owner].filter(Boolean).join(' · ')+'</div>'+
       svcLine+costLine+capWarning+
       '<div style="margin-top:4px">'+capBadges(s.capabilities||[], s.rigs)+'</div>'+
-      '<div class="sr-actions"><button class="sr-action-btn" data-edit-idx="'+i+'">Edit</button><button class="sr-action-btn danger" data-delete-idx="'+i+'">Delete</button></div>'+
+      '<div class="sr-actions"><button class="sr-action-btn btn" data-edit-idx="'+i+'">Edit</button><button class="sr-action-btn danger btn" data-delete-idx="'+i+'">Delete</button></div>'+
       '</div></div></div>';
   }).join('');
   document.getElementById('structregTotal').textContent=registeredStructures.length;
@@ -1212,7 +1213,7 @@ function renderPlanStructTabs(){
       statusLine = caps.length ? caps.join(' + ') : 'no rigs';
     }
     const bestBadge = (i===bestIdx) ? ' <span style="color:var(--gold-bright)">★ Best match</span>' : '';
-    return '<button class="struct-pick-btn structTabBtn'+on+'" data-idx="'+i+'" type="button">'+s.name+bestBadge+'<br><span style="font-size:9px;opacity:.75">'+statusLine+'</span></button>';
+    return '<button class="struct-pick-btn structTabBtn'+on+' btn" data-idx="'+i+'" type="button">'+s.name+bestBadge+'<br><span style="font-size:9px;opacity:.75">'+statusLine+'</span></button>';
   }).join('');
   el.querySelectorAll('.structTabBtn').forEach(btn=>btn.onclick=()=>{
     selectedPlanStructureIdx = Number(btn.dataset.idx);
@@ -1593,7 +1594,7 @@ function renderResearchBpList(){
     const statusBadge = needsResearch
       ? '<span style="color:var(--amber)">#'+priorityRank+' priority</span>'
       : '<span style="color:var(--green,#8cc86a)">fully researched</span>';
-    return '<div class="structreg-row" data-bpidx="'+i+'" style="cursor:pointer"><div class="sr-name">'+name+'</div>'+
+    return '<div class="structreg-row card" data-bpidx="'+i+'" style="cursor:pointer"><div class="sr-name">'+name+'</div>'+
       '<div class="sr-sub">ME '+bp.material_efficiency+'% · TE '+bp.time_efficiency+'% · runs '+(bp.runs<0?'BPO':bp.runs)+
       (struct ? ' · in <b>'+struct.name+'</b>' : ' · location unregistered')+' · '+statusBadge+'</div></div>';
   }).join('');
@@ -1654,7 +1655,7 @@ function renderResearchStructTabs(){
     const {s,i} = o;
     const on = i===selectedResearchStructureIdxInCandidates ? ' on' : '';
     const bestBadge = (i===bestIdx) ? ' <span style="color:var(--gold-bright)">\u2605 Best match</span>' : '';
-    return '<button class="struct-pick-btn researchTabBtn'+on+'" data-idx="'+i+'" type="button">'+s.name+bestBadge+'</button>';
+    return '<button class="struct-pick-btn researchTabBtn'+on+' btn" data-idx="'+i+'" type="button">'+s.name+bestBadge+'</button>';
   }).join('');
   el.querySelectorAll('.researchTabBtn').forEach(btn=>btn.onclick=()=>{
     selectedResearchStructureIdxInCandidates = Number(btn.dataset.idx);
@@ -1945,14 +1946,14 @@ function renderBpLibrary(){
       ? '<div class="bp-build">Base '+(isReaction?'reaction':'build')+' time: <b class="ok">'+(mins!=null?mins+' min':'—')+'</b></div>'
       : '<div class="bp-build dim">Not owned — buy or build the blueprint first</div>';
     const needsResearch = owned && !isReaction && (owned.material_efficiency<10 || owned.time_efficiency<20);
-    const researchBtn = needsResearch ? '<button class="bp-add research">Add to research ▸</button>' : '';
-    const addBtn = status==='owned' ? '<button class="bp-add">Add to build planner ▸</button>' : '<button class="bp-add find">Find this blueprint ▸</button>';
+    const researchBtn = needsResearch ? '<button class="bp-add research btn">Add to research ▸</button>' : '';
+    const addBtn = status==='owned' ? '<button class="bp-add btn">Add to build planner ▸</button>' : '<button class="bp-add find btn">Find this blueprint ▸</button>';
     const ownerLine = status==='owned'
       ? '<div class="bp-owner personal">'+(hasPersonal&&hasCorp?'Owned (Personal + Corp)':hasCorp?'Owned (Corp Hangar)':'Owned (Personal)')+'</div>'
       : '';
     const icon = isReaction ? '⚛' : '🚀';
 
-    return '<div class="bp-card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+sources+'" data-bptypeid="'+d.bpTypeID+'">'+
+    return '<div class="bp-card card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+sources+'" data-bptypeid="'+d.bpTypeID+'">'+
       '<div class="bp-icon">'+icon+'</div>'+
       '<div class="bp-name">'+name+'</div>'+
       meTe + copiesLine + buildLine + ownerLine + addBtn + researchBtn +
@@ -2676,15 +2677,15 @@ function renderBrowse(q){
       return '<div class="browse-row" data-mat="'+e.n.replace(/"/g,'&quot;')+'" style="cursor:pointer">'+
         '<div class="br-icon" style="background-image:url(https://images.evetech.net/types/'+tid+'/icon?size=64)"></div>'+
         '<div class="br-name">'+e.n+'<div class="br-sub">'+(v!=null?v+' m³ · ':'')+'used by '+uses+' blueprint'+(uses===1?'':'s')+'</div></div>'+
-        '<div class="br-tag">Material</div></div>';
+        '<div class="br-tag pill">Material</div></div>';
     }
     const d=e.d, supp=SDE_SUPP[d.bpTypeID];
     const owned=d.bpTypeID!=null&&libraryOwnedByBpTypeId[d.bpTypeID];
     return '<div class="browse-row" data-bp="'+e.n.replace(/"/g,'&quot;')+'" style="cursor:pointer">'+
       '<div class="br-icon" style="background-image:url(https://images.evetech.net/types/'+d.productTypeID+'/icon?size=64)"></div>'+
       '<div class="br-name">'+e.n+'<div class="br-sub">'+d.group+' · '+Math.round(d.buildTime/60)+' min · '+((supp&&supp.o)||1)+'/run'+(supp&&supp.i?' · inventable':'')+'</div></div>'+
-      (owned?'<div class="br-tag owned">Owned</div>':'')+
-      '<div class="br-tag">'+(d.isReaction?'Reaction':'Blueprint')+'</div></div>';
+      (owned?'<div class="br-tag owned pill">Owned</div>':'')+
+      '<div class="br-tag pill">'+(d.isReaction?'Reaction':'Blueprint')+'</div></div>';
   }).join('');
   out.innerHTML=top||'<div class="sub" style="padding:20px 4px">No matches for “'+q.replace(/</g,'&lt;')+'”.</div>';
   out.querySelectorAll('[data-bp]').forEach(r=>r.onclick=()=>openBpDetailByName(r.dataset.bp));
