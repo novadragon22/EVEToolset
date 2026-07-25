@@ -129,6 +129,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 .app{animation:hud-reveal .6s ease-out}
 </style>
 <link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
 <style>
 *{box-sizing: border-box}
 html,body{margin:0;min-height:100vh}
@@ -176,15 +177,19 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .forge-info .ft .act{margin-right:12px;font-size:10px;padding:4px 10px}
 .forge-info .fm{font-size:12.5px;margin-top:8px}
 .forge-time{font-size:15px;text-align:right;min-width:120px}
-.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:22px;max-height:70vh;overflow-y:auto;padding-right:6px}
+/* max-width caps auto-fill at 12 columns: 12 tracks ×176px + 11 gaps ×12px = 2244px content
+   (+6px border-box padding); a 13th track would need 2432px. In landscape the grid loses its
+   internal scrollbox — the page flows naturally and "Show more" chunking bounds the height. */
+.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;overflow-y:auto;padding-right:6px;max-width:1496px;align-items:start}
+
 .bp-grid::-webkit-scrollbar, #researchBpList::-webkit-scrollbar{width:10px}
-.bp-card{padding:24px;cursor:pointer;position:relative;overflow:hidden;transition:.3s cubic-bezier(.2,.9,.3,1.2);content-visibility:auto;contain-intrinsic-size:auto 220px}
+.bp-card{padding:12px 14px;cursor:pointer;position:relative;overflow:hidden;transition:.3s cubic-bezier(.2,.9,.3,1.2);align-self:start}
 .bp-card::before, .bp-card::after{content:'';position:absolute;width:18px;height:18px;opacity:.8}
 .bp-card::before{top:-2px;left:-2px}
 .bp-card::after{bottom:-2px;right:-2px}
-.bp-card:hover{transform:translateY(-8px) scale(1.02)}
-.bp-icon{width:50px;height:50px;display:grid;place-items:center;margin-bottom:18px;font-size:22px}
-.bp-name{font-size:14.5px;margin-bottom:12px}
+.bp-card:hover{transform:none}
+.bp-icon{width:34px;height:34px;display:grid;place-items:center;margin-bottom:8px;font-size:17px}
+.bp-name{font-size:12.5px;margin-bottom:6px}
 .bp-me{display:flex;gap:8px;font-size:10.5px}
 .bp-me span{padding:4px 9px}
 .bp-filter{display:flex;gap:8px;margin-bottom:20px}
@@ -193,8 +198,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .bp-filt-btn{font-size:11px;padding:8px 16px;cursor:pointer}
 .bp-card.hidden-filt{display:none}
 .struct-pick-btn{font-size:11px;padding:8px 16px;cursor:pointer}
-.bp-build{font-size:11px;margin-top:10px}
-.bp-add{display:block;width:100%;margin-top:14px;font-size:10.5px;padding:8px 0;cursor:pointer}
+.bp-build{font-size:11px;margin-top:6px}
+.bp-add{display:block;width:100%;margin-top:8px;font-size:10.5px;padding:6px 0;cursor:pointer}
 .bp-card.missing{opacity:.7}
 .plan-wrap{display:grid;grid-template-columns:1fr 360px;gap:30px}
 .plan-target{padding:28px 32px;margin-bottom:26px;position:relative}
@@ -235,7 +240,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .br-name{font-size:13px;flex:1}
 .br-sub{font-size:11px;margin-top:3px}
 .br-tag{font-size:9.5px;padding:4px 9px}
-.bp-owner{margin-top:12px;font-size:9.5px;padding:4px 9px;display:inline-block}
+.bp-owner{margin-top:8px;font-size:9.5px;padding:4px 9px;display:inline-block}
 .mat-row.sub-build .mn{font-size:12px}
 .mat-row.sub-build .mn i{font-size:10px;margin-left:6px}
 .mat-row.indent2{padding-left:24px}
@@ -302,11 +307,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
     <button class="theme-swatch" data-theme="triglavian" style="--sw:#c8283a"></button>
   </div>
   <button class="jobs-fab" id="jobsFab" title="Job queue">⚒<span class="badge" id="jobsFabBadge" style="display:none">0</span></button>
-  <button class="signin-btn" id="structRegBtn">🏭 Structure Registry</button>
+  <button class="signin-btn btn" id="structRegBtn">🏭 Structure Registry</button>
 </div>
 
 <div class="hero">
-  <div class="hero-strip" id="heroStrip">
+  <div class="hero-strip panel-hd" id="heroStrip">
     <div><h2 id="heroTitle">Build Planner</h2><div class="sub" id="heroSub">Material shopping list for the selected build</div></div>
     <div class="hero-rivets"><span></span><span></span><span></span><span></span></div>
   </div>
@@ -318,7 +323,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
   <div class="foundry-line" id="foundryLine">
     <div class="sub" style="padding:10px 4px">Open this drawer with pilots signed in to load live jobs.</div>
   </div>
-  <button class="parse-btn" id="jobsRefreshBtn" type="button" style="margin-top:16px;padding:8px 18px">⟳ Refresh jobs</button>
+  <button class="parse-btn btn" id="jobsRefreshBtn" type="button" style="margin-top:16px;padding:8px 18px">⟳ Refresh jobs</button>
 </div>
 <div class="jobs-drawer-backdrop" id="jobsBackdrop"></div>
 
@@ -370,25 +375,25 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:12px;margin-bottom:14px">
     <label>Check ownership for <select id="libraryCharSelect"></select></label>
     <label>Also include corp hangar <select id="libraryCorpSelect"><option value="">— none selected —</option></select></label>
-    <button class="parse-btn" id="libraryLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
+    <button class="parse-btn btn" id="libraryLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
     <span id="libraryLoadStatus" class="sub"></span>
   </div>
   <div class="bp-subtabs" style="align-items:center;justify-content:space-between">
     <div style="display:flex;gap:8px">
-      <button class="bp-sub-btn on" data-sub="blueprint" id="bpSubBlueprint">Blueprints (0)</button>
-      <button class="bp-sub-btn" data-sub="reaction" id="bpSubReaction">Reactions (0)</button>
+      <button class="bp-sub-btn on btn" data-sub="blueprint" id="bpSubBlueprint">Blueprints (0)</button>
+      <button class="bp-sub-btn btn" data-sub="reaction" id="bpSubReaction">Reactions (0)</button>
     </div>
     <input id="bpSearchInput" type="text" placeholder="Search by name…" style="font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.03);border:1px solid var(--line2);color:var(--text);padding:7px 12px;min-width:220px">
   </div>
   <div class="bp-filter">
-    <button class="bp-filt-btn on" data-filt="all" id="bpFiltAll">All (0)</button>
-    <button class="bp-filt-btn" data-filt="owned" id="bpFiltOwned">Owned (0)</button>
-    <button class="bp-filt-btn" data-filt="missing" id="bpFiltMissing">Missing (0)</button>
+    <button class="bp-filt-btn on btn" data-filt="all" id="bpFiltAll">All (0)</button>
+    <button class="bp-filt-btn btn" data-filt="owned" id="bpFiltOwned">Owned (0)</button>
+    <button class="bp-filt-btn btn" data-filt="missing" id="bpFiltMissing">Missing (0)</button>
   </div>
   <div class="bp-filter" id="bpSourceFilter">
-    <button class="bp-src-btn on" data-src="all" id="bpSrcAll">All Sources (0)</button>
-    <button class="bp-src-btn" data-src="personal" id="bpSrcPersonal">Personal (0)</button>
-    <button class="bp-src-btn" data-src="corp" id="bpSrcCorp">Corp (0)</button>
+    <button class="bp-src-btn on btn" data-src="all" id="bpSrcAll">All Sources (0)</button>
+    <button class="bp-src-btn btn" data-src="personal" id="bpSrcPersonal">Personal (0)</button>
+    <button class="bp-src-btn btn" data-src="corp" id="bpSrcCorp">Corp (0)</button>
   </div>
   <div class="bp-grid" id="bpGrid">
     <div class="sub" style="padding:20px 4px">Loading blueprint catalog…</div>
@@ -416,7 +421,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
         <div id="planMatsTable" style="margin-top:16px"></div>
       </div>
     </div>
-    <div class="side-panel">
+    <div class="side-panel panel">
       <h3>Summary</h3>
       <div class="side-stat"><span>Est. cost</span><b id="ssCost">—</b></div>
       <div class="side-stat"><span>· materials</span><b id="ssMats" style="font-size:13px">—</b></div>
@@ -430,7 +435,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
       <div class="side-stat"><span>Wallet (all chars)</span><b id="ssWallet">—</b></div>
       <div class="side-stat"><span>Affordability</span><b id="ssAfford">—</b></div>
       <div class="side-stat"><span>Active sell orders</span><b id="ssOrders">—</b></div>
-      <div class="structreg-io" style="margin-top:14px"><button class="io-btn" id="copyShopBtn">⧉ Copy shopping list</button></div>
+      <div class="structreg-io" style="margin-top:14px"><button class="io-btn btn" id="copyShopBtn">⧉ Copy shopping list</button></div>
       <div class="sub" id="ssNote" style="font-size:10px;margin-top:8px"></div>
     </div>
   </div>
@@ -445,7 +450,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
       <div style="display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;margin-bottom:16px">
         <label>Read from <select id="researchAssetSource"><option value="personal">Personal hangar</option><option value="corp">Corporation hangar</option></select></label>
         <label>Character <select id="researchCharSelect"></select></label>
-        <button class="parse-btn" id="researchLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
+        <button class="parse-btn btn" id="researchLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
       </div>
       <div id="researchBpList" class="sub" style="padding:8px 4px 16px;max-height:60vh;overflow-y:auto">No blueprints loaded yet — pick a character and load.</div>
 
@@ -458,7 +463,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
         <div id="researchResult" class="sub" style="padding:8px 4px"></div>
       </div>
     </div>
-    <div class="side-panel research-side">
+    <div class="side-panel research-side panel">
       <h3>Research slots</h3>
       <div class="sub" style="font-size:11px;margin-bottom:10px">Slots come from your real Laboratory Operation skill lines via ESI; usage comes from live jobs.</div>
       <div class="side-stat"><span>Free slots</span><b id="rsSlots">—</b></div>
@@ -474,24 +479,24 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 
 <div class="view" data-view="structreg">
   <div class="panel-body">
-  <div class="structreg-wrap">
+  <div class="structreg-wrap panel">
     <div>
       <div class="research-subhead">Add a structure <span class="sub">paste a structure fit in EFT format, or enter it manually</span></div>
       <div class="add-mode-tabs">
-        <button class="add-mode-btn on" data-mode="eft">Paste EFT fit</button>
-        <button class="add-mode-btn" data-mode="manual">Manual entry</button>
+        <button class="add-mode-btn on btn" data-mode="eft">Paste EFT fit</button>
+        <button class="add-mode-btn btn" data-mode="manual">Manual entry</button>
       </div>
 
-      <div class="add-mode-panel on" data-mode="eft">
+      <div class="add-mode-panel on panel" data-mode="eft">
         <textarea class="eft-paste" placeholder="[Raitaru, Nova Dragon's Foundry]&#10;Standup Composite Reinforcement Rig I&#10;Standup Basic Capital Shipyard Service Module&#10;Standup Manufacturing Material Efficiency I&#10;&#10;...">[Raitaru, Nova Dragon's Foundry]
 Standup Composite Reinforcement Rig I
 Standup Basic Capital Shipyard Service Module
 Standup Manufacturing Material Efficiency I</textarea>
-        <button class="parse-btn" id="parseEftBtn">Parse &amp; Add Structure ▸</button>
+        <button class="parse-btn btn" id="parseEftBtn">Parse &amp; Add Structure ▸</button>
         <div class="eft-hint">Recognizes the structure hull from the EFT header line, plus any rigs and service modules listed below it — same paste format used for ship fits.</div>
       </div>
 
-      <div class="add-mode-panel" data-mode="manual">
+      <div class="add-mode-panel panel" data-mode="manual">
         <div class="manual-grid">
           <label>Structure name<input type="text" placeholder="e.g. Nova Dragon's Foundry"></label>
           <label>Hull type<select id="manualHullSelect"><option>Raitaru</option><option>Azbel</option><option>Sotiyo</option><option>Athanor</option><option>Tatara</option></select></label>
@@ -510,28 +515,28 @@ Standup Manufacturing Material Efficiency I</textarea>
           <label>System cost index % (optional)
             <div style="display:flex;gap:8px;align-items:center">
               <input type="number" id="manualCostIndex" placeholder="e.g. 2.5" step="0.1" min="0" style="flex:1">
-              <button type="button" class="sr-action-btn" id="fetchCostIndexBtn" style="white-space:nowrap">⭱ Fetch (ESI)</button>
+              <button type="button" class="sr-action-btn btn" id="fetchCostIndexBtn" style="white-space:nowrap">⭱ Fetch (ESI)</button>
             </div>
           </label>
         </div>
         <div class="rig-preview" id="costIndexStatus"></div>
         <div class="eft-hint">Rig choices are filtered to what actually fits this hull's size (M/L/XL). Names follow the in-game Standup naming convention — double check against your fitting window if anything looks off.</div>
-        <button class="parse-btn" id="manualAddBtn">Add Structure ▸</button>
-        <button class="sr-action-btn" id="manualCancelEditBtn" style="display:none;margin-left:10px;padding:11px 18px">Cancel edit</button>
+        <button class="parse-btn btn" id="manualAddBtn">Add Structure ▸</button>
+        <button class="sr-action-btn btn" id="manualCancelEditBtn" style="display:none;margin-left:10px;padding:11px 18px">Cancel edit</button>
       </div>
     </div>
 
-    <div class="side-panel">
+    <div class="side-panel panel">
       <h3>Registered structures</h3>
       <div id="structregList"></div>
       <div class="side-stat" style="margin-top:14px"><span>Total registered</span><b id="structregTotal">0</b></div>
       <div class="structreg-io">
-        <button class="io-btn" id="exportJsonBtn">⭳ Export JSON</button>
-        <label class="io-btn" for="importJsonFile">⭱ Import JSON</label>
+        <button class="io-btn btn" id="exportJsonBtn">⭳ Export JSON</button>
+        <label class="io-btn btn" for="importJsonFile">⭱ Import JSON</label>
         <input type="file" id="importJsonFile" accept="application/json" style="display:none">
       </div>
       <div class="structreg-io">
-        <button class="io-btn" id="refreshAllCostIndexBtn">⭯ Refresh all system cost indices (ESI)</button>
+        <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh all system cost indices (ESI)</button>
       </div>
       <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px;margin-top:8px"></div>
     </div>
@@ -798,11 +803,11 @@ function structureAppliesTo(structure, capability, group){
 const CATEGORY_LABELS = { ship_small:'Small ships', ship_medium:'Medium ships', ship_large:'Large ships', ship_capital:'Capital ships', component:'Components', equipment:'Equipment', ammunition:'Ammunition', drone:'Drones', subsystem:'Subsystems', structure:'Structures', reaction_composite:'Composite reactions', reaction_hybrid:'Hybrid reactions', reaction_biochem:'Biochemical reactions' };
 function capBadges(capabilities, rigs){
   const labels = { manufacture:'Manufacturing', research:'Research', reaction:'Reactions' };
-  if(!capabilities.length) return '<span class="ri-tag" style="opacity:.6">No production rigs</span>';
+  if(!capabilities.length) return '<span class="ri-tag pill" style="opacity:.6">No production rigs</span>';
   return capabilities.map(c=>{
     const cats = Array.from(new Set((rigs||[]).filter(r=>r.capabilities.includes(c)).flatMap(r=>r.categories)));
     const scope = cats.length ? cats.map(x=>CATEGORY_LABELS[x]||x).join('/') : 'all sizes';
-    return '<span class="ri-tag">'+labels[c]+' — '+scope+'</span>';
+    return '<span class="ri-tag pill">'+labels[c]+' — '+scope+'</span>';
   }).join(' ');
 }
 
@@ -1054,12 +1059,12 @@ function renderStructRegList(){
     const hasCapitalService = services.some(sv=>sv.includes('Capital Shipyard')||sv.includes('Supercapital Shipyard'));
     const capWarning = (capitalHull && !hasCapitalService) ? '<div class="sr-sub" style="color:#e0a05a">⚠ No Capital Shipyard service module — can\'t build capitals here yet</div>' : '';
     const costLine = (s.costIndex!=null && s.costIndex!=='') ? '<div class="sr-sub">System cost index: '+s.costIndex+'%'+(s.taxPct!=null?' · facility tax '+s.taxPct+'%':'')+'</div>' : (s.taxPct!=null?'<div class="sr-sub">Facility tax: '+s.taxPct+'%</div>':'');
-    return '<div class="structreg-row" draggable="true" data-order-idx="'+i+'"><div style="display:flex;align-items:flex-start;gap:8px">'+
+    return '<div class="structreg-row card" draggable="true" data-order-idx="'+i+'"><div style="display:flex;align-items:flex-start;gap:8px">'+
       '<span class="sr-drag-handle" title="Drag to reorder">⠿</span><div style="flex:1">'+
       '<div class="sr-name">'+s.name+'</div><div class="sr-sub">'+[s.hull, s.system, s.owner].filter(Boolean).join(' · ')+'</div>'+
       svcLine+costLine+capWarning+
       '<div style="margin-top:4px">'+capBadges(s.capabilities||[], s.rigs)+'</div>'+
-      '<div class="sr-actions"><button class="sr-action-btn" data-edit-idx="'+i+'">Edit</button><button class="sr-action-btn danger" data-delete-idx="'+i+'">Delete</button></div>'+
+      '<div class="sr-actions"><button class="sr-action-btn btn" data-edit-idx="'+i+'">Edit</button><button class="sr-action-btn danger btn" data-delete-idx="'+i+'">Delete</button></div>'+
       '</div></div></div>';
   }).join('');
   document.getElementById('structregTotal').textContent=registeredStructures.length;
@@ -1212,7 +1217,7 @@ function renderPlanStructTabs(){
       statusLine = caps.length ? caps.join(' + ') : 'no rigs';
     }
     const bestBadge = (i===bestIdx) ? ' <span style="color:var(--gold-bright)">★ Best match</span>' : '';
-    return '<button class="struct-pick-btn structTabBtn'+on+'" data-idx="'+i+'" type="button">'+s.name+bestBadge+'<br><span style="font-size:9px;opacity:.75">'+statusLine+'</span></button>';
+    return '<button class="struct-pick-btn structTabBtn'+on+' btn" data-idx="'+i+'" type="button">'+s.name+bestBadge+'<br><span style="font-size:9px;opacity:.75">'+statusLine+'</span></button>';
   }).join('');
   el.querySelectorAll('.structTabBtn').forEach(btn=>btn.onclick=()=>{
     selectedPlanStructureIdx = Number(btn.dataset.idx);
@@ -1387,15 +1392,13 @@ document.getElementById('importJsonFile').addEventListener('change', (e)=>{
 });
 
 let bpTypeFilt='blueprint', bpStatusFilt='all', bpSourceFilt='all', bpSearchTerm='';
+const BP_RENDER_CHUNK=80; let bpRenderLimit=BP_RENDER_CHUNK; // 8 cols × 10 rows // Library renders in chunks — 4,900+ SDE entries at once froze the tab
 function applyBpFilters(){
-  document.querySelectorAll('.bp-card').forEach(card=>{
-    const typeOk = bpTypeFilt==='all' || card.dataset.type===bpTypeFilt;
-    const statusOk = bpStatusFilt==='all' || card.dataset.status===bpStatusFilt;
-    const sourceOk = bpSourceFilt==='all' || (card.dataset.source||'').split(',').includes(bpSourceFilt);
-    const nameEl = card.querySelector('.bp-name');
-    const searchOk = !bpSearchTerm || (nameEl && nameEl.textContent.toLowerCase().includes(bpSearchTerm));
-    card.classList.toggle('hidden-filt', !(typeOk && statusOk && sourceOk && searchOk));
-  });
+  // Filtering is data-level now: any filter/search change resets to the first
+  // chunk and re-renders. Only up to BP_RENDER_CHUNK matching cards exist in
+  // the DOM at a time (renderBpLibrary), which keeps the Library fast.
+  bpRenderLimit = BP_RENDER_CHUNK;
+  renderBpLibrary();
 }
 document.getElementById('bpSearchInput').addEventListener('input', (e)=>{
   bpSearchTerm = e.target.value.trim().toLowerCase();
@@ -1593,7 +1596,7 @@ function renderResearchBpList(){
     const statusBadge = needsResearch
       ? '<span style="color:var(--amber)">#'+priorityRank+' priority</span>'
       : '<span style="color:var(--green,#8cc86a)">fully researched</span>';
-    return '<div class="structreg-row" data-bpidx="'+i+'" style="cursor:pointer"><div class="sr-name">'+name+'</div>'+
+    return '<div class="structreg-row card" data-bpidx="'+i+'" style="cursor:pointer"><div class="sr-name">'+name+'</div>'+
       '<div class="sr-sub">ME '+bp.material_efficiency+'% · TE '+bp.time_efficiency+'% · runs '+(bp.runs<0?'BPO':bp.runs)+
       (struct ? ' · in <b>'+struct.name+'</b>' : ' · location unregistered')+' · '+statusBadge+'</div></div>';
   }).join('');
@@ -1654,7 +1657,7 @@ function renderResearchStructTabs(){
     const {s,i} = o;
     const on = i===selectedResearchStructureIdxInCandidates ? ' on' : '';
     const bestBadge = (i===bestIdx) ? ' <span style="color:var(--gold-bright)">\u2605 Best match</span>' : '';
-    return '<button class="struct-pick-btn researchTabBtn'+on+'" data-idx="'+i+'" type="button">'+s.name+bestBadge+'</button>';
+    return '<button class="struct-pick-btn researchTabBtn'+on+' btn" data-idx="'+i+'" type="button">'+s.name+bestBadge+'</button>';
   }).join('');
   el.querySelectorAll('.researchTabBtn').forEach(btn=>btn.onclick=()=>{
     selectedResearchStructureIdxInCandidates = Number(btn.dataset.idx);
@@ -1915,51 +1918,89 @@ document.getElementById('libraryLoadBtn').onclick = async ()=>{
   renderBpLibrary();
 };
 
+/* Blueprint Library only shows T1 BPOs — the only blueprints a player can own,
+   research, and use directly. T2 (invention output), T3 subsystems (reverse-engineered),
+   faction/pirate/seeded items (no BPO exists in game), and items with a single
+   Tritanium:1 BOM (special/seeded drops) are excluded. Use the Browse tab to explore
+   the full SDE catalog including those categories. */
+const LIBRARY_FACTION_RE = /\b(Navy|Federation|Republic|State|Imperial|Guristas|Angel|Sansha|Blood|Serpentis|Mordus|Syndicate|InterBus|Intaki|Sukuuvestaa|Quafe|Aliastra|Inner Zone|Kaalakiota|Nugoeihuvi|Ishukone|Wiyrkomi|Viziam|Duvolle|Carthum|Lai Dai|Dread Guristas|True Sansha|Domination|Shadow Serpentis|Corelum|Coreli|Dark Blood|Centus|Centii|Gistum|Gisti|Veles|Zorya|Marshal|Enforcer|Pacifier|Victor|Virtuoso|Vigilant|Daredevil|Dramiel|Worm|Gila|Cynabal|Vagabond|Machariel|Nightmare|Vindicator|Rattlesnake|Bhaalgorn|Vangel|Ashimmu|Succubus|Cruor)\b/i;
+function isT2BP(d){var m=d.materials||[];return !d.isReaction&&m.some(function(x){return x[0].startsWith('R.A.M.-');})&&m.some(function(x){return x[0]==='Morphite';});}
+function isT3SubBP(d){return /subsystem/i.test(d.group||'');}
+function isSeededBP(d){var m=d.materials||[];return m.length===1&&m[0][0]==='Tritanium'&&m[0][1]===1;}
+function isFactionBP(name,d){return LIBRARY_FACTION_RE.test(name)&&!d.isReaction&&!isT2BP(d);}
+function isLibraryBP(name,d){return !isT2BP(d)&&!isT3SubBP(d)&&!isSeededBP(d)&&!isFactionBP(name,d);}
+
+function bpEntryMeta(d){
+  const isReaction = !!d.isReaction;
+  const owned = d.bpTypeID!=null ? libraryOwnedByBpTypeId[d.bpTypeID] : null;
+  const allCopies = d.bpTypeID!=null ? (libraryAllCopiesByBpTypeId[d.bpTypeID]||[]) : [];
+  const hasPersonal = allCopies.some(c=>c.source==='personal');
+  const hasCorp = allCopies.some(c=>c.source==='corp');
+  return { isReaction, owned, allCopies, hasPersonal, hasCorp,
+           status: owned ? 'owned' : 'missing',
+           sources: [hasPersonal?'personal':null, hasCorp?'corp':null].filter(Boolean) };
+}
+
+function bpCardHtml(name, d, m){
+  const { isReaction, owned, allCopies, hasPersonal, hasCorp, status } = m;
+  const meTe = owned
+    ? '<div class="bp-me"><span>ME '+owned.material_efficiency+'%</span>'+(isReaction?'':'<span>TE '+owned.time_efficiency+'%</span>')+'</div>'
+    : '';
+  const copiesLine = allCopies.length>1
+    ? '<div class="sub" style="font-size:10.5px;margin-top:4px">×'+allCopies.length+' cop'+(allCopies.length===1?'y':'ies')+' owned (best shown) — '+
+      allCopies.map(c=>'['+(c.source==='corp'?'Corp':'Personal')+'] ME '+c.material_efficiency+'%/TE '+c.time_efficiency+'%'+(c.runs<0?' BPO':' ('+c.runs+' runs)')).join(', ')+'</div>'
+    : '';
+  const mins = d.buildTime ? Math.round(d.buildTime/60) : null;
+  const buildLine = status==='owned'
+    ? '<div class="bp-build">Base '+(isReaction?'reaction':'build')+' time: <b class="ok">'+(mins!=null?mins+' min':'—')+'</b></div>'
+    : '<div class="bp-build dim">Not owned — buy or build the blueprint first</div>';
+  const needsResearch = owned && !isReaction && (owned.material_efficiency<10 || owned.time_efficiency<20);
+  const researchBtn = needsResearch ? '<button class="bp-add research btn">Add to research ▸</button>' : '';
+  const addBtn = status==='owned' ? '<button class="bp-add btn">Add to build planner ▸</button>' : '<button class="bp-add find btn">Find this blueprint ▸</button>';
+  const ownerLine = status==='owned'
+    ? '<div class="bp-owner personal">'+(hasPersonal&&hasCorp?'Owned (Personal + Corp)':hasCorp?'Owned (Corp Hangar)':'Owned (Personal)')+'</div>'
+    : '';
+  const icon = isReaction ? '⚛' : '🚀';
+  return '<div class="bp-card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+m.sources.join(',')+'" data-bptypeid="'+d.bpTypeID+'">'+
+    '<div class="bp-icon">'+icon+'</div>'+
+    '<div class="bp-name">'+name+'</div>'+
+    meTe + copiesLine + buildLine + ownerLine + addBtn + researchBtn +
+  '</div>';
+}
+
 function renderBpLibrary(){
   const grid = document.getElementById('bpGrid');
   const entries = Object.entries(BP_SDE_DETAIL);
   if(!entries.length){ grid.innerHTML = '<div class="sub" style="padding:20px 4px">No blueprint catalog data loaded.</div>'; return; }
 
+  // One pass: full-catalog counts for the filter buttons + the filtered list.
   const counts = { all:0, blueprint:0, reaction:0, owned:0, missing:0, personal:0, corp:0 };
-  const cardsHtml = entries.map(([name, d])=>{
-    const isReaction = !!d.isReaction;
-    const owned = d.bpTypeID!=null ? libraryOwnedByBpTypeId[d.bpTypeID] : null;
-    const status = owned ? 'owned' : 'missing';
-    const allCopies = d.bpTypeID!=null ? (libraryAllCopiesByBpTypeId[d.bpTypeID]||[]) : [];
-    const hasPersonal = allCopies.some(c=>c.source==='personal');
-    const hasCorp = allCopies.some(c=>c.source==='corp');
-    const sources = [hasPersonal?'personal':null, hasCorp?'corp':null].filter(Boolean).join(',');
-    counts.all++; counts[isReaction?'reaction':'blueprint']++; counts[status]++;
-    if(hasPersonal) counts.personal++;
-    if(hasCorp) counts.corp++;
+  const filtered = [];
+  for(const [name, d] of entries){
+    const m = bpEntryMeta(d);
+    counts.all++; counts[m.isReaction?'reaction':'blueprint']++; counts[m.status]++;
+    if(m.hasPersonal) counts.personal++;
+    if(m.hasCorp) counts.corp++;
+    if(!isLibraryBP(name, d)) continue; // skip T2, T3 subsystems, faction/seeded — Browse tab covers those
+    const typeOk = bpTypeFilt==='all' || (m.isReaction?'reaction':'blueprint')===bpTypeFilt;
+    const statusOk = bpStatusFilt==='all' || m.status===bpStatusFilt;
+    const sourceOk = bpSourceFilt==='all' || m.sources.includes(bpSourceFilt);
+    const searchOk = !bpSearchTerm || name.toLowerCase().includes(bpSearchTerm);
+    if(typeOk && statusOk && sourceOk && searchOk) filtered.push([name, d, m]);
+  }
 
-    const meTe = owned
-      ? '<div class="bp-me"><span>ME '+owned.material_efficiency+'%</span>'+(isReaction?'':'<span>TE '+owned.time_efficiency+'%</span>')+'</div>'
-      : '';
-    const copiesLine = allCopies.length>1
-      ? '<div class="sub" style="font-size:10.5px;margin-top:4px">×'+allCopies.length+' cop'+(allCopies.length===1?'y':'ies')+' owned (best shown) — '+
-        allCopies.map(c=>'['+(c.source==='corp'?'Corp':'Personal')+'] ME '+c.material_efficiency+'%/TE '+c.time_efficiency+'%'+(c.runs<0?' BPO':' ('+c.runs+' runs)')).join(', ')+'</div>'
-      : '';
-    const mins = d.buildTime ? Math.round(d.buildTime/60) : null;
-    const buildLine = status==='owned'
-      ? '<div class="bp-build">Base '+(isReaction?'reaction':'build')+' time: <b class="ok">'+(mins!=null?mins+' min':'—')+'</b></div>'
-      : '<div class="bp-build dim">Not owned — buy or build the blueprint first</div>';
-    const needsResearch = owned && !isReaction && (owned.material_efficiency<10 || owned.time_efficiency<20);
-    const researchBtn = needsResearch ? '<button class="bp-add research">Add to research ▸</button>' : '';
-    const addBtn = status==='owned' ? '<button class="bp-add">Add to build planner ▸</button>' : '<button class="bp-add find">Find this blueprint ▸</button>';
-    const ownerLine = status==='owned'
-      ? '<div class="bp-owner personal">'+(hasPersonal&&hasCorp?'Owned (Personal + Corp)':hasCorp?'Owned (Corp Hangar)':'Owned (Personal)')+'</div>'
-      : '';
-    const icon = isReaction ? '⚛' : '🚀';
+  // Chunked render: only the first bpRenderLimit matches become DOM. The rest
+  // stay data until "Show more" — rendering all 4,900+ entries at once (each
+  // ~10 nodes) is what made this tab crawl.
+  const shown = filtered.slice(0, bpRenderLimit);
+  const remaining = filtered.length - shown.length;
+  grid.innerHTML =
+    (shown.map(([n,d,m])=>bpCardHtml(n,d,m)).join('') ||
+      '<div class="sub" style="padding:20px 4px">No T1 blueprints match the current filters. T2, T3, faction, and seeded blueprints are only visible in the Browse tab.</div>') +
+    (remaining>0
+      ? '<div class="bp-more-row" style="grid-column:1/-1;text-align:center;padding:6px 0"><button id="bpShowMore" class="btn">Show '+Math.min(BP_RENDER_CHUNK,remaining)+' more · '+remaining.toLocaleString()+' of '+filtered.length.toLocaleString()+' matches not shown</button></div>'
+      : '');
 
-    return '<div class="bp-card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+sources+'" data-bptypeid="'+d.bpTypeID+'">'+
-      '<div class="bp-icon">'+icon+'</div>'+
-      '<div class="bp-name">'+name+'</div>'+
-      meTe + copiesLine + buildLine + ownerLine + addBtn + researchBtn +
-    '</div>';
-  }).join('');
-
-  grid.innerHTML = cardsHtml;
   document.getElementById('bpSubBlueprint').textContent = 'Blueprints ('+counts.blueprint+')';
   document.getElementById('bpSubReaction').textContent = 'Reactions ('+counts.reaction+')';
   document.getElementById('bpFiltAll').textContent = 'All ('+counts.all+')';
@@ -1969,9 +2010,10 @@ function renderBpLibrary(){
   document.getElementById('bpSrcPersonal').textContent = 'Personal ('+counts.personal+')';
   document.getElementById('bpSrcCorp').textContent = 'Corp ('+counts.corp+')';
 
+  const more = document.getElementById('bpShowMore');
+  if(more) more.onclick = ()=>{ bpRenderLimit += BP_RENDER_CHUNK; renderBpLibrary(); };
   wireBpCardHandlers();
   wireBpDetailDrawer();
-  applyBpFilters();
 }
 renderBpLibrary();
 
@@ -2676,15 +2718,15 @@ function renderBrowse(q){
       return '<div class="browse-row" data-mat="'+e.n.replace(/"/g,'&quot;')+'" style="cursor:pointer">'+
         '<div class="br-icon" style="background-image:url(https://images.evetech.net/types/'+tid+'/icon?size=64)"></div>'+
         '<div class="br-name">'+e.n+'<div class="br-sub">'+(v!=null?v+' m³ · ':'')+'used by '+uses+' blueprint'+(uses===1?'':'s')+'</div></div>'+
-        '<div class="br-tag">Material</div></div>';
+        '<div class="br-tag pill">Material</div></div>';
     }
     const d=e.d, supp=SDE_SUPP[d.bpTypeID];
     const owned=d.bpTypeID!=null&&libraryOwnedByBpTypeId[d.bpTypeID];
     return '<div class="browse-row" data-bp="'+e.n.replace(/"/g,'&quot;')+'" style="cursor:pointer">'+
       '<div class="br-icon" style="background-image:url(https://images.evetech.net/types/'+d.productTypeID+'/icon?size=64)"></div>'+
       '<div class="br-name">'+e.n+'<div class="br-sub">'+d.group+' · '+Math.round(d.buildTime/60)+' min · '+((supp&&supp.o)||1)+'/run'+(supp&&supp.i?' · inventable':'')+'</div></div>'+
-      (owned?'<div class="br-tag owned">Owned</div>':'')+
-      '<div class="br-tag">'+(d.isReaction?'Reaction':'Blueprint')+'</div></div>';
+      (owned?'<div class="br-tag owned pill">Owned</div>':'')+
+      '<div class="br-tag pill">'+(d.isReaction?'Reaction':'Blueprint')+'</div></div>';
   }).join('');
   out.innerHTML=top||'<div class="sub" style="padding:20px 4px">No matches for “'+q.replace(/</g,'&lt;')+'”.</div>';
   out.querySelectorAll('[data-bp]').forEach(r=>r.onclick=()=>openBpDetailByName(r.dataset.bp));

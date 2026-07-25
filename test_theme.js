@@ -230,11 +230,11 @@ for (const f of files) {
     const cards0 = idoc.querySelectorAll('#bpGrid .bp-card').length;
     const more = idoc.getElementById('bpShowMore');
     // first chunk only, with a Show-more affordance (catalog is ~5k entries)
-    let p = cards0 > 0 && cards0 <= 120 && !!more;
+    let p = cards0 > 0 && cards0 <= 80 && !!more;
     if (more) more.onclick();
     await new Promise(r => setTimeout(r, 30));
     const cards1 = idoc.querySelectorAll('#bpGrid .bp-card').length;
-    p = p && cards1 > cards0 && cards1 <= 240;
+    p = p && cards1 > cards0 && cards1 <= 160;
     // Library cards skip the heavy theme decor (no injected .thm-dec)
     const bpc = idoc.querySelector('#bpGrid .bp-card');
     const bpDecs = bpc ? bpc.querySelectorAll(':scope > .thm-dec').length : -1;
@@ -244,15 +244,15 @@ for (const f of files) {
     si.value = 'zzzznope'; si.dispatchEvent(new iw.Event('input'));
     await new Promise(r => setTimeout(r, 30));
     const cardsS = idoc.querySelectorAll('#bpGrid .bp-card').length;
-    const emptyMsg = idoc.getElementById('bpGrid').textContent.includes('No blueprints match');
+    const emptyMsg = idoc.getElementById('bpGrid').textContent.includes('No T1 blueprints match') || idoc.getElementById('bpGrid').textContent.includes('No blueprints match');
     p = p && cardsS === 0 && emptyMsg;
     // 12-column cap + landscape no-scrollbox (jsdom does no layout — assert the source contract)
     const isrc = fs.readFileSync(`${DIR}/industry.html`, 'utf8');
-    const cap12 = isrc.includes('.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;max-height:70vh;overflow-y:auto;padding-right:6px;max-width:2250px;align-items:start}');
-    const landscapeFlow = isrc.includes('@media (orientation:landscape){.bp-grid{max-height:none;overflow-y:visible;padding-right:0}}');
-    p = p && cap12 && landscapeFlow;
+    const cap8 = isrc.includes('.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;overflow-y:auto;padding-right:6px;max-width:1496px;align-items:start}');
+    const chunk80 = isrc.includes('const BP_RENDER_CHUNK=80;');
+    p = p && cap8 && chunk80;
     if (!p) fail++;
-    console.log(`${p ? 'PASS' : 'FAIL'} industry library: chunk=${cards0} afterMore=${cards1} bpCardDecs=${bpDecs} searchZero=${cardsS === 0 && emptyMsg} cap12=${cap12} landscapeFlow=${landscapeFlow}`);
+    console.log(`${p ? 'PASS' : 'FAIL'} industry library: chunk=${cards0} afterMore=${cards1} bpCardDecs=${bpDecs} searchZero=${cardsS === 0 && emptyMsg} cap8cols=${cap8} chunk80=${chunk80}`);
   }
 
   console.log(fail === 0 ? '\nALL TESTS PASSED' : `\n${fail} FAILURES`);
