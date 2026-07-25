@@ -2072,6 +2072,13 @@ html[data-app="chains"] .maplegend .d-part{background:#d8a24a}
 html[data-app="chains"] .maplegend .d-home{border:1.5px solid #7ab8c8;background:transparent}
 html[data-app="chains"] .maplegend .d-sel{border:2px solid #b8d86a;background:transparent}
 html[data-app="chains"] .maphint{color:var(--muted2);font-family:var(--mono)}
+/* roster capacity band */
+html[data-app="chains"] .capband .cb-big{color:var(--green);font-family:var(--mono)}
+html[data-app="chains"] .capband .cb-sub{color:var(--muted);font-family:var(--mono)}
+html[data-app="chains"] .capband .cb-chip{color:var(--amber,#d8a24a);border:1px solid var(--line2);font-family:var(--mono)}
+html[data-app="chains"] .capband .cb-note{color:var(--muted2);font-family:var(--mono)}
+html[data-app="chains"] .capband .cb-pilots{color:var(--muted);font-family:var(--mono)}
+html[data-app="chains"] .capband .cb-rate input{background:var(--bg);border:1px solid var(--line2);color:var(--text);font-family:var(--mono)}
 html[data-app="chains"] .huntrow{cursor:pointer}
 html[data-app="chains"] .huntrow:hover td{background:rgba(184,216,106,.06)}
 html[data-app="chains"] .logideck .c{color:var(--muted2)}
