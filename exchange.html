@@ -38,7 +38,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 @media (max-width:1150px){.pit{grid-template-columns:1fr}}
 .dock{padding:14px}
 .dock .dl{font-size:9px;margin-bottom:7px;display:block}
-.dock input,.dock textarea{width:100%;font-size:12px;padding:9px 11px;margin-bottom:10px}
+.dock input,.dock textarea,.dock select{width:100%;font-size:12px;padding:9px 11px;margin-bottom:10px}
 .dock textarea{height:130px;resize:vertical}
 .dock .btn{width:100%;font-size:10.5px;padding:9px 12px;cursor:pointer;margin-bottom:6px}
 .dock .note{font-size:9.5px;line-height:1.55}
@@ -91,7 +91,9 @@ td.num,th.num{text-align:right}
     <span class="dl" style="margin-top:8px">Appraise a cargo scan / paste (one "Name  qty" per line)</span>
     <textarea id="pasteIn" placeholder="Veldspar 15000&#10;Scordite 8000"></textarea>
     <button class="btn" id="appraiseBtn">Appraise paste</button>
-    <div class="note">Quotes read live hub order books. Appraisal prices use CCP's published average prices — a reference estimate, not a hub quote.</div>
+    <span class="dl" style="margin-top:8px">Janice market</span>
+    <select id="janMarket"><option value="jita">Jita</option><option value="perimeter">Perimeter</option><option value="jitameter">Jitameter</option><option value="r1o-gn">R1O-GN</option><option value="t5zi-s">T5ZI-S</option><option value="npc">NPC</option></select>
+    <div class="note">Quotes read live hub order books. Appraisal reads Janice hub quotes (best buy / best sell, cached 6&nbsp;h), falling back to CCP's published averages if Janice is unreachable.</div>
   </aside>
   <div class="chartbox panel">
     <h2><span id="chartTitle">Price history — quote an item</span><span class="hint" id="chartHint"></span></h2>
@@ -316,6 +318,64 @@ function drawHist(){
   cv.onmouseleave=()=>{const t=$('histTip');if(t)t.style.display='none';};
 }
 
+/* ---- Janice pricer (ported from janice.gs, v1 REST API) ---- */
+const JANICE_API='https://janice.e-351.com/api/rest/v1';
+const JANICE_MARKETS={jita:2,'r1o-gn':3,perimeter:4,jitameter:5,npc:6,'t5zi-s':113};
+/* Janice key is a suite-wide shared setting, same pattern as eve_suite_client_id:
+   any tool (or index.html) can publish it to localStorage; this seed is only
+   written if no suite key exists yet. */
+const JANICE_KEY_STORE='eve_suite_janice_key';
+const JANICE_SEED_KEY='G9KwKq3465588VPd6747t95Zh94q3W2E';
+try{if(!localStorage.getItem(JANICE_KEY_STORE))localStorage.setItem(JANICE_KEY_STORE,JANICE_SEED_KEY);}catch(e){}
+const JANICE_CACHE_STORE='eve_suite_janice_cache_v1';
+const JANICE_CACHE_TTL=21600000; /* 6 h — same as the sheet script */
+function janHash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return (h>>>0).toString(36);}
+function janiceKey(){try{return localStorage.getItem(JANICE_KEY_STORE)||JANICE_SEED_KEY;}catch(e){return JANICE_SEED_KEY;}}
+function janCacheLoad(){try{return JSON.parse(localStorage.getItem(JANICE_CACHE_STORE)||'{}');}catch(e){return{};}}
+function janCacheSave(c){try{const ks=Object.keys(c);
+  if(ks.length>40)ks.sort((a,b)=>c[a].ts-c[b].ts).slice(0,ks.length-30).forEach(k=>delete c[k]);
+  localStorage.setItem(JANICE_CACHE_STORE,JSON.stringify(c));}catch(e){}}
+async function janicePricer(names,marketName){
+  const market=JANICE_MARKETS[marketName]||JANICE_MARKETS.jita;
+  const payload=names.join('\n');
+  const ck=market+'|'+janHash(payload)+'|'+janHash(janiceKey());
+  const cache=janCacheLoad();
+  const hit=cache[ck];
+  if(hit&&(now()-hit.ts)<JANICE_CACHE_TTL)return hit.data;
+  let r;
+  try{r=await fetch(JANICE_API+'/pricer?key='+encodeURIComponent(janiceKey())+'&market='+market,{
+    method:'POST',headers:{'Content-Type':'text/plain'},body:payload});}
+  catch(e){throw new Error('network/CORS blocked — Janice may not allow direct browser calls');}
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}
+    throw new Error('Janice HTTP '+r.status+d);}
+  const data=await r.json();
+  cache[ck]={ts:now(),data};janCacheSave(cache);
+  return data;
+}
+function janiceIndex(data){const ix={};(Array.isArray(data)?data:[]).forEach(row=>{
+    const t=row&&row.itemType;if(!t)return;
+    if(t.name)ix[String(t.name).toLowerCase()]=row;
+    if(t.eid!=null)ix[String(t.eid)]=row;});
+  return ix;}
+async function appraiseJanice(items){
+  const marketName=$('janMarket').value;
+  const names=[...new Set(items.map(i=>i.name))];
+  const data=await janicePricer(names,marketName);
+  const ix=janiceIndex(data);
+  let buyTot=0,sellTot=0,unk=0;
+  const rows=items.map(it=>{
+    const row=ix[it.name.toLowerCase()]||ix[String(it.name)];
+    if(!row){unk++;return '<tr><td>'+esc(it.name)+'</td><td class="num">'+fmtInt(it.qty)+'</td><td class="num" colspan="4">not recognised</td></tr>';}
+    const buy=row.buyPriceMax,sell=row.sellPriceMin;
+    const bl=(buy||0)*it.qty,sl=(sell||0)*it.qty;buyTot+=bl;sellTot+=sl;
+    return '<tr><td>'+esc(it.name)+'</td><td class="num">'+fmtInt(it.qty)+'</td>'+
+      '<td class="num">'+fmtISK(buy)+'</td><td class="num">'+fmtISK(sell)+'</td>'+
+      '<td class="num">'+fmtISK(bl)+'</td><td class="num">'+fmtISK(sl)+'</td></tr>';
+  }).join('');
+  $('apprOut').innerHTML='<div style="overflow-x:auto"><table><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Buy/u</th><th class="num">Sell/u</th><th class="num">Buy total</th><th class="num">Sell total</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  $('apprTot').textContent='buy '+fmtISK(buyTot)+' · sell '+fmtISK(sellTot)+' · Janice '+marketName+(unk?' · '+unk+' unrecognised':'');
+  reportDashboard('appraised via Janice ('+marketName+')','ok');
+}
 async function appraise(){
   const lines=$('pasteIn').value.split('\n').map(l=>l.trim()).filter(Boolean);
   if(!lines.length)return;
@@ -324,6 +384,8 @@ async function appraise(){
     const m=l.match(/^(.*?)[\s\t]+([\d.,]+)\s*$/);
     return m?{name:m[1].replace(/\*$/,'').trim(),qty:parseFloat(m[2].replace(/,/g,''))||1}:{name:l,qty:1};
   });
+  try{await appraiseJanice(items);return;}
+  catch(e){toast('Janice failed — falling back to CCP avg ('+e.message+')',true);}
   try{
     const names=[...new Set(items.map(i=>i.name))];
     const resolved={};
@@ -368,6 +430,12 @@ async function loadOrders(){
 $('quoteBtn').onclick=quote;
 $('itemIn').addEventListener('keydown',e=>{if(e.key==='Enter')quote();});
 $('appraiseBtn').onclick=appraise;
+/* Janice market persistence */
+(function(){
+  const K_MKT='eve_suite_janice_market';
+  try{$('janMarket').value=localStorage.getItem(K_MKT)||'jita';}catch(e){}
+  $('janMarket').onchange=()=>{try{localStorage.setItem(K_MKT,$('janMarket').value);}catch(e){}};
+})();
 $('ordersBtn').onclick=loadOrders;
 addEventListener('resize',()=>{if(hist)drawHist();});
 
