@@ -25,9 +25,9 @@ body{zoom:var(--ui)}
 .tab{font-size:10.5px;padding:7px 14px;cursor:pointer}
 .status{font-size:10px;display:flex;align-items:center;gap:7px}
 .dot{width:7px;height:7px}
-.theme-picker{display:flex;align-items:center;gap:7px}
-.theme-swatch{width:21px;height:21px;cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
-.theme-swatch:hover{transform:scale(1.15)}
+
+
+
 .btn{font-size:10px;padding:7px 12px;cursor:pointer}
 .btn:disabled{opacity:.4;cursor:default}
 .wrap{flex:1;overflow-y:auto;padding:22px 26px 60px}
@@ -126,16 +126,7 @@ h2{padding-bottom:8px}
       <div class="tab" data-v="settings">Settings</div>
     </div>
     <div id="eveAuth" class="eveauth"></div>
-    <div class="status"><span class="dot" id="dot"></span><span id="st">not connected</span></div>
-    <div class="theme-picker" id="themePicker">
-      <button class="theme-swatch" data-theme="default" title="Default" style="--sw:#8a94a0"></button>
-      <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
-      <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
-      <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
-      <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
-      <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
-    </div>
-    <button class="btn" id="setBtn" title="Resize the whole interface">⚏ Scale</button>
+    <div class="status"><span class="dot" id="dot"></span><span id="st">not connected</span></div>    <button class="btn" id="setBtn" title="Resize the whole interface">⚏ Scale</button>
   </div>
   <div class="wrap">
 
@@ -579,9 +570,7 @@ if($('setBtn')){ $('setBtn').onclick=openScale;
   function setTheme(name){
     document.documentElement.dataset.theme=name;
     try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
-    document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
   }
-  document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
   setTheme(document.documentElement.dataset.theme||'default');
 })();
 </script>
@@ -592,9 +581,6 @@ if($('setBtn')){ $('setBtn').onclick=openScale;
   function applySuiteTheme(name){
     if(!name)return;
     try{document.documentElement.dataset.theme=name;}catch(err){}
-    document.querySelectorAll('.theme-swatch').forEach(function(b){
-      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
-    });
   }
   window.addEventListener('storage',function(e){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);

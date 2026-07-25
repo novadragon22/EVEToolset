@@ -74,7 +74,7 @@ h1 .diamond{margin:0 13px;transform:translateY(-3px)}
 .rchip .x{position:absolute;top:-9px;right:-9px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity var(--dur-base)}
 .rchip:hover .x{opacity:1}
 .addchar{font-size:10px;padding:6px 13px;cursor:pointer}
-.theme-picker{position:absolute;top:36px;left:32px;z-index:50;display:flex;align-items:center;gap:7px}
+.theme-picker{position:fixed;bottom:18px;right:18px;z-index:50;display:flex;align-items:center;gap:7px}
 .theme-label{font-size:9px}
 .theme-swatch{width:21px;height:21px;cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
 .theme-swatch:hover{transform:scale(1.15)}
@@ -164,14 +164,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 <div class="pilot-strip"></div>
 <div class="app" id="menuApp">
   <header>
-    <div class="theme-picker" id="themePicker">
-      <button class="theme-swatch" data-theme="default" title="Default" style="--sw:#8a94a0"></button>
-      <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
-      <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
-      <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
-      <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
-      <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
-    </div>
+
     <div class="roster" id="roster"></div>
     <div class="kicker">New Eden Industrial Suite</div>
     <h1 id="titleHome">EVE<span class="diamond"></span>Toolset</h1>
@@ -480,6 +473,20 @@ function setTheme(name){
   try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
   document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
 }
+document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
+setTheme(document.documentElement.dataset.theme||'default');
+</script>
+
+<div class="theme-picker" id="themePicker">
+  <button class="theme-swatch" data-theme="default" title="Default" style="--sw:#8a94a0"></button>
+  <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
+  <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
+  <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
+  <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
+  <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
+</div>
+
+<script>
 document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
 setTheme(document.documentElement.dataset.theme||'default');
 </script>

@@ -26,8 +26,8 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .pilots{display:flex;flex-wrap:wrap;gap:5px;max-width:420px;justify-content:flex-end}
 .pchip{width:26px;height:26px;cursor:pointer;transition:all var(--dur-fast)}
 .nochars{font-size:10px}
-.theme-picker{display:flex;gap:6px;padding-left:14px}
-.theme-swatch{width:15px;height:15px;cursor:pointer;padding:0}
+
+
 .selrow{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
 .kv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}
 .kcard{padding:14px 16px 12px;position:relative}
@@ -107,17 +107,7 @@ details.grp[open] summary::before{content:'▾ '}
   </div>
   <div class="tb-right">
     <span class="eveclock" id="eveclock"></span>
-    <div class="pilots" id="pilots"></div>
-
-    <div class="theme-picker" id="themePicker">
-      <button class="theme-swatch" data-theme="default" title="Default" style="--sw:#8a94a0"></button>
-      <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
-      <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
-      <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
-      <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
-      <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
-    </div>
-  </div>
+    <div class="pilots" id="pilots"></div>  </div>
 </header>
 <div class="selrow" style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
   <button class="btn primary" id="loadBtn">Refresh ledger</button>
@@ -232,11 +222,6 @@ window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();r
 function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
   el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
 setInterval(tickClock,15000);tickClock();
-function setTheme(name){document.documentElement.dataset.theme=name;
-  try{localStorage.setItem('eve_suite_theme',name);}catch(e){}
-  document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));}
-document.querySelectorAll('.theme-swatch').forEach(b=>{b.onclick=()=>setTheme(b.dataset.theme);});
-setTheme(document.documentElement.dataset.theme||'default');
 try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
 renderPilots();
 function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
@@ -372,9 +357,6 @@ loadAll();
   function applySuiteTheme(name){
     if(!name)return;
     try{document.documentElement.dataset.theme=name;}catch(err){}
-    document.querySelectorAll('.theme-swatch').forEach(function(b){
-      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
-    });
   }
   window.addEventListener('storage',function(e){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);

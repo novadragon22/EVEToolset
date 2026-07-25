@@ -35,8 +35,8 @@ h1 .diamond{margin:0 12px;transform:translateY(-4px)}
 .pchip{width:28px;height:28px;cursor:pointer;transition:all var(--dur-fast)}
 .pchip:hover{transform:translateY(-1px)}
 .nochars{font-size:10px}
-.theme-picker{display:flex;gap:6px;padding-left:14px}
-.theme-swatch{width:15px;height:15px;cursor:pointer;padding:0}
+
+
 .srvline{display:flex;gap:22px;align-items:center;font-size:11px;flex-wrap:wrap;margin-bottom:18px;padding:8px 14px}
 .srvline::before{content:'⌁ UPLINK';font-size:9px}
 .srvline::after{content:'▮';animation:blink 1.2s steps(1) infinite;margin-left:auto}
@@ -123,17 +123,7 @@ details.grp[open] summary::before{content:'▾ '}
   </div>
   <div class="tb-right">
     <span class="eveclock" id="eveclock"></span>
-    <div class="pilots" id="pilots"></div>
-
-    <div class="theme-picker" id="themePicker">
-      <button class="theme-swatch" data-theme="default" title="Default" style="--sw:#8a94a0"></button>
-      <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
-      <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
-      <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
-      <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
-      <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
-    </div>
-  </div>
+    <div class="pilots" id="pilots"></div>  </div>
 </header>
 <div class="srvline" id="srvline"><span><span class="srv-dot" id="srvDot"></span>Tranquility</span><span id="srvPlayers">—</span><span id="srvVer"></span></div>
 <div class="refresh-all">
@@ -250,11 +240,6 @@ window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();r
 function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
   el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
 setInterval(tickClock,15000);tickClock();
-function setTheme(name){document.documentElement.dataset.theme=name;
-  try{localStorage.setItem('eve_suite_theme',name);}catch(e){}
-  document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));}
-document.querySelectorAll('.theme-swatch').forEach(b=>{b.onclick=()=>setTheme(b.dataset.theme);});
-setTheme(document.documentElement.dataset.theme||'default');
 try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
 renderPilots();
 function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
@@ -369,9 +354,6 @@ loadAll();
   function applySuiteTheme(name){
     if(!name)return;
     try{document.documentElement.dataset.theme=name;}catch(err){}
-    document.querySelectorAll('.theme-swatch').forEach(function(b){
-      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
-    });
   }
   window.addEventListener('storage',function(e){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);

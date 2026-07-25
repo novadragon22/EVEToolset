@@ -16,9 +16,9 @@ body{overflow:hidden}
 ::-webkit-scrollbar{width:8px;height:8px}
 button{cursor:pointer}
 select{font-size:12px;padding:6px 8px}
-.theme-picker{display:flex;align-items:center;gap:7px}
-.theme-swatch{width:21px;height:21px;cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
-.theme-swatch:hover{transform:scale(1.15)}
+
+
+
 .app{display:flex;flex-direction:column;width:50vw;height:50vh;zoom:2}
 .topbar{flex-shrink:0;display:flex;align-items:center;gap:12px;padding:8px 14px;flex-wrap:wrap}
 .tb-d{width:13px;height:13px}
@@ -185,16 +185,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
       <span class="tb-pill" id="calPill"><span class="dot" id="calDot"></span> <span id="calTxt">calibrating…</span></span>
       <span class="tb-pill" id="killPill"><span class="dot" id="killDot"></span> <span id="killTxt">kill feed</span></span>
       <span class="tb-pill" id="pilotPill" style="display:none"><span class="dot" id="pilotDot"></span> <span id="pilotTxt">pilots</span></span>
-      <span id="authArea"></span>
-      <div class="theme-picker" id="themePicker">
-        <button class="theme-swatch" data-theme="default" title="Default" style="--sw:#8a94a0"></button>
-      <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
-        <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
-        <button class="theme-swatch" data-theme="gallente" title="Gallente" style="--sw:#4ac89a"></button>
-        <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="--sw:#c86a3a"></button>
-        <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="--sw:#9ad84a"></button>
-      </div>
-    </div>
+      <span id="authArea"></span>    </div>
   </div>
   <div class="main">
     <button class="side-collapse-btn" id="sideCollapseBtn" title="Collapse sidebar" aria-label="Collapse sidebar">◂</button>
@@ -1190,9 +1181,7 @@ setInterval(()=>{ if(routeConfirmed){ pruneThreat(); renderRoute(); draw(); } },
   function setTheme(name){
     document.documentElement.dataset.theme=name;
     try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
-    document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
   }
-  document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
   setTheme(document.documentElement.dataset.theme||'default');
 })();
 </script>
@@ -1203,9 +1192,6 @@ setInterval(()=>{ if(routeConfirmed){ pruneThreat(); renderRoute(); draw(); } },
   function applySuiteTheme(name){
     if(!name)return;
     try{document.documentElement.dataset.theme=name;}catch(err){}
-    document.querySelectorAll('.theme-swatch').forEach(function(b){
-      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
-    });
   }
   window.addEventListener('storage',function(e){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);

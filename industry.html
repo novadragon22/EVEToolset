@@ -72,10 +72,10 @@ h1 .diamond{margin:0 13px;transform:translateY(-3px)}
 .rchip .x{position:absolute;top:-9px;right:-9px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity var(--dur-base)}
 .rchip:hover .x{opacity:1}
 .addchar{font-size:10px;padding:6px 13px;cursor:pointer}
-.theme-picker{position:absolute;top:36px;left:32px;z-index:50;display:flex;align-items:center;gap:7px}
-.theme-label{font-size:9px}
-.theme-swatch{width:21px;height:21px;cursor:pointer;padding:0;transition:transform var(--dur-base),box-shadow var(--dur-base)}
-.theme-swatch:hover{transform:scale(1.15)}
+
+
+
+
 .scopeOverlay{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center}
 .scopeOverlay.show{display:flex}
 .scopeBox{width:520px;max-width:92vw;max-height:82vh;overflow:auto;padding:26px 28px;position:relative}
@@ -146,8 +146,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .tab{font-size:12px;padding:12px 22px;cursor:pointer;position:relative;transition:.2s}
 .tab .badge{position:absolute;top:-8px;right:-8px;font-size:9.5px;padding:3px 7px}
 .themes{display:flex;gap:9px}
-.theme-swatch{width:20px;height:20px;cursor:pointer;padding:0;transition:.2s}
-.theme-swatch:hover{transform:scale(1.25) rotate(10deg)}
+
+
 .signin-btn{font-size:11px;padding:11px 22px;cursor:pointer}
 .hero{position:relative;z-index:3;padding:34px 40px 0}
 .hero-strip{display:flex;align-items:center;justify-content:space-between;padding:22px 30px;margin-bottom:0}
@@ -177,18 +177,15 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .forge-info .ft .act{margin-right:12px;font-size:10px;padding:4px 10px}
 .forge-info .fm{font-size:12.5px;margin-top:8px}
 .forge-time{font-size:15px;text-align:right;min-width:120px}
-/* max-width caps auto-fill at 12 columns: 12 tracks ×176px + 11 gaps ×12px = 2244px content
-   (+6px border-box padding); a 13th track would need 2432px. In landscape the grid loses its
-   internal scrollbox — the page flows naturally and "Show more" chunking bounds the height. */
 .bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;max-height:70vh;overflow-y:auto;padding-right:6px;align-items:start}
-
 .bp-grid::-webkit-scrollbar, #researchBpList::-webkit-scrollbar{width:10px}
 .bp-card{padding:12px 14px;cursor:pointer;position:relative;overflow:hidden;transition:.3s cubic-bezier(.2,.9,.3,1.2);align-self:start}
 .bp-card::before, .bp-card::after{content:'';position:absolute;width:18px;height:18px;opacity:.8}
 .bp-card::before{top:-2px;left:-2px}
 .bp-card::after{bottom:-2px;right:-2px}
 .bp-card:hover{transform:none}
-.bp-icon{width:34px;height:34px;display:grid;place-items:center;margin-bottom:8px;font-size:17px}
+.bp-icon{width:34px;height:34px;display:grid;place-items:center;margin-bottom:8px;font-size:17px;overflow:hidden}
+.bp-icon img{width:34px;height:34px;display:block;object-fit:cover}
 .bp-name{font-size:12.5px;margin-bottom:6px}
 .bp-me{display:flex;gap:8px;font-size:10.5px}
 .bp-me span{padding:4px 9px}
@@ -300,12 +297,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
     <div class="tab" data-view="research">Blueprint Research</div>
   </div>
   <div class="themes">
-    <button class="theme-swatch" data-theme="default" style="--sw:#8a94a0"></button><button class="theme-swatch on" data-theme="amarr" style="--sw:#c9a868"></button>
-    <button class="theme-swatch" data-theme="caldari" style="--sw:#4a90c4"></button>
-    <button class="theme-swatch" data-theme="gallente" style="--sw:#4ac89a"></button>
-    <button class="theme-swatch" data-theme="minmatar" style="--sw:#c86a3a"></button>
-    <button class="theme-swatch" data-theme="triglavian" style="--sw:#c8283a"></button>
-  </div>
+                      </div>
   <button class="jobs-fab" id="jobsFab" title="Job queue">⚒<span class="badge" id="jobsFabBadge" style="display:none">0</span></button>
   <button class="signin-btn btn" id="structRegBtn">🏭 Structure Registry</button>
 </div>
@@ -627,14 +619,6 @@ function renderPilotStrip(){
   el.innerHTML=ids.map(id=>`<div class="pilot-chip" title="${chars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>`).join('');
 }
 renderPilotStrip();
-(function(){const t=document.documentElement.dataset.theme||'default';
-  document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===t));})();
-document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>{
-  document.documentElement.dataset.theme=b.dataset.theme;
-  localStorage.setItem('eve_suite_theme', b.dataset.theme);
-  document.querySelectorAll('.theme-swatch').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on');
-});
 const heroData = { browse:['Browse','Search the item &amp; blueprint database'], bp:['Blueprint Library','No blueprints loaded yet'], plan:['Build Planner','Material shopping list for the selected build'], research:['Blueprint Research','Fastest path to fully researched blueprints'], structreg:['Structure Registry','Track the structures you build with'] };
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
@@ -1389,11 +1373,8 @@ document.getElementById('importJsonFile').addEventListener('change', (e)=>{
 });
 
 let bpTypeFilt='blueprint', bpStatusFilt='missing', bpSourceFilt='all', bpSearchTerm='';
-const BP_RENDER_CHUNK=80; let bpRenderLimit=BP_RENDER_CHUNK; // 8 cols × 10 rows // Library renders in chunks — 4,900+ SDE entries at once froze the tab
+const BP_RENDER_CHUNK=80; let bpRenderLimit=BP_RENDER_CHUNK; // 8 cols × 10 rows
 function applyBpFilters(){
-  // Filtering is data-level now: any filter/search change resets to the first
-  // chunk and re-renders. Only up to BP_RENDER_CHUNK matching cards exist in
-  // the DOM at a time (renderBpLibrary), which keeps the Library fast.
   bpRenderLimit = BP_RENDER_CHUNK;
   renderBpLibrary();
 }
@@ -1915,11 +1896,6 @@ document.getElementById('libraryLoadBtn').onclick = async ()=>{
   renderBpLibrary();
 };
 
-/* Blueprint Library only shows T1 BPOs — the only blueprints a player can own,
-   research, and use directly. T2 (invention output), T3 subsystems (reverse-engineered),
-   faction/pirate/seeded items (no BPO exists in game), and items with a single
-   Tritanium:1 BOM (special/seeded drops) are excluded. Use the Browse tab to explore
-   the full SDE catalog including those categories. */
 const LIBRARY_FACTION_RE = /\b(Navy|Federation|Republic|State|Imperial|Guristas|Angel|Sansha|Blood|Serpentis|Mordus|Syndicate|InterBus|Intaki|Sukuuvestaa|Quafe|Aliastra|Inner Zone|Kaalakiota|Nugoeihuvi|Ishukone|Wiyrkomi|Viziam|Duvolle|Carthum|Lai Dai|Dread Guristas|True Sansha|Domination|Shadow Serpentis|Corelum|Coreli|Dark Blood|Centus|Centii|Gistum|Gisti|Veles|Zorya|Marshal|Enforcer|Pacifier|Victor|Virtuoso|Vigilant|Daredevil|Dramiel|Worm|Gila|Cynabal|Vagabond|Machariel|Nightmare|Vindicator|Rattlesnake|Bhaalgorn|Vangel|Ashimmu|Succubus|Cruor)\b/i;
 function isT2BP(d){var m=d.materials||[];return !d.isReaction&&m.some(function(x){return x[0].startsWith('R.A.M.-');})&&m.some(function(x){return x[0]==='Morphite';});}
 function isT3SubBP(d){return /subsystem/i.test(d.group||'');}
@@ -1957,9 +1933,12 @@ function bpCardHtml(name, d, m){
   const ownerLine = status==='owned'
     ? '<div class="bp-owner personal">'+(hasPersonal&&hasCorp?'Owned (Personal + Corp)':hasCorp?'Owned (Corp Hangar)':'Owned (Personal)')+'</div>'
     : '';
-  const icon = isReaction ? '⚛' : '🚀';
+  const fallbackIcon = isReaction ? '⚛' : '🚀';
+  const iconHtml = d.productTypeID
+    ? '<img src="https://images.evetech.net/types/'+d.productTypeID+'/icon?size=64" loading="lazy" alt="" onerror="this.parentNode.textContent=\''+fallbackIcon+'\';">'
+    : fallbackIcon;
   return '<div class="bp-card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+m.sources.join(',')+'" data-bptypeid="'+d.bpTypeID+'">'+
-    '<div class="bp-icon">'+icon+'</div>'+
+    '<div class="bp-icon">'+iconHtml+'</div>'+
     '<div class="bp-name">'+name+'</div>'+
     meTe + copiesLine + buildLine + ownerLine + addBtn + researchBtn +
   '</div>';
@@ -1970,15 +1949,14 @@ function renderBpLibrary(){
   const entries = Object.entries(BP_SDE_DETAIL);
   if(!entries.length){ grid.innerHTML = '<div class="sub" style="padding:20px 4px">No blueprint catalog data loaded.</div>'; return; }
 
-  // One pass: full-catalog counts for the filter buttons + the filtered list.
   const counts = { all:0, blueprint:0, reaction:0, owned:0, missing:0, personal:0, corp:0 };
   const filtered = [];
   for(const [name, d] of entries){
+    if(!isLibraryBP(name, d)) continue;
     const m = bpEntryMeta(d);
     counts.all++; counts[m.isReaction?'reaction':'blueprint']++; counts[m.status]++;
     if(m.hasPersonal) counts.personal++;
     if(m.hasCorp) counts.corp++;
-    if(!isLibraryBP(name, d)) continue; // skip T2, T3 subsystems, faction/seeded — Browse tab covers those
     const typeOk = bpTypeFilt==='all' || (m.isReaction?'reaction':'blueprint')===bpTypeFilt;
     const statusOk = bpStatusFilt==='all' || m.status===bpStatusFilt;
     const sourceOk = bpSourceFilt==='all' || m.sources.includes(bpSourceFilt);
@@ -1986,9 +1964,6 @@ function renderBpLibrary(){
     if(typeOk && statusOk && sourceOk && searchOk) filtered.push([name, d, m]);
   }
 
-  // Chunked render: only the first bpRenderLimit matches become DOM. The rest
-  // stay data until "Show more" — rendering all 4,900+ entries at once (each
-  // ~10 nodes) is what made this tab crawl.
   const shown = filtered.slice(0, bpRenderLimit);
   const remaining = filtered.length - shown.length;
   grid.innerHTML =
@@ -2740,9 +2715,6 @@ function renderBrowse(q){
   function applySuiteTheme(name){
     if(!name)return;
     try{document.documentElement.dataset.theme=name;}catch(err){}
-    document.querySelectorAll('.theme-swatch').forEach(function(b){
-      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
-    });
   }
   window.addEventListener('storage',function(e){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);

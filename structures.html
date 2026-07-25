@@ -18,8 +18,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0}
 .roster{display:flex;gap:6px}
 .rchip{position:relative;width:32px;height:32px}
 .rchip img{position:absolute;inset:3px;width:26px;height:26px;object-fit:cover}
-.theme-picker{display:flex;gap:6px;padding-left:14px}
-.theme-swatch{width:16px;height:16px;cursor:pointer;padding:0}
+
+
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
 @media (max-width:900px){
@@ -119,16 +119,7 @@ tbody td{padding:12px 18px;vertical-align:middle;font-size:13px}
   <div class="topbar">
     <div><h1>Citadel Watch</h1><div class="sub" id="topSub">Loading…</div></div>
     <div class="header-controls">
-      <div class="roster" id="roster"></div>
-      <div class="theme-picker" id="themePicker">
-        <button class="theme-swatch" data-theme="default" title="Default" style="background:#8a94a0"></button>
-        <button class="theme-swatch" data-theme="amarr" title="Amarr" style="background:#c9a868"></button>
-        <button class="theme-swatch" data-theme="caldari" title="Caldari" style="background:#4a90c4"></button>
-        <button class="theme-swatch" data-theme="gallente" title="Gallente" style="background:#4ac89a"></button>
-        <button class="theme-swatch" data-theme="minmatar" title="Minmatar" style="background:#c86a3a"></button>
-        <button class="theme-swatch" data-theme="triglavian" title="Triglavian" style="background:#9ad84a"></button>
-      </div>
-      <button class="btn" id="gateAuth" style="display:none;background:var(--accent);border:1px solid var(--accent);color:var(--bg);border-radius:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.06em;text-transform:uppercase">Sign in</button>
+      <div class="roster" id="roster"></div>      <button class="btn" id="gateAuth" style="display:none;background:var(--accent);border:1px solid var(--accent);color:var(--bg);border-radius:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.06em;text-transform:uppercase">Sign in</button>
       <button class="btn" id="syncBtn" style="background:transparent;border:1px solid var(--line2);color:var(--text);border-radius:0;padding:7px 14px;font-size:12px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase">Sync</button>
     </div>
   </div>
@@ -948,9 +939,7 @@ setInterval(()=>{ if(structures.length) renderAll(); }, 120000);
   function setTheme(name){
     document.documentElement.dataset.theme=name;
     try{ localStorage.setItem('eve_suite_theme',name); }catch(e){}
-    document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
   }
-  document.querySelectorAll('.theme-swatch').forEach(b=>{ b.style.color=b.style.background; b.onclick=()=>setTheme(b.dataset.theme); });
   setTheme(document.documentElement.dataset.theme||'default');
 
   // ===== tab / subtab switching (from the mockup) =====
@@ -974,9 +963,6 @@ setInterval(()=>{ if(structures.length) renderAll(); }, 120000);
   function applySuiteTheme(name){
     if(!name)return;
     try{document.documentElement.dataset.theme=name;}catch(err){}
-    document.querySelectorAll('.theme-swatch').forEach(function(b){
-      if(b.dataset&&b.dataset.theme)b.classList.toggle('on',b.dataset.theme===name);
-    });
   }
   window.addEventListener('storage',function(e){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
