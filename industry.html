@@ -209,8 +209,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .side-panel h3{font-size:12px;margin:0 0 20px}
 .side-stat{display:flex;justify-content:space-between;font-size:13.5px;padding:12px 0}
 .side-stat b{font-size:15px}
-.pilot-strip{position:fixed;bottom:22px;left:22px;display:flex;flex-wrap:wrap;gap:7px;z-index:9999;max-width:480px}
-.pilot-chip{width:30px;height:30px}
 .jobs-fab{position:relative;width:40px;height:40px;font-size:17px;cursor:pointer}
 .jobs-fab .badge{position:absolute;top:-6px;right:-6px;font-size:9.5px;padding:2px 6px}
 .jobs-drawer{position:fixed;top:0;right:-420px;width:400px;height:100vh;z-index:40;padding:24px;overflow-y:auto;transition:right .3s cubic-bezier(.2,.9,.3,1)}
@@ -533,7 +531,6 @@ Standup Manufacturing Material Efficiency I</textarea>
   </div>
 </div>
 
-<div class="pilot-strip"></div>
 <script>
 const canvas = document.getElementById('embers');
 const ctx = canvas.getContext('2d');
@@ -612,13 +609,7 @@ async function freshTok(id){ const s=chars[id]; if(!s || !s.refresh) throw new E
   s.access=t.access_token; s.refresh=t.refresh_token||s.refresh; s.expires=Date.now()+(t.expires_in||1200)*1000; saveChars(); return s.access; }
 async function eGet(id,path){ const tk=await freshTok(id); const r=await fetch('https://esi.evetech.net/latest'+path,{headers:{Authorization:'Bearer '+tk}});
   if(!r.ok) throw new Error(path+' '+r.status); return r.json(); }
-function renderPilotStrip(){
-  const ids=Object.keys(chars); const el=document.querySelector('.pilot-strip');
-  if(!ids.length){ el.style.display='none'; el.innerHTML=''; return; }
-  el.style.display='flex';
-  el.innerHTML=ids.map(id=>`<div class="pilot-chip" title="${chars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>`).join('');
-}
-renderPilotStrip();
+function renderPilotStrip(){ /* pilot-strip removed from UI; no-op */ }
 const heroData = { browse:['Browse','Search the item &amp; blueprint database'], bp:['Blueprint Library','No blueprints loaded yet'], plan:['Build Planner','Material shopping list for the selected build'], research:['Blueprint Research','Fastest path to fully researched blueprints'], structreg:['Structure Registry','Track the structures you build with'] };
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));

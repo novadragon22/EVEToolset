@@ -18,8 +18,6 @@ body{margin:0}
 .tag b{display:block;font-size:18px;margin-top:4px}
 .nav-tabs{position:absolute;top:20px;right:20px;display:flex;gap:6px;z-index:6}
 .nav-tab{padding:7px 12px;font-size:9px;cursor:pointer}
-.pilot-strip{position:absolute;bottom:20px;left:20px;display:flex;flex-wrap:wrap;gap:5px;z-index:5;max-width:480px}
-.pilot-chip{width:22px;height:22px}
 .planet-core{position:absolute;bottom:150px;left:32%;transform:translate(-50%,0);width:100px;height:100px}
 .orbit-ring{position:absolute;bottom:150px;left:32%;transform:translate(-50%,0);width:280px;height:280px;pointer-events:none}
 .orbit-icon{position:absolute;width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:8px;text-align:center;pointer-events:auto}
@@ -62,7 +60,6 @@ body{margin:0}
 .role-menu{z-index:9999;padding:4px;min-width:130px;font-size:10px}
 .role-menu-hdr{padding:3px 8px 5px;font-size:8px;margin-bottom:3px}
 .role-menu-item{padding:5px 8px;cursor:pointer;white-space:nowrap}
-.pilot-chip{cursor:pointer}
 .roles-fab{position:relative;font-size:10px;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:7px}
 .roles-fab .badge{font-size:9px;padding:1px 7px}
 .roles-drawer{position:fixed;top:0;right:-360px;width:340px;height:100vh;z-index:120;padding:22px;overflow-y:auto;transition:right .3s cubic-bezier(.2,.9,.3,1)}
@@ -138,7 +135,7 @@ body{margin:0}
     <div class="chain-row" id="chainRow"></div>
     <div class="chain-needs" id="chainNeeds">Search for a product above to see its chain.</div>
   </div>
-  <div class="pilot-strip"></div>
+  
 
   <canvas id="universeCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:auto"></canvas>
   <div id="universeTooltip" class="float" style="display:none;position:absolute;padding:6px 10px;font-size:9px;color:var(--gold-bright);pointer-events:none;z-index:30;white-space:nowrap"></div>
@@ -166,7 +163,7 @@ body{margin:0}
     <div class="product-chips" title="Selected products"></div>    <div class="sync-chip"><span class="sync-dot"></span>Synced 2m ago</div>
     <span class="gear-btn">⚙</span>
   </div>
-  <div class="pilot-strip"></div>
+  
 
   <div class="colony-row" id="myColoniesGrid" style="flex-wrap:wrap;max-width:900px">
     <div style="padding:20px;color:var(--muted);font-size:10px">Loading colonies…</div>
@@ -188,7 +185,7 @@ body{margin:0}
     <div class="product-chips" title="Selected products"></div>    <div class="sync-chip"><span class="sync-dot"></span>Synced 2m ago</div>
     <span class="gear-btn">⚙</span>
   </div>
-  <div class="pilot-strip"></div>
+  
 
   <div class="rank-bar">
     <select id="mkTierSel" class="rank-sel float">
