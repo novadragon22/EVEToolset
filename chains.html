@@ -1010,6 +1010,27 @@ function renderCapacity(){
   };});
 }
 loadPiSkills().then(ch=>{if(ch)renderCapacity();});
+/* ---- live refresh: no page reloads ---------------------------------
+   Every 60s (only while the tab is visible) re-read shared state and
+   re-render; ESI refetches happen only when a dataset's own TTL lapses
+   (skills: 12h), respecting ESI's server-side cache timers instead of
+   hammering identical payloads. Storage events give instant cross-tab
+   updates when another suite page edits the roster or roles. */
+function liveRefresh(){
+  chars=loadChars();
+  try{roles=JSON.parse(localStorage.getItem(ROLE_KEY)||'{}')||{};}catch(e){}
+  try{piSkills=JSON.parse(localStorage.getItem(SKILL_CACHE_KEY)||'{}')||{};}catch(e){}
+  renderRoles();renderCapacity();
+  if(selectedSystemId)renderLogistics();
+}
+setInterval(()=>{if(document.hidden)return;
+  loadPiSkills().finally(liveRefresh);
+},60000);
+window.addEventListener('storage',e=>{
+  if(e.key===SHARED_KEY||e.key===ROLE_KEY||e.key===SKILL_CACHE_KEY||e.key===EXTRACT_RATE_KEY)liveRefresh();
+});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)liveRefresh();});
+
 $('prodSearch').addEventListener('input',renderSugg);
 $('prodSearch').addEventListener('focus',renderSugg);
 window.onRosterChange=renderRoles;

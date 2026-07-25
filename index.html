@@ -348,7 +348,44 @@ function renderRoster(){
      the overlay markup + renderScopeList() are kept for possible reuse */
   document.getElementById('addCharBtn').onclick=()=>{ beginLogin(); };
 }
-handleSuiteRedirect(); renderRoster();
+/* ---- active granted scopes per token ------------------------------
+   EVE access tokens are JWTs whose `scp` claim lists the scopes ACTUALLY
+   granted at authorization (tokens never gain scopes retroactively).
+   Decoded locally \u2014 no network call \u2014 and stored so every suite page can
+   check whether a pilot's token carries what a tool needs, and the roster
+   can flag pilots whose tokens predate newer scopes. */
+const TOKEN_SCOPES_KEY='eve_suite_token_scopes';
+function tokenScopes(access){
+  try{
+    const pay=JSON.parse(atob(access.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const s=pay.scp;
+    return Array.isArray(s)?s:(typeof s==='string'?[s]:[]);
+  }catch(e){return null;}
+}
+function refreshTokenScopes(){
+  const out={};const active=ACTIVE_SCOPE_INFO.map(s=>s.scope);
+  Object.keys(suiteChars).forEach(id=>{
+    const sc=tokenScopes(suiteChars[id].access||'');
+    out[id]={scopes:sc,missing:sc?active.filter(a=>!sc.includes(a)):null,ts:Date.now()};
+  });
+  try{localStorage.setItem(TOKEN_SCOPES_KEY,JSON.stringify(out));}catch(e){}
+  return out;
+}
+handleSuiteRedirect();
+const grantedScopes=refreshTokenScopes();
+renderRoster();
+/* annotate roster chips with granted-scope status */
+(function(){
+  const active=ACTIVE_SCOPE_INFO.map(s=>s.scope);
+  document.querySelectorAll('#roster .rchip').forEach((chip,i)=>{
+    const id=Object.keys(suiteChars)[i];if(!id)return;
+    const g=grantedScopes[id];if(!g||!g.scopes)return;
+    const miss=g.missing||[];
+    chip.title=chip.title+' \u2014 '+g.scopes.length+' scopes granted'+
+      (miss.length?' \u00b7 MISSING '+miss.length+' active scope'+(miss.length===1?'':'s')+' (remove & re-add to grant): '+miss.join(', '):' \u00b7 all active scopes present');
+    if(miss.length){chip.style.outline='1px solid #d8a24a';chip.style.outlineOffset='1px';}
+  });
+})();
 </script>
 <script>
 // thematic original SVG art per app
