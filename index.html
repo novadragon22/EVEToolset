@@ -259,7 +259,25 @@ const SCOPE_INFO=[
   {scope:'esi-corporations.read_divisions.v1', tool:'Reserved — Industry Console (planned)', desc:'Read corp hangar division names'},
   {scope:'esi-markets.structure_markets.v1', tool:'Reserved — Industry Console (planned)', desc:'Read structure market prices'},
 ];
-const SUITE_SCOPES=SCOPE_INFO.map(s=>s.scope).join(' ');
+/* Scopes on the ignore list are NOT requested at sign-in. Requesting a
+   scope the SSO application hasn't enabled (or that ESI has retired)
+   aborts the ENTIRE login with invalid_scope, so only scopes a tool
+   actually reads get requested. These eight are the "Reserved — planned"
+   placeholders; when a feature starts consuming one, delete it from this
+   list (existing pilots then need a remove & re-add in the Toolset menu,
+   as tokens only ever carry the scopes granted at authorization). */
+const IGNORED_SCOPES=[
+  'esi-fittings.write_fittings.v1',
+  'esi-characters.read_standings.v1',
+  'esi-alliances.read_contacts.v1',
+  'esi-corporations.read_contacts.v1',
+  'esi-planets.read_customs_offices.v1',
+  'esi-assets.read_corporation_assets.v1',
+  'esi-corporations.read_divisions.v1',
+  'esi-markets.structure_markets.v1'
+];
+const ACTIVE_SCOPE_INFO=SCOPE_INFO.filter(s=>!IGNORED_SCOPES.includes(s.scope));
+const SUITE_SCOPES=ACTIVE_SCOPE_INFO.map(s=>s.scope).join(' ');
 
 function b64url(b){return btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 async function sha256(s){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));}
@@ -282,7 +300,7 @@ function renderPilotStrip(){
 renderPilotStrip();
 window.addEventListener('storage', e=>{ if(e.key===SHARED_KEY){ suiteChars=loadSuiteChars(); renderPilotStrip(); } });
 
-function renderScopeList(){ document.getElementById('scopeList').innerHTML=SCOPE_INFO.map(s=>
+function renderScopeList(){ document.getElementById('scopeList').innerHTML=ACTIVE_SCOPE_INFO.map(s=>
   `<li><b>${s.scope}</b><span class="sd">${s.desc} — <i>${s.tool}</i></span></li>`).join(''); }
 document.getElementById('scopeCancel').onclick=()=>document.getElementById('scopeOverlay').classList.remove('show');
 document.getElementById('scopeConfirm').onclick=()=>{ document.getElementById('scopeOverlay').classList.remove('show'); beginLogin(); };
