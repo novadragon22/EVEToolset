@@ -105,7 +105,7 @@ td.dim{font-size:10.5px}
     <div>
       <div class="kicker">Refinery Extractions · Corp Moons</div>
       <h1>Moon<span class="diamond"></span>Watch</h1>
-      <div class="subline">Every Athanor and Tatara in three lanes — chunks inbound, chunks landed, and drills sitting idle — with an arrivals calendar and the chunk stagger optimiser. Plans and exclusions carry over from the original Structure Browser (structures.html), which keeps the Metenox gas and fuel modelling.</div>
+      <div class="subline">Every Athanor and Tatara in three lanes — chunks inbound, chunks landed, and drills sitting idle — with an arrivals calendar and the chunk stagger optimiser. Metenox drills are listed but their gas draw is not modelled — chunk lanes cover Athanors and Tataras.</div>
     </div>
   </div>
   <div class="tb-right">
@@ -273,7 +273,7 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
 
 /* ================= Moon Watch ================= */
 /* Refinery hull ids, extraction status logic, and the stagger optimiser are
-   carried over from the original Structure Browser (structures.html). Plans
+   carried over from the original Structure Browser. Plans
    and exclusions share its localStorage keys, so both tools stay in step. */
 const REFINERY_TYPES={35835:'Athanor',35836:'Tatara'};
 const METENOX_TYPE=81826;
@@ -353,7 +353,7 @@ function phaseChip(r){
     if(r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';}
   else if(st==='ready'){line='CHUNK ARRIVED '+fmtDur(now()-Date.parse(r.arrive)).replace('done','just now')+' ago — frack it';
     if(r.decay)sub=Date.parse(r.decay)>now()?'decays in '+fmtDur(Date.parse(r.decay)-now()):'decay time passed';}
-  else if(st==='drill'){line='passive drill — no chunk schedule';sub='gas & fuel modelling: structures.html';}
+  else if(st==='drill'){line='passive drill — no chunk schedule';sub='gas draw not modelled here';}
   else{line='No extraction scheduled';sub='drill is dark — schedule a chunk';}
   return '<div class="mchip card st-'+st+'">'+
     '<span class="phase ph-'+st+'"></span>'+
@@ -379,7 +379,7 @@ function render(errs){
     lane('extracting','Extracting','chunks inbound, soonest first',lanes.extracting)+
     lane('ready','Chunk ready','landed and waiting to be fracked',lanes.ready)+
     lane('idle','Idle','no extraction scheduled — dead time',lanes.idle)+
-    (lanes.drill.length?lane('drill','Metenox drills','passive — tracked fully in structures.html',lanes.drill):'')+
+    (lanes.drill.length?lane('drill','Metenox drills','passive drills — no chunk schedule',lanes.drill):'')+
     '</div>';
   $('calPanel').style.display='';$('optGrid').style.display='';
   refreshOptFilters();renderCalendar();renderPlanList();
@@ -388,7 +388,7 @@ function render(errs){
   $('loadNote').textContent='Moons sighted '+new Date().toUTCString().slice(17,25)+' EVE · '+refineries.length+' refineries';
 }
 
-/* ---- arrivals calendar (algorithm carried over from structures.html) ---- */
+/* ---- arrivals calendar (algorithm carried over from the Structure Browser) ---- */
 function refineryArrivals(){return refineries.filter(r=>!r.metenox&&r.arrive&&!isExcluded(r.name,r.system))
   .map(r=>({name:r.name,system:r.system,constellation:r.constellation||'Unknown',date:new Date(r.arrive)}));}
 function refreshOptFilters(){
@@ -414,7 +414,7 @@ function renderCalendar(){
   }
   wrap.innerHTML='<div class="cal-strip">'+strip+'</div>'+(list?'<div class="cal-list">'+list+'</div>':'<div class="empty" style="padding:14px">No scheduled arrivals in this window'+(optFilter.constellation!=='all'?' for '+esc(optFilter.constellation):'')+'.</div>');
 }
-/* ---- optimiser (algorithm + storage keys carried over from structures.html) ---- */
+/* ---- optimiser (algorithm + storage keys carried over from the Structure Browser) ---- */
 function savePlans(){try{localStorage.setItem(PLAN_KEY,JSON.stringify(extractionPlans));}catch(e){}renderPlanList();}
 function renderPlanList(){
   const wrap=$('planList');if(!wrap)return;

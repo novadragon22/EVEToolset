@@ -42,6 +42,10 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .searchwrap input{width:100%;font-size:12px;padding:9px 11px}
 .tierchips{display:flex;gap:6px;margin:9px 0}
 .tierchips span{font-size:9.5px;padding:3px 11px;cursor:pointer}
+.prodchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 2px}
+.prodchip{display:inline-flex;align-items:center;gap:6px;font-size:10px;padding:4px 9px}
+.prodchip input{width:44px;font-size:10px;padding:1px 4px;text-align:right}
+.prodchip .chip-x{cursor:pointer;padding:0 2px}
 .sugg{position:absolute;left:0;right:0;top:100%;max-height:280px;overflow-y:auto;z-index:30;display:none}
 .sugg .s-row{padding:7px 11px;font-size:11px;cursor:pointer;display:flex;justify-content:space-between}
 .chaintree{margin-top:14px}
@@ -50,6 +54,8 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .ct-node{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:6px 10px;margin-top:4px}
 .ct-node .q{font-size:10px;white-space:nowrap}
 .ct-conn{height:10px;width:1px;margin-left:22px}
+.ct-prodhead{font-size:10.5px;margin:12px 0 2px}
+.ct-divider{height:1px;margin:14px 0}
 .deskfoot{font-size:10px;margin-top:12px;line-height:1.7}
 /* right column */
 .rpanel{padding:16px;margin-bottom:20px}
@@ -83,6 +89,43 @@ td .reg{font-size:9px}
 .rolemenu div{padding:7px 12px;font-size:10.5px;cursor:pointer;white-space:nowrap}
 .rolesum{font-size:10.5px;margin-top:12px}
 
+/* universe map */
+.mappanel{position:relative;height:440px;margin-top:14px;display:none;overflow:hidden}
+.mappanel.on{display:block}
+#uniCanvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+#uniTip{position:absolute;display:none;z-index:20;font-size:10px;padding:5px 9px;pointer-events:none;white-space:nowrap}
+.maplegend{position:absolute;left:12px;bottom:10px;font-size:9px;z-index:5;display:flex;gap:14px;align-items:center}
+.maplegend i{font-style:normal;display:inline-flex;align-items:center;gap:5px}
+.maplegend .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.maphint{position:absolute;right:12px;top:10px;font-size:9px;z-index:5}
+/* logistics deck */
+.logideck{padding:16px;margin-top:20px;display:none}
+.logideck.on{display:block}
+.logideck h2{font-size:11.5px;margin:0 0 4px}
+.logideck .c{font-size:10px;display:block;margin-bottom:12px}
+.logihead{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.logihead label{display:block;font-size:8.5px;margin-bottom:4px}
+.logihead select,.logihead input{font-size:11px;padding:7px 9px}
+.logihead input[type=number]{width:100px}
+.logihead .selsys{font-size:12px;padding:8px 14px}
+.stageflow{display:flex;gap:0;align-items:stretch;overflow-x:auto;padding:6px 2px 12px}
+.stagecard{flex:0 0 190px;padding:10px 12px}
+.stagecard .roman{font-size:9px}
+.stagecard .st-prod{font-size:11.5px;margin-top:3px}
+.stagecard .st-sys{font-size:12px;margin-top:6px}
+.stagecard .st-meta{font-size:9.5px;margin-top:4px;line-height:1.5}
+.stagelink{flex:0 0 26px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.logigrid{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-top:8px}
+@media (max-width:900px){.logigrid{grid-template-columns:1fr}}
+.haulrows .buf-row{display:flex;justify-content:space-between;gap:12px;font-size:10.5px;padding:7px 9px;margin-top:5px}
+.haulrows .buf-row b{white-space:nowrap}
+.routebox{padding:11px 13px}
+.routebox .lbl2{font-size:8.5px;margin-bottom:8px}
+.route-row{display:flex;justify-content:space-between;font-size:11px;padding:5px 4px}
+.route-row .stop-idx{margin-right:7px}
+.route-summary{font-size:10px;margin-top:9px;line-height:1.6;padding-top:8px}
+
+
 </style>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
@@ -97,7 +140,7 @@ td .reg{font-size:9px}
     <div>
       <div class="kicker">P0 → P4 · Planetary Production Draft</div>
       <h1>Chain<span class="diamond"></span>Works</h1>
-      <div class="subline">Draft a planetary production chain: pick the product, read the full P0→P4 tree with hourly quantities, see which planet types feed it, hunt candidate systems across the gate network, and chalk pilots onto extractor and factory duty. The original PI Planner (pi.html) remains available with the full universe map, colony logistics and route optimiser.</div>
+      <div class="subline">Draft a planetary production chain: pick the product, read the full P0→P4 tree with hourly quantities, see which planet types feed it, hunt candidate systems across the gate network, and chalk pilots onto extractor and factory duty. Built on the PI Planner's schematic and universe data.</div>
     </div>
   </div>
   <div class="tb-right">
@@ -114,6 +157,7 @@ td .reg{font-size:9px}
       <div class="sugg panel" id="suggBox"></div>
     </div>
     <div class="tierchips" id="tierChips"></div>
+    <div class="prodchips" id="prodChips"></div>
     <div class="chaintree" id="chainTree"><div class="empty" style="padding:14px">no product drafted — search above</div></div>
     <div class="deskfoot" id="deskFoot"></div>
   </aside>
@@ -133,7 +177,28 @@ td .reg{font-size:9px}
         <button class="btn primary" id="huntBtn">Hunt systems</button>
       </div>
       <div id="huntOut"><div class="empty" style="padding:12px">draft a product, set a home system, hunt</div></div>
+      <div class="mappanel card" id="mapPanel">
+        <canvas id="uniCanvas"></canvas>
+        <div id="uniTip" class="panel"></div>
+        <div class="maphint">scroll to zoom · drag to pan · click a lit system to plan its logistics</div>
+        <div class="maplegend"><i><span class="dot d-full"></span>whole chain</i><i><span class="dot d-part"></span>partial</i><i><span class="dot d-home"></span>home</i><i><span class="dot d-sel"></span>selected</i></div>
+      </div>
     </div>
+  </div>
+</div>
+
+<div class="logideck panel" id="logiDeck">
+  <h2>Colony logistics — <span id="logiSysName"></span></h2>
+  <span class="c">Production and transfer routing for the selected system, carried over from the original PI Planner: each stage of the chain is scored to a real system (the selected system anchors the final stage), hauls are sized against your hauler's infrastructure hold, and the route is sorted nearest-first from home.</span>
+  <div class="logihead">
+    <span class="selsys card" id="logiSysCard"></span>
+    <div><label>HAULER</label><select id="haulShipSel"></select></div>
+    <div><label>M³ INFRA HOLD — reference value, adjust to match your fit</label><input type="number" id="haulCapacityInput" min="1"></div>
+  </div>
+  <div id="stageFlow"></div>
+  <div class="logigrid">
+    <div><div class="lbl2" style="font-size:8.5px;margin-bottom:6px" id="haulLbl">HAUL CADENCE &amp; TRIPS</div><div class="haulrows" id="haulRows"></div></div>
+    <div class="routebox card"><div class="lbl2" id="haulShipLbl">ROUTE OPTIMISER</div><div id="logiRoute"></div></div>
   </div>
 </div>
 
@@ -265,7 +330,7 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
 
 /* ================= Chain Works ================= */
 /* The PI schematic dataset below and the UNIVERSE dataset in universe.js are
-   carried over verbatim from the original PI Planner (pi.html) — real game
+   carried over verbatim from the original PI Planner — real game
    data, never fabricated. */
 const PI={"names":{"44":"Enriched Uranium","2073":"Microorganisms","2267":"Base Metals","2268":"Aqueous Liquids","2270":"Noble Metals","2272":"Heavy Metals","2286":"Planktic Colonies","2287":"Complex Organisms","2288":"Carbon Compounds","2305":"Autotrophs","2306":"Non-CS Crystals","2307":"Felsic Magma","2308":"Suspended Plasma","2309":"Ionic Solutions","2310":"Noble Gas","2311":"Reactive Gas","2312":"Supertensile Plastics","2317":"Oxides","2319":"Test Cultures","2321":"Polyaramids","2327":"Microfiber Shielding","2328":"Water-Cooled CPU","2329":"Biocells","2344":"Condensates","2345":"Camera Drones","2346":"Synthetic Synapses","2348":"Gel-Matrix Biopaste","2349":"Supercomputers","2351":"Smartfab Units","2352":"Nuclear Reactors","2354":"Neocoms","2358":"Biotech Research Reports","2360":"Industrial Explosives","2361":"Hermetic Membranes","2366":"Hazmat Detection Systems","2367":"Cryoprotectant Solution","2389":"Plasmoids","2390":"Electrolytes","2392":"Oxidizing Compound","2393":"Bacteria","2395":"Proteins","2396":"Biofuels","2397":"Industrial Fibers","2398":"Reactive Metals","2399":"Precious Metals","2400":"Toxic Metals","2401":"Chiral Structures","2463":"Nanites","2867":"Broadcast Node","2868":"Integrity Response Drones","2869":"Nano-Factory","2870":"Organic Mortar Applicators","2871":"Recursive Computing Module","2872":"Self-Harmonizing Power Core","2875":"Sterile Conduits","2876":"Wetware Mainframe","3645":"Water","3683":"Oxygen","3689":"Mechanical Parts","3691":"Synthetic Oil","3693":"Fertilizer","3695":"Polytextiles","3697":"Silicate Glass","3725":"Livestock","3775":"Viral Agent","3779":"Biomass","3828":"Construction Blocks","9828":"Silicon","9830":"Rocket Fuel","9832":"Coolant","9834":"Guidance Systems","9836":"Consumer Electronics","9838":"Superconductors","9840":"Transmitter","9842":"Miniature Electronics","9846":"Planetary Vehicles","9848":"Robotics","12836":"Transcranial Microcontrollers","15317":"Genetically Enhanced Livestock","17136":"Ukomi Superconductors","17392":"Data Chips","17898":"High-Tech Transmitters","28974":"Vaccines"},"recipe":{"9838":{"ct":3600,"out":5,"in":[[2389,40],[3645,40]],"name":"Superconductors"},"9832":{"ct":3600,"out":5,"in":[[2390,40],[3645,40]],"name":"Coolant"},"9830":{"ct":3600,"out":5,"in":[[2389,40],[2390,40]],"name":"Rocket Fuel"},"3691":{"ct":3600,"out":5,"in":[[2390,40],[3683,40]],"name":"Synthetic Oil"},"2317":{"ct":3600,"out":5,"in":[[2392,40],[3683,40]],"name":"Oxides"},"3697":{"ct":3600,"out":5,"in":[[2392,40],[9828,40]],"name":"Silicate Glass"},"9840":{"ct":3600,"out":5,"in":[[2389,40],[2401,40]],"name":"Transmitter"},"2328":{"ct":3600,"out":5,"in":[[2398,40],[3645,40]],"name":"Water-Cooled CPU"},"3689":{"ct":3600,"out":5,"in":[[2398,40],[2399,40]],"name":"Mechanical Parts"},"3828":{"ct":3600,"out":5,"in":[[2398,40],[2400,40]],"name":"Construction Blocks"},"44":{"ct":3600,"out":5,"in":[[2399,40],[2400,40]],"name":"Enriched Uranium"},"9836":{"ct":3600,"out":5,"in":[[2400,40],[2401,40]],"name":"Consumer Electronics"},"9842":{"ct":3600,"out":5,"in":[[2401,40],[9828,40]],"name":"Miniature Electronics"},"2463":{"ct":3600,"out":5,"in":[[2393,40],[2398,40]],"name":"Nanites"},"2329":{"ct":3600,"out":5,"in":[[2396,40],[2399,40]],"name":"Biocells"},"2327":{"ct":3600,"out":5,"in":[[2397,40],[9828,40]],"name":"Microfiber Shielding"},"3775":{"ct":3600,"out":5,"in":[[2393,40],[3779,40]],"name":"Viral Agent"},"3693":{"ct":3600,"out":5,"in":[[2393,40],[2395,40]],"name":"Fertilizer"},"15317":{"ct":3600,"out":5,"in":[[2395,40],[3779,40]],"name":"Genetically Enhanced Livestock"},"3725":{"ct":3600,"out":5,"in":[[2395,40],[2396,40]],"name":"Livestock"},"3695":{"ct":3600,"out":5,"in":[[2396,40],[2397,40]],"name":"Polytextiles"},"2319":{"ct":3600,"out":5,"in":[[2393,40],[3645,40]],"name":"Test Cultures"},"2312":{"ct":3600,"out":5,"in":[[3683,40],[3779,40]],"name":"Supertensile Plastics"},"2321":{"ct":3600,"out":5,"in":[[2392,40],[2397,40]],"name":"Polyaramids"},"17136":{"ct":3600,"out":3,"in":[[3691,10],[9838,10]],"name":"Ukomi Superconductor"},"2344":{"ct":3600,"out":3,"in":[[2317,10],[9832,10]],"name":"Condensates"},"2345":{"ct":3600,"out":3,"in":[[3697,10],[9830,10]],"name":"Camera Drones"},"2346":{"ct":3600,"out":3,"in":[[2312,10],[2319,10]],"name":"Synthetic Synapses"},"17898":{"ct":3600,"out":3,"in":[[2321,10],[9840,10]],"name":"High-Tech Transmitter"},"2348":{"ct":3600,"out":3,"in":[[2317,10],[2329,10],[9838,10]],"name":"Gel-Matrix Biopaste"},"2349":{"ct":3600,"out":3,"in":[[2328,10],[9832,10],[9836,10]],"name":"Supercomputers"},"9848":{"ct":3600,"out":3,"in":[[3689,10],[9836,10]],"name":"Robotics"},"2351":{"ct":3600,"out":3,"in":[[3828,10],[9842,10]],"name":"Smartfab Units"},"2352":{"ct":3600,"out":3,"in":[[44,10],[2327,10]],"name":"Nuclear Reactors"},"9834":{"ct":3600,"out":3,"in":[[2328,10],[9840,10]],"name":"Guidance Systems"},"2354":{"ct":3600,"out":3,"in":[[2329,10],[3697,10]],"name":"Neocoms"},"9846":{"ct":3600,"out":3,"in":[[2312,10],[3689,10],[9842,10]],"name":"Planetary Vehicles"},"2358":{"ct":3600,"out":3,"in":[[2463,10],[3725,10],[3828,10]],"name":"Biotech Research Reports"},"28974":{"ct":3600,"out":3,"in":[[3725,10],[3775,10]],"name":"Vaccines"},"2360":{"ct":3600,"out":3,"in":[[3693,10],[3695,10]],"name":"Industrial Explosives"},"2361":{"ct":3600,"out":3,"in":[[2321,10],[15317,10]],"name":"Hermetic Membranes"},"12836":{"ct":3600,"out":3,"in":[[2329,10],[2463,10]],"name":"Transcranial Microcontroller"},"17392":{"ct":3600,"out":3,"in":[[2312,10],[2327,10]],"name":"Data Chips"},"2366":{"ct":3600,"out":3,"in":[[3695,10],[3775,10],[9840,10]],"name":"Hazmat Detection Systems"},"2367":{"ct":3600,"out":3,"in":[[2319,10],[3691,10],[3693,10]],"name":"Cryoprotectant Solution"},"2870":{"ct":3600,"out":1,"in":[[2344,6],[2393,40],[9848,6]],"name":"Organic Mortar Applicators"},"2875":{"ct":3600,"out":1,"in":[[2351,6],[3645,40],[28974,6]],"name":"Sterile Conduits"},"2869":{"ct":3600,"out":1,"in":[[2360,6],[2398,40],[17136,6]],"name":"Nano-Factory"},"2872":{"ct":3600,"out":1,"in":[[2345,6],[2352,6],[2361,6]],"name":"Self-Harmonizing Power Core"},"2871":{"ct":3600,"out":1,"in":[[2346,6],[9834,6],[12836,6]],"name":"Recursive Computing Module"},"2867":{"ct":3600,"out":1,"in":[[2354,6],[17392,6],[17898,6]],"name":"Broadcast Node"},"2868":{"ct":3600,"out":1,"in":[[2348,6],[2366,6],[9846,6]],"name":"Integrity Response Drones"},"2876":{"ct":3600,"out":1,"in":[[2349,6],[2358,6],[2367,6]],"name":"Wetware Mainframe"},"3645":{"ct":1800,"out":20,"in":[[2268,3000]],"name":"Water"},"2389":{"ct":1800,"out":20,"in":[[2308,3000]],"name":"Plasmoids"},"2390":{"ct":1800,"out":20,"in":[[2309,3000]],"name":"Electrolytes"},"3683":{"ct":1800,"out":20,"in":[[2310,3000]],"name":"Oxygen"},"2392":{"ct":1800,"out":20,"in":[[2311,3000]],"name":"Oxidizing Compound"},"2398":{"ct":1800,"out":20,"in":[[2267,3000]],"name":"Reactive Metals"},"2399":{"ct":1800,"out":20,"in":[[2270,3000]],"name":"Precious Metals"},"2400":{"ct":1800,"out":20,"in":[[2272,3000]],"name":"Toxic Metals"},"2401":{"ct":1800,"out":20,"in":[[2306,3000]],"name":"Chiral Structures"},"9828":{"ct":1800,"out":20,"in":[[2307,3000]],"name":"Silicon"},"2393":{"ct":1800,"out":20,"in":[[2073,3000]],"name":"Bacteria"},"3779":{"ct":1800,"out":20,"in":[[2286,3000]],"name":"Biomass"},"2395":{"ct":1800,"out":20,"in":[[2287,3000]],"name":"Proteins"},"2396":{"ct":1800,"out":20,"in":[[2288,3000]],"name":"Biofuels"},"2397":{"ct":1800,"out":20,"in":[[2305,3000]],"name":"Industrial Fibers"}},"p0":[2073,2267,2268,2270,2272,2286,2287,2288,2305,2306,2307,2308,2309,2310,2311],"p0pt":{"2272":["I","L","P"],"2305":["T"],"2306":["L","P"],"2307":["L"],"2308":["L","P","S"],"2309":["G","S"],"2310":["G","I","S"],"2311":["G"],"2286":["I","O"],"2287":["O","T"],"2288":["B","O","T"],"2073":["B","I","O","T"],"2267":["B","G","L","P","S"],"2268":["B","G","I","O","S","T"],"2270":["B","P"]},"tier":{"2272":0,"2305":0,"2306":0,"2307":0,"2308":0,"2309":0,"2310":0,"2311":0,"2286":0,"2287":0,"2288":0,"2073":0,"2267":0,"2268":0,"2270":0,"2389":1,"3645":1,"9838":2,"2390":1,"9832":2,"9830":2,"3683":1,"3691":2,"2392":1,"2317":2,"9828":1,"3697":2,"2401":1,"9840":2,"2398":1,"2328":2,"2399":1,"3689":2,"2400":1,"3828":2,"44":2,"9836":2,"9842":2,"2393":1,"2463":2,"2396":1,"2329":2,"2397":1,"2327":2,"3779":1,"3775":2,"2395":1,"3693":2,"15317":2,"3725":2,"3695":2,"2319":2,"2312":2,"2321":2,"17136":3,"2344":3,"2345":3,"2346":3,"17898":3,"2348":3,"2349":3,"9848":3,"2351":3,"2352":3,"9834":3,"2354":3,"9846":3,"2358":3,"28974":3,"2360":3,"2361":3,"12836":3,"17392":3,"2366":3,"2367":3,"2870":4,"2875":4,"2869":4,"2872":4,"2871":4,"2867":4,"2868":4,"2876":4}};
 
@@ -273,6 +338,15 @@ const ROLE_KEY='eve_suite_chains_roles';
 const ROLES=['—','Extractor','Factory','Full chain'];
 const PT_LONG=(window.UNIVERSE&&UNIVERSE.planetTypes)||{};
 let target=null, tierFilter=null;
+/* product basket — carried over from pi.html: sel[id] defaults to ×10, union
+   of every product's chain drives coverage, the hunt, and logistics */
+const BASKET_KEY='eve_suite_chains_basket';
+let basket={};try{basket=JSON.parse(localStorage.getItem(BASKET_KEY)||'{}')||{};}catch(e){}
+function saveBasket(){try{localStorage.setItem(BASKET_KEY,JSON.stringify(basket));}catch(e){}}
+function basketIds(){return Object.keys(basket);}
+function basketP0(){const out=new Set();
+  const src=basketIds().length?basketIds():(target?[String(target)]:[]);
+  src.forEach(pid=>chainP0s(+pid).forEach(p=>out.add(String(p))));return [...out];}
 let roles={};try{roles=JSON.parse(localStorage.getItem(ROLE_KEY)||'{}')||{};}catch(e){}
 
 /* ---- BOM: recursive expansion to raw P0 units, per unit of target ---- */
@@ -307,39 +381,70 @@ function renderSugg(){
   box.querySelectorAll('.s-row[data-id]').forEach(r=>{r.onclick=()=>{setTarget(+r.dataset.id);};});
 }
 function setTarget(id){
-  target=id;$('prodSearch').value=PI.recipe[id].name;$('suggBox').style.display='none';
-  renderChain();renderCoverage();$('huntOut').innerHTML='<div class="empty" style="padding:12px">re-hunt for the new draft</div>';
-  reportDashboard('drafting '+PI.recipe[id].name+' (P'+PI.tier[id]+')','ok');
+  basket[id]=basket[id]||10;      // pi.html default quantity
+  target=id;$('prodSearch').value='';$('suggBox').style.display='none';
+  refreshDraft();
+}
+function removeProduct(id){
+  delete basket[id];
+  if(String(target)===String(id))target=basketIds().length?+basketIds()[basketIds().length-1]:null;
+  refreshDraft();
+}
+function refreshDraft(){
+  saveBasket();renderBasket();renderChain();renderCoverage();
+  $('huntOut').innerHTML='<div class="empty" style="padding:12px">'+(basketIds().length?'re-hunt for the new basket':'draft a product, set a home system, hunt')+'</div>';
+  lastHunt=null;selectedSystemId=null;$('mapPanel').classList.remove('on');$('logiDeck').classList.remove('on');
+  const ids=basketIds();
+  reportDashboard(ids.length?('drafting '+ids.map(i=>PI.recipe[i].name).join(' + ')):'drafting table clear',ids.length?'ok':'muted');
+}
+function renderBasket(){
+  const wrap=$('prodChips');if(!wrap)return;
+  const ids=basketIds();
+  wrap.innerHTML=ids.length?ids.map(id=>'<span class="prodchip card">'+esc(PI.recipe[id].name)+
+    ' ×<input type="number" min="1" value="'+(basket[id]||10)+'" data-id="'+id+'">'+
+    '<span class="chip-x" data-id="'+id+'">\u2715</span></span>').join('')
+    :'<span class="chip-none">No products in the basket yet</span>';
+  wrap.querySelectorAll('.chip-x').forEach(x=>{x.onclick=()=>removeProduct(x.dataset.id);});
+  wrap.querySelectorAll('input').forEach(inp=>{inp.addEventListener('input',()=>{
+    basket[inp.dataset.id]=Math.max(1,+inp.value||10);saveBasket();
+    if(selectedSystemId)renderLogistics();});});
 }
 
 /* ---- chain tree ---- */
 function renderChain(){
   const wrap=$('chainTree');
-  if(!target){wrap.innerHTML='<div class="empty" style="padding:14px">no product drafted</div>';$('deskFoot').innerHTML='';return;}
-  const acc=bomExpand(target,1);
-  const byTier={};
-  Object.keys(acc.steps).forEach(t=>{(byTier[PI.tier[t]]=byTier[PI.tier[t]]||[]).push(t);});
-  let html='';
-  for(let tier=PI.tier[target];tier>=1;tier--){
-    const list=(byTier[tier]||[]).sort((a,b)=>acc.steps[b]-acc.steps[a]);
-    if(!list.length)continue;
-    html+='<div class="ct-tier"><div class="ct-tlabel">P'+tier+' — '+(tier===PI.tier[target]?'TARGET':'INTERMEDIATE')+'</div>'+
-      list.map(t=>'<div class="ct-node t'+tier+'"><span>'+esc(PI.recipe[t].name)+'</span><span class="q">'+fmtQ(acc.steps[t])+' / unit · '+fmtQ(acc.steps[t]*perHour(target))+'/hr</span></div>').join('')+'</div><div class="ct-conn"></div>';
-  }
-  const p0list=Object.keys(acc.p0).sort((a,b)=>acc.p0[b]-acc.p0[a]);
-  html+='<div class="ct-tier"><div class="ct-tlabel">P0 — RAW EXTRACTION</div>'+
-    p0list.map(t=>'<div class="ct-node t0"><span>'+esc(PI.names[t]||t)+'</span><span class="q">'+fmtQ(acc.p0[t])+' / unit · '+fmtQ(acc.p0[t]*perHour(target))+'/hr</span></div>').join('')+'</div>';
+  const ids=basketIds();
+  if(!ids.length){wrap.innerHTML='<div class="empty" style="padding:14px">no product drafted</div>';$('deskFoot').innerHTML='';return;}
+  let html='',footBits=[];
+  ids.forEach((tid,pi_)=>{
+    const t=+tid;
+    const acc=bomExpand(t,1);
+    const byTier={};
+    Object.keys(acc.steps).forEach(x=>{(byTier[PI.tier[x]]=byTier[PI.tier[x]]||[]).push(x);});
+    if(ids.length>1)html+='<div class="ct-prodhead">'+esc(PI.recipe[t].name)+' \u00d7'+(basket[tid]||10)+'</div>';
+    for(let tier=PI.tier[t];tier>=1;tier--){
+      const list=(byTier[tier]||[]).sort((a,b)=>acc.steps[b]-acc.steps[a]);
+      if(!list.length)continue;
+      html+='<div class="ct-tier"><div class="ct-tlabel">P'+tier+' — '+(tier===PI.tier[t]?'TARGET':'INTERMEDIATE')+'</div>'+
+        list.map(x=>'<div class="ct-node t'+tier+'"><span>'+esc(PI.recipe[x].name)+'</span><span class="q">'+fmtQ(acc.steps[x])+' / unit · '+fmtQ(acc.steps[x]*perHour(t))+'/hr</span></div>').join('')+'</div><div class="ct-conn"></div>';
+    }
+    const p0list=Object.keys(acc.p0).sort((a,b)=>acc.p0[b]-acc.p0[a]);
+    html+='<div class="ct-tier"><div class="ct-tlabel">P0 — RAW EXTRACTION</div>'+
+      p0list.map(x=>'<div class="ct-node t0"><span>'+esc(PI.names[x]||x)+'</span><span class="q">'+fmtQ(acc.p0[x])+' / unit · '+fmtQ(acc.p0[x]*perHour(t))+'/hr</span></div>').join('')+'</div>';
+    if(pi_<ids.length-1)html+='<div class="ct-divider"></div>';
+    const r=PI.recipe[t];
+    footBits.push(esc(r.name)+': '+r.ct/60+' min cycle \u2192 '+r.out+' units, <b>'+fmtQ(perHour(t))+'/hr</b> per factory line');
+  });
   wrap.innerHTML=html;
-  const r=PI.recipe[target];
-  $('deskFoot').innerHTML='Factory cycle: '+r.ct/60+' min → '+r.out+' units. At continuous runs one factory line yields <b>'+fmtQ(perHour(target))+' '+esc(r.name)+'/hr</b>; the quantities above scale to that line.';
+  $('deskFoot').innerHTML=footBits.join(' \u00b7 ')+'. Quantities above are per factory line; the basket \u00d7 counts label your planned scale.';
 }
 function fmtQ(n){return n>=1000?Math.round(n).toLocaleString():(Math.round(n*100)/100).toString();}
 
 /* ---- planet coverage ---- */
 function renderCoverage(){
   const wrap=$('covGrid');
-  if(!target){wrap.innerHTML='<div class="empty" style="padding:10px">draft a product first</div>';return;}
-  const p0s=chainP0s(target);
+  if(!basketIds().length){wrap.innerHTML='<div class="empty" style="padding:10px">draft a product first</div>';return;}
+  const p0s=basketP0();
   wrap.innerHTML=p0s.map(p=>{
     const types=PI.p0pt[p]||[];
     return '<div class="cov card"><div class="pn">'+esc(PI.names[p]||p)+'</div><div class="pt">'+
@@ -374,13 +479,13 @@ function matchingPlanets(sysRow,p0s){
 function hunt(){
   buildNameIndex();
   const out=$('huntOut');
-  if(!target){out.innerHTML='<div class="empty" style="padding:12px">draft a product first</div>';return;}
+  if(!basketIds().length){out.innerHTML='<div class="empty" style="padding:12px">draft a product first</div>';return;}
   const homeName=$('homeSys').value.trim().toLowerCase();
   const homeId=sysByName[homeName];
   if(!homeId){out.innerHTML='<div class="empty" style="padding:12px">home system not recognised — check the spelling</div>';return;}
   const maxJ=Math.max(0,Math.min(12,+$('maxJumps').value||5));
   const band=$('secBand').value, whole=$('wholeChain').checked;
-  const p0s=chainP0s(target);
+  const p0s=basketP0().map(Number);
   /* BFS */
   const dist={};dist[homeId]=0;let frontier=[homeId];
   for(let d=1;d<=maxJ;d++){
@@ -399,46 +504,327 @@ function hunt(){
     rows.push({id,name:s[0],sec:s[1],region:UNIVERSE.regions[s[2]]||'',jumps:dist[id],covered:covered.length,planets:matchingPlanets(s,p0s),counts:s[5]||{}});
   });
   rows.sort((a,b)=>b.covered-a.covered||a.jumps-b.jumps||b.planets-a.planets);
-  if(!rows.length){out.innerHTML='<div class="empty" style="padding:12px">no systems within '+maxJ+' jumps cover '+(whole?'the whole chain':'any of the chain')+' — widen the hunt or split across systems</div>';return;}
+  lastHunt={rows,p0s,homeId,dist:bfsFull(homeId)};
+  $('mapPanel').classList.add('on');
+  mapZoom=1;mapPanX=0;mapPanY=0;
+  requestAnimationFrame(renderUniverseMap);
+  if(!rows.length){out.innerHTML='<div class="empty" style="padding:12px">no systems within '+maxJ+' jumps cover '+(whole?'the whole chain':'any of the chain')+' — widen the hunt, or click any lit system on the map below to plan a split</div>';return;}
   out.innerHTML='<div style="overflow-x:auto"><table><thead><tr><th>System</th><th>Sec</th><th>Jumps</th><th>P0 coverage</th><th>Feeding planets</th></tr></thead><tbody>'+
-    rows.slice(0,25).map(r=>'<tr><td><div class="sysn">'+esc(r.name)+'</div><div class="reg">'+esc(r.region)+'</div></td><td class="sec-'+(r.sec>=0.45?'hi':r.sec>0?'lo':'nu')+'">'+r.sec.toFixed(1)+'</td><td>'+r.jumps+'</td>'+
+    rows.slice(0,25).map(r=>'<tr class="huntrow" data-id="'+r.id+'" title="click to plan colony logistics here"><td><div class="sysn">'+esc(r.name)+'</div><div class="reg">'+esc(r.region)+'</div></td><td class="sec-'+(r.sec>=0.45?'hi':r.sec>0?'lo':'nu')+'">'+r.sec.toFixed(1)+'</td><td>'+r.jumps+'</td>'+
       '<td>'+r.covered+' / '+p0s.length+(r.covered<p0s.length?' <span class="miss">— missing '+p0s.filter(p=>!coversP0(UNIVERSE.systems[r.id],p)).map(p=>esc(PI.names[p])).join(', ')+'</span>':'')+'</td>'+
       '<td><div class="pcell">'+Object.keys(r.counts).map(t=>'<i>'+(PT_LONG[t]||t)+' ×'+r.counts[t]+'</i>').join('')+'</div></td></tr>').join('')+
     '</tbody></table></div>'+(rows.length>25?'<div class="miss" style="padding:8px 10px">'+(rows.length-25)+' more matches beyond the top 25 — tighten the hunt</div>':'');
+  out.querySelectorAll('.huntrow').forEach(tr=>{tr.onclick=()=>selectSystem(tr.dataset.id);});
 }
 $('huntBtn').onclick=hunt;
+
+
+/* ================= Universe map + Colony Logistics =================
+   Map projection, zoom/pan/click mechanics, chain tracing, system scoring,
+   hauler table, cadence maths and the nearest-first route optimiser are all
+   carried over from the original PI Planner. Hauler capacities are reference
+   figures for stock hulls — always editable. The Squall/Deluge/Torrent/
+   Avalanche line is the Upwell hauler family added in the Equinox expansion;
+   only Avalanche's ~3,000,000 m³ figure has a citable source (player
+   reporting); the others are placeholders — check in-game and adjust. */
+const PI_VOL={"44":0.75,"2073":0.005,"2267":0.005,"2268":0.005,"2270":0.005,"2272":0.005,"2286":0.005,"2287":0.005,"2288":0.005,"2305":0.005,"2306":0.005,"2307":0.005,"2308":0.005,"2309":0.005,"2310":0.005,"2311":0.005,"2312":0.75,"2317":0.75,"2319":0.75,"2321":0.75,"2327":0.75,"2328":0.75,"2329":0.75,"2344":3.0,"2345":3.0,"2346":3.0,"2348":3.0,"2349":3.0,"2351":3.0,"2352":3.0,"2354":3.0,"2358":3.0,"2360":3.0,"2361":3.0,"2366":3.0,"2367":3.0,"2389":0.19,"2390":0.19,"2392":0.19,"2393":0.19,"2395":0.19,"2396":0.19,"2397":0.19,"2398":0.19,"2399":0.19,"2400":0.19,"2401":0.19,"2463":0.75,"2867":50.0,"2868":50.0,"2869":50.0,"2870":50.0,"2871":50.0,"2872":50.0,"2875":50.0,"2876":50.0,"3645":0.19,"3683":0.19,"3689":0.75,"3691":0.75,"3693":0.75,"3695":0.75,"3697":0.75,"3725":0.75,"3775":0.75,"3779":0.19,"3828":0.75,"9828":0.19,"9830":0.75,"9832":0.75,"9834":3.0,"9836":0.75,"9838":0.75,"9840":0.75,"9842":0.75,"9846":3.0,"9848":3.0,"12836":3.0,"15317":0.75,"17136":3.0,"17392":3.0,"17898":3.0,"28974":3.0};
+const REF_VOLUME_BY_TIER={0:0.4,1:6,2:8,3:340,4:6000};
+const HAUL_SHIPS=[
+  {id:'epithal', name:'Epithal (Gallente Industrial)', hold:3000},
+  {id:'primae', name:'Primae (CCP unique)', hold:10000},
+  {id:'squall', name:'Squall (Upwell T1 Hauler)', hold:5000},
+  {id:'deluge', name:'Deluge (Upwell T2 Blockade Runner)', hold:5000},
+  {id:'torrent', name:'Torrent (Upwell T2 Transport)', hold:8000},
+  {id:'avalanche', name:'Avalanche (Upwell Freighter)', hold:3000000},
+  {id:'custom', name:'Custom / other hauler…', hold:1000}
+];
+let haulShipId='epithal', haulCapacity=HAUL_SHIPS[0].hold;
+try{haulShipId=localStorage.getItem('pi_haul_ship')||haulShipId;}catch(e){}
+try{const sc=localStorage.getItem('pi_haul_capacity');if(sc)haulCapacity=+sc;}catch(e){}
+
+let lastHunt=null;          // {rows,p0s,homeId,dist}
+let selectedSystemId=null;
+let mapZoom=1,mapPanX=0,mapPanY=0,_pts=[];
+
+/* ---- projection + draw (carried over from pi.html) ---- */
+let _bounds=null;
+function universeBounds(){
+  if(_bounds)return _bounds;
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(const id in UNIVERSE.systems){const s=UNIVERSE.systems[id];
+    if(s[3]<minX)minX=s[3];if(s[3]>maxX)maxX=s[3];
+    if(s[4]<minY)minY=s[4];if(s[4]>maxY)maxY=s[4];}
+  _bounds={minX,minY,spanX:maxX-minX||1,spanY:maxY-minY||1};return _bounds;
+}
+function themeCol(v,fb){try{const c=getComputedStyle(document.documentElement).getPropertyValue(v).trim();return c||fb;}catch(e){return fb;}}
+function renderUniverseMap(){
+  const canvas=$('uniCanvas');if(!canvas||!$('mapPanel').classList.contains('on'))return;
+  const rect=canvas.parentElement.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,rect.width,rect.height);
+  const b=universeBounds();
+  const PAD=0.06;
+  const usableW=rect.width*(1-2*PAD),usableH=rect.height*(1-2*PAD);
+  const ox=rect.width*PAD,oy=rect.height*PAD;
+  function project(s){
+    const px=ox+((s[3]-b.minX)/b.spanX)*usableW,py=oy+(1-(s[4]-b.minY)/b.spanY)*usableH;
+    return [(px-rect.width/2)*mapZoom+rect.width/2+mapPanX,(py-rect.height/2)*mapZoom+rect.height/2+mapPanY];
+  }
+  const SYS=UNIVERSE.systems;
+  /* gate lines */
+  ctx.strokeStyle='rgba(184,216,106,.07)';ctx.lineWidth=0.5;ctx.beginPath();
+  for(const id in SYS){const s=SYS[id];const gates=s[6];if(!gates||!gates.length)continue;
+    const [px,py]=project(s);
+    for(const gid of gates){if(gid<=+id)continue;const t=SYS[String(gid)];if(!t)continue;
+      const [tx,ty]=project(t);ctx.moveTo(px,py);ctx.lineTo(tx,ty);}}
+  ctx.stroke();
+  /* backdrop */
+  _pts=[];
+  ctx.fillStyle='rgba(184,200,160,.35)';
+  for(const id in SYS){const s=SYS[id];const [px,py]=project(s);
+    if(px<-20||py<-20||px>rect.width+20||py>rect.height+20)continue;
+    ctx.beginPath();ctx.arc(px,py,0.8,0,7);ctx.fill();
+    _pts.push({x:px,y:py,id,sec:s[1],name:s[0]});}
+  /* hunt highlights */
+  if(lastHunt){
+    const top=lastHunt.rows.slice(0,60);
+    top.forEach(r=>{const s=SYS[r.id];if(!s)return;const [px,py]=project(s);
+      const full=r.covered===lastHunt.p0s.length;
+      const col=full?'#e0f0c0':'#d8a24a';
+      ctx.beginPath();ctx.arc(px,py,full?4.5:3,0,7);
+      ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;
+      _pts.push({x:px,y:py,id:r.id,sec:s[1],name:s[0],covered:r.covered,total:lastHunt.p0s.length,jumps:r.jumps,isResult:true});});
+    /* home */
+    if(lastHunt.homeId&&SYS[lastHunt.homeId]){const [hx,hy]=project(SYS[lastHunt.homeId]);
+      ctx.strokeStyle='#7ab8c8';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(hx,hy,7,0,7);ctx.stroke();}
+  }
+  /* selected */
+  if(selectedSystemId&&SYS[selectedSystemId]){const [sx,sy]=project(SYS[selectedSystemId]);
+    ctx.strokeStyle='#b8d86a';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(sx,sy,9,0,7);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sx-13,sy);ctx.lineTo(sx-7,sy);ctx.moveTo(sx+7,sy);ctx.lineTo(sx+13,sy);
+    ctx.moveTo(sx,sy-13);ctx.lineTo(sx,sy-7);ctx.moveTo(sx,sy+7);ctx.lineTo(sx,sy+13);ctx.stroke();}
+}
+/* ---- map interaction (zoom / pan / hover / click-select — from pi.html) ---- */
+{
+  const c=$('uniCanvas');
+  c.addEventListener('mousemove',e=>{
+    const rect=c.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    let best=null,bestD=64;
+    for(const p of _pts){const d=(p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my);if(d<bestD){bestD=d;best=p;}}
+    const tip=$('uniTip');
+    if(best){tip.style.display='block';tip.style.left=(mx+16)+'px';tip.style.top=(my-8)+'px';
+      tip.innerHTML=esc(best.name)+'<br><span class="tipm">'+best.sec.toFixed(1)+' sec'+
+        (best.isResult?' · '+best.covered+'/'+best.total+' covered'+(best.jumps!=null?' · '+best.jumps+'j':''):'')+'</span>';}
+    else tip.style.display='none';
+  });
+  c.addEventListener('mouseleave',()=>{$('uniTip').style.display='none';});
+  window.addEventListener('resize',()=>renderUniverseMap());
+  c.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const rect=c.getBoundingClientRect();
+    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    const cx=rect.width/2,cy=rect.height/2;
+    const factor=e.deltaY<0?1.15:1/1.15;
+    const newZoom=Math.max(0.5,Math.min(30,mapZoom*factor));
+    mapPanX=mx-cx-(newZoom/mapZoom)*(mx-cx-mapPanX);
+    mapPanY=my-cy-(newZoom/mapZoom)*(my-cy-mapPanY);
+    mapZoom=newZoom;
+    renderUniverseMap();
+  },{passive:false});
+  let dragging=false,lastX=0,lastY=0,dragMoved=0;
+  c.addEventListener('mousedown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;dragMoved=0;c.style.cursor='grabbing';});
+  window.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    mapPanX+=e.clientX-lastX;mapPanY+=e.clientY-lastY;
+    dragMoved+=Math.abs(e.clientX-lastX)+Math.abs(e.clientY-lastY);
+    lastX=e.clientX;lastY=e.clientY;
+    renderUniverseMap();
+  });
+  window.addEventListener('mouseup',e=>{
+    if(!dragging)return;
+    dragging=false;c.style.cursor='grab';
+    if(dragMoved<4){
+      const rect=c.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+      let best=null,bestD=100;
+      for(const p of _pts){if(!p.isResult)continue;const d=(p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my);if(d<bestD){bestD=d;best=p;}}
+      if(best)selectSystem(String(best.id));
+    }
+  });
+}
+
+/* ---- chain trace + stage scoring (carried over from pi.html) ---- */
+function traceChain(t){
+  const stages=[];let cur=String(t);
+  while(true){stages.unshift(cur);const r=PI.recipe[cur];if(!r||!r.in||!r.in.length)break;
+    cur=String(r.in[0][0]);
+    if(PI.p0pt[cur]&&!PI.recipe[cur]){stages.unshift(cur);break;}}
+  return stages;
+}
+function p0NeedsFor(prodId){
+  if(PI.p0pt[prodId]&&!PI.recipe[prodId])return [prodId];
+  return chainP0s(+prodId).map(String);
+}
+function bfsFull(fromId){
+  const dist={};dist[fromId]=0;let frontier=[fromId];
+  while(frontier.length){
+    const next=[];
+    frontier.forEach(id=>{(UNIVERSE.systems[id][6]||[]).forEach(nb=>{
+      const k=String(nb);
+      if(dist[k]===undefined&&UNIVERSE.systems[k]){dist[k]=dist[id]+1;next.push(k);}});});
+    frontier=next;
+  }
+  return dist;
+}
+function bestSystemFor(prodId,nearId,nearDist){
+  const need=p0NeedsFor(prodId);if(!need.length)return null;
+  let best=null;
+  for(const id in UNIVERSE.systems){const have=UNIVERSE.systems[id][5];if(!have)continue;
+    const covered=need.filter(p=>(PI.p0pt[p]||[]).some(c=>have[c])).length;
+    if(covered===0)continue;
+    const jumps=nearDist?(nearDist[id]===undefined?Infinity:nearDist[id]):null;
+    if(!best||covered>best.covered||(covered===best.covered&&(jumps??1e9)<(best.jumps??1e9)))
+      best={id,covered,total:need.length,jumps};}
+  return best;
+}
+function fmtHrs(sec){const hh=sec/3600;return hh<1?Math.round(sec/60)+'m':(hh===Math.round(hh)?hh+'h':hh.toFixed(1)+'h');}
+
+/* ---- selection + logistics deck ---- */
+function selectSystem(id){
+  if(!basketIds().length)return;
+  selectedSystemId=id;
+  renderUniverseMap();
+  renderLogistics();
+  $('logiDeck').classList.add('on');
+  $('logiDeck').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+{ /* hauler controls (same localStorage keys as pi.html — settings carry over) */
+  const sel=$('haulShipSel'),cap=$('haulCapacityInput');
+  sel.innerHTML=HAUL_SHIPS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
+  sel.value=HAUL_SHIPS.some(s=>s.id===haulShipId)?haulShipId:'epithal';
+  cap.value=haulCapacity;
+  sel.addEventListener('change',()=>{
+    haulShipId=sel.value;try{localStorage.setItem('pi_haul_ship',haulShipId);}catch(e){}
+    const ship=HAUL_SHIPS.find(s=>s.id===haulShipId);
+    if(ship){haulCapacity=ship.hold;cap.value=haulCapacity;try{localStorage.setItem('pi_haul_capacity',haulCapacity);}catch(e){}}
+    renderLogistics();
+  });
+  cap.addEventListener('input',()=>{haulCapacity=+cap.value||1;try{localStorage.setItem('pi_haul_capacity',haulCapacity);}catch(e){}renderLogistics();});
+}
+function renderLogistics(){
+  if(!selectedSystemId||!basketIds().length)return;
+  const SYS=UNIVERSE.systems;
+  const selSys=SYS[selectedSystemId];
+  $('logiSysName').textContent=selSys[0];
+  $('logiSysCard').innerHTML=esc(selSys[0])+' · '+selSys[1].toFixed(1)+' · '+esc(UNIVERSE.regions[selSys[2]]||'');
+  const nearDist=bfsFull(selectedSystemId);
+  const homeDist=lastHunt?lastHunt.dist:null;
+  const routeStops=new Map();let totalTripsAll=0;
+  const unionP0=basketP0();
+  const ROMAN=['I','II','III','IV','V'];
+  const targets=basketIds();
+  let flowHtml='',haulHtml='';
+  targets.forEach(tid=>{
+    const t=+tid,qty=basket[tid]||10;
+    const stages=traceChain(t);
+    const picks=stages.map((s,i)=>{
+      if(i===stages.length-1){ // final stage anchors on the selected system (pi.html behaviour)
+        const have=selSys[5]||{};let covered=0;
+        unionP0.forEach(p=>{if((PI.p0pt[p]||[]).some(c=>have[c]))covered++;});
+        return {id:selectedSystemId,covered,total:unionP0.length||1,jumps:homeDist?(homeDist[selectedSystemId]??null):null,anchored:true};
+      }
+      const pick=bestSystemFor(s,selectedSystemId,nearDist);
+      if(pick&&homeDist)pick.jumps=homeDist[pick.id]??pick.jumps;
+      return pick;
+    });
+    if(targets.length>1)flowHtml+='<div class="ct-prodhead" style="margin-top:8px">'+esc(PI.recipe[t].name)+' \u00d7'+qty+'</div>';
+    flowHtml+='<div class="stageflow">'+stages.map((s,i)=>{
+      const pick=picks[i];
+      const label=PI.p0pt[s]&&!PI.recipe[s]?(PI.names[s]||s)+' (raw)':PI.recipe[s].name;
+      const card='<div class="stagecard card'+(pick&&pick.anchored?' anchored':'')+'">'+
+        '<div class="roman">STAGE '+(ROMAN[i]||i+1)+(pick&&pick.anchored?' · SELECTED':'')+'</div>'+
+        '<div class="st-prod">'+esc(label)+'</div>'+
+        '<div class="st-sys">'+(pick?esc(SYS[pick.id][0]):'no system found')+'</div>'+
+        (pick?'<div class="st-meta">'+pick.covered+'/'+pick.total+' planet types'+(pick.jumps!=null&&pick.jumps!==Infinity?' · '+pick.jumps+'j from home':'')+'</div>':'')+
+        '</div>';
+      if(pick)routeStops.set(pick.id,{sysName:SYS[pick.id][0],jumps:(pick.jumps!==Infinity?pick.jumps:null)});
+      return card+(i<stages.length-1?'<div class="stagelink">\u2192</div>':'');
+    }).join('')+'</div>';
+    /* haul cadence + trips (verbatim maths from pi.html) */
+    let rows='';
+    for(let i=0;i<stages.length-1;i++){const a=stages[i],b=stages[i+1];
+      const ra=PI.recipe[a],rb=PI.recipe[b];
+      const ctA=ra?ra.ct:1800,ctB=rb?rb.ct:1800;
+      const cadence=Math.max(ctA,ctB);
+      const qtyPerCadence=ra?ra.out*Math.max(1,cadence/ctA):1;
+      const tierForVol=PI.tier[a]!=null?PI.tier[a]:(PI.tier[b]!=null?PI.tier[b]:1);
+      const volPerUnit=PI_VOL[a]!=null?PI_VOL[a]:(REF_VOLUME_BY_TIER[tierForVol]!=null?REF_VOLUME_BY_TIER[tierForVol]:6);
+      const totalM3=qtyPerCadence*volPerUnit;
+      const trips=Math.max(1,Math.ceil(totalM3/haulCapacity));
+      totalTripsAll+=trips;
+      rows+='<div class="buf-row card"><span>'+ROMAN[i]+' \u2192 '+ROMAN[i+1]+'</span>'+
+        '<span><b>'+fmtHrs(cadence)+'</b> haul cadence · '+(PI.p0pt[a]&&!PI.recipe[a]?'raw':esc(PI.recipe[a].name))+' \u2192 '+esc(PI.recipe[b]?PI.recipe[b].name:b)+', matched to the slower stage\u2019s cycle · ~'+Math.round(totalM3).toLocaleString()+' m\u00b3 \u2248 <b>'+trips+'</b> trip'+(trips===1?'':'s')+'</span></div>';
+    }
+    haulHtml+=(targets.length>1?'<div class="ct-prodhead" style="margin:8px 0 2px">'+esc(PI.recipe[t].name)+'</div>':'')+
+      (rows||'<div class="buf-row card"><span>Single-stage chain — no hauls needed.</span></div>');
+  });
+  $('stageFlow').innerHTML=flowHtml;
+  $('haulRows').innerHTML=haulHtml;
+  const shipObj=HAUL_SHIPS.find(s=>s.id===haulShipId);
+  $('haulShipLbl').textContent='ROUTE OPTIMISER — '+(shipObj?shipObj.name:'custom hauler')+', '+haulCapacity.toLocaleString()+' m\u00b3';
+  const stops=[...routeStops.values()].sort((x,y)=>(x.jumps??1e9)-(y.jumps??1e9));
+  $('logiRoute').innerHTML=stops.map((s,i)=>'<div class="route-row"><span><span class="stop-idx">'+(i+1)+'.</span><span class="stop-name">'+esc(s.sysName)+'</span></span><span>'+(s.jumps!=null?s.jumps+' jumps from home':'jumps unknown')+'</span></div>').join('')+
+    '<div class="route-summary">Nearest-first route across '+stops.length+' system'+(stops.length===1?'':'s')+' · ~'+totalTripsAll+' total trip'+(totalTripsAll===1?'':'s')+' to clear every haul stage across the whole basket at current cadence.</div>';
+  reportDashboard(targets.map(i=>PI.recipe[i].name).join(' + ')+' \u2192 '+selSys[0]+' · '+stops.length+' stops','ok');
+}
 
 /* ---- pilot chalkboard ---- */
 function renderRoles(){
   const row=$('roleRow');
-  const chars=visibleIds();
-  if(!chars.length){row.innerHTML='<div class="empty" style="padding:10px">no pilots on the roster — sign in via the Toolset menu</div>';$('roleSum').textContent='';return;}
-  row.innerHTML=chars.map(id=>{
+  const ids=visibleIds();
+  if(!ids.length){row.innerHTML='<div class="empty" style="padding:10px">no pilots on the roster — sign in via the Toolset menu</div>';$('roleSum').textContent='';return;}
+  row.innerHTML=ids.map(id=>{
     const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
     const r=roles[id]||'—';
     return '<div class="rolepill card" data-id="'+id+'"><span>'+esc(nm)+'</span><span class="r r-'+ROLES.indexOf(r)+'">'+esc(r)+'</span></div>';
   }).join('');
-  row.querySelectorAll('.rolepill').forEach(p=>{p.onclick=(ev)=>{openRoleMenu(p,p.dataset.id);ev.stopPropagation();};});
-  const counts={};chars.forEach(id=>{const r=roles[id]||'—';counts[r]=(counts[r]||0)+1;});
+  const counts={};ids.forEach(id=>{const r=roles[id]||'—';counts[r]=(counts[r]||0)+1;});
   $('roleSum').textContent='Chalked: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
 }
 function openRoleMenu(pill,id){
   closeRoleMenus();
   const m=document.createElement('div');m.className='rolemenu panel';
-  m.innerHTML=ROLES.map(r=>'<div data-r="'+r+'">'+r+'</div>').join('');
+  m.innerHTML=ROLES.map(r=>'<div class="ropt" data-r="'+r+'">'+r+'</div>').join('');
   pill.appendChild(m);
-  m.querySelectorAll('div').forEach(o=>{o.onclick=(ev)=>{ev.stopPropagation();
-    roles[id]=o.dataset.r;
-    try{localStorage.setItem(ROLE_KEY,JSON.stringify(roles));}catch(e){}
-    closeRoleMenus();renderRoles();};});
 }
 function closeRoleMenus(){document.querySelectorAll('.rolemenu').forEach(m=>m.remove());}
+/* one delegated listener — survives re-renders and theme decor injection */
+$('roleRow').addEventListener('click',ev=>{
+  const opt=ev.target.closest('.ropt');
+  if(opt){
+    const pill=opt.closest('.rolepill');
+    if(pill){roles[pill.dataset.id]=opt.dataset.r;
+      try{localStorage.setItem(ROLE_KEY,JSON.stringify(roles));}catch(e){}}
+    closeRoleMenus();renderRoles();
+    ev.stopPropagation();return;
+  }
+  const pill=ev.target.closest('.rolepill');
+  if(pill){
+    const open=pill.querySelector('.rolemenu');
+    if(open)closeRoleMenus();else openRoleMenu(pill,pill.dataset.id);
+    ev.stopPropagation();
+  }
+});
 document.addEventListener('click',closeRoleMenus);
 
 $('prodSearch').addEventListener('input',renderSugg);
 $('prodSearch').addEventListener('focus',renderSugg);
 window.onRosterChange=renderRoles;
-renderTierChips();renderRoles();
+renderTierChips();renderRoles();renderBasket();renderChain();renderCoverage();
 { /* populate datalist lazily with common trade hubs + on first focus full index */
   const dl=$('sysDatalist');
   $('homeSys').addEventListener('focus',()=>{

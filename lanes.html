@@ -74,7 +74,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
     <div>
       <div class="kicker">Capital Logistics · Flight Plan</div>
       <h1>Freight<span class="diamond"></span>Lanes</h1>
-      <div class="subline">A flight-plan strip for jump freighters — origin to destination with optional midpoints, straight-line light-years from live SDE coordinates, and fuel per leg from your actual skills. Rebuilt anew; the full Jump Freight Planner (2-D map, fatigue, kill heatmap) ships alongside as <b>jump.html</b>.</div>
+      <div class="subline">A flight-plan strip for jump freighters — origin to destination with optional midpoints, straight-line light-years from live SDE coordinates, and fuel per leg from your actual skills. Rebuilt anew from the Jump Freight Planner.</div>
     </div>
   </div>
   <div class="tb-right">
@@ -221,7 +221,7 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
 
 /* ================= Freight Lanes ================= */
 /* Ship + fuel constants carried over verbatim from the original Jump
-   Freight Planner (jump.html): base range 5.0 LY, +20% per JDC level;
+   Freight Planner: base range 5.0 LY, +20% per JDC level;
    fuel = ceil(ly × 3100 × (1−0.1×JFC) × (1−0.1×JF)) isotopes.        */
 const SHIPS={
   ark:{name:'Ark',race:'Amarr',iso:'Helium Isotopes',baseRange:5.0,baseFuel:3100},
@@ -299,7 +299,7 @@ async function plan(){
       '</div>'+
       '<div class="smallprint panel">Distances are straight-line light-years from live ESI system coordinates. Fuel = ⌈ly × '+fmtFull(fpl)+'⌉ per jump (base 3,100 × JFC × JF), the same formula as the original planner. '+
       (hiSecDest?'<b>Note:</b> legs ending in highsec (0.45+) can\'t be jumped to — cynos can\'t be lit there; route to a lowsec midpoint instead. ':'')+
-      'Jump fatigue, gate routing and threat live in the full planner (jump.html).</div>';
+      'Jump fatigue and gate routing are not modelled here.</div>';
     reportDashboard(legs.length+' jumps · '+fmtInt(totFuel)+' iso', over?'bad':'ok');
   }catch(e){$('out').innerHTML='<div class="empty">plan failed: '+esc(e.message)+'</div>';}
 }
