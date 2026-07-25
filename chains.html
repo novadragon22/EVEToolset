@@ -825,7 +825,20 @@ function renderLogistics(){
       (rows||'<div class="buf-row card"><span>Single-stage chain — no hauls needed.</span></div>');
   });
   $('stageFlow').innerHTML=flowHtml;
-  $('haulRows').innerHTML=haulHtml;
+  /* export volume — computed from the chalked roster's supported lines */
+  let expHtml='';
+  const capSt=(typeof capacityState==='function')?capacityState():null;
+  if(capSt){
+    const rowsE=capSt.prods.filter(p=>isFinite(p.lines)&&p.lines>0).map(p=>{
+      const perDay=p.rate*24;
+      const vol=PI_VOL[p.t]!=null?PI_VOL[p.t]:(REF_VOLUME_BY_TIER[PI.tier[p.t]]!=null?REF_VOLUME_BY_TIER[PI.tier[p.t]]:6);
+      const m3=perDay*vol;
+      const trips=Math.max(1,Math.ceil(m3/haulCapacity));
+      return '<div class="buf-row card"><span>EXPORT</span><span><b>'+esc(p.name)+'</b> \u00b7 '+fmtInt(Math.round(perDay))+' units/day \u2248 <b>'+fmtInt(Math.round(m3))+' m\u00b3/day</b> \u2248 <b>'+trips+'</b> export trip'+(trips===1?'':'s')+'/day to home station</span></div>';
+    }).join('');
+    if(rowsE)expHtml='<div class="ct-prodhead" style="margin:8px 0 2px">EXPORT VOLUME \u2014 from chalked roster</div>'+rowsE;
+  }
+  $('haulRows').innerHTML=haulHtml+expHtml;
   const shipObj=HAUL_SHIPS.find(s=>s.id===haulShipId);
   $('haulShipLbl').textContent='ROUTE OPTIMISER — '+(shipObj?shipObj.name:'custom hauler')+', '+haulCapacity.toLocaleString()+' m\u00b3';
   const stops=[...routeStops.values()].sort((x,y)=>(x.jumps??1e9)-(y.jumps??1e9));
@@ -863,7 +876,7 @@ function openRoleMenu(pill,id){
     if(opt){
       roles[id]=opt.dataset.r;
       try{localStorage.setItem(ROLE_KEY,JSON.stringify(roles));}catch(e){}
-      closeRoleMenus();renderRoles();renderCapacity();
+      closeRoleMenus();renderRoles();renderCapacity();if(selectedSystemId)renderLogistics();
     }
     ev.stopPropagation();
   });
@@ -988,12 +1001,12 @@ function renderCapacity(){
     '<div class="cb-note cb-rate">extractors at full heads, max output \u00b7 avg <input type="number" min="1" id="extRate" value="'+st.rate+'"> P0/hr per extractor planet (reference \u2014 override to match your colonies)</div>'+
     '<div class="cb-pilots">'+pl+'</div>';
   const inp=$('extRate');
-  if(inp)inp.addEventListener('change',()=>{try{localStorage.setItem(EXTRACT_RATE_KEY,String(Math.max(1,+inp.value||EXTRACTOR_P0_HR_DEFAULT)));}catch(e){}renderCapacity();});
+  if(inp)inp.addEventListener('change',()=>{try{localStorage.setItem(EXTRACT_RATE_KEY,String(Math.max(1,+inp.value||EXTRACTOR_P0_HR_DEFAULT)));}catch(e){}renderCapacity();if(selectedSystemId)renderLogistics();});
   band.querySelectorAll('.cb-pline').forEach(el=>{el.onclick=()=>{
     const id=el.dataset.id,c=pilotCap(id);
     const p=prompt('Planets committed to this draft for this pilot:',c.planets);if(p==null)return;
     const s=prompt('Factory slots per planet (reference \u2014 adjust to your builds):',c.slots);if(s==null)return;
-    capOvr[id]={planets:Math.max(0,+p||0),slots:Math.max(1,+s||c.slots)};saveCapOvr();renderCapacity();
+    capOvr[id]={planets:Math.max(0,+p||0),slots:Math.max(1,+s||c.slots)};saveCapOvr();renderCapacity();if(selectedSystemId)renderLogistics();
   };});
 }
 loadPiSkills().then(ch=>{if(ch)renderCapacity();});
