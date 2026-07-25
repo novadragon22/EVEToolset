@@ -2333,6 +2333,57 @@ html[data-theme="amarr"]{--bullet-clip:polygon(50% 0,100% 50%,50% 100%,0 50%);
   --steel-edge:#3e321c;
   --steel-soft:#c0aa80}
 /* ================================================================
+   AMARR × CHAIN WORKS — legibility additions (suite layer; NOT part
+   of the faction-themes-preview transcription). Amarr is the one
+   faction whose cards go light; the chains app layer inks its card
+   interiors with the dark-page palette (--text:#e6dabd etc.), which
+   vanishes on parchment. These additive rules re-ink those
+   interiors with manuscript sepia/crimson and re-shape the map
+   card's arch from the full 999px reliquary dome (which, on a
+   440px-tall panel, clips nearly the whole top edge and slices the
+   candidate strip along the arc) down to the same 150px vault the
+   amarr nave panels already use. Nothing transcribed is modified.
+   ================================================================ */
+/* map inks — consumed by chains.html renderUniverseMap() via themeCol() */
+html[data-theme="amarr"]{
+  --map-gate:rgba(90,62,16,.3);
+  --map-star:rgba(74,58,16,.4);
+  --map-full:#4a3a10;
+  --map-part:#8a5a1a;
+  --map-home:#a3342a;
+  --map-sel:#7a1420}
+/* the map card: nave vault instead of full reliquary dome */
+html[data-theme="amarr"] .mappanel.card{border-radius:150px 150px 22px 22px}
+html[data-theme="amarr"][data-app="chains"] .maphint{color:#8a6a32;left:50%;right:auto;transform:translateX(-50%);white-space:nowrap;top:16px}
+html[data-theme="amarr"][data-app="chains"] .maplegend{color:#7a6238}
+html[data-theme="amarr"][data-app="chains"] .maplegend .d-full{background:#4a3a10;box-shadow:none}
+html[data-theme="amarr"][data-app="chains"] .maplegend .d-part{background:#8a5a1a}
+html[data-theme="amarr"][data-app="chains"] .maplegend .d-home{border-color:#a3342a}
+html[data-theme="amarr"][data-app="chains"] .maplegend .d-sel{border-color:#7a1420}
+/* candidates strip: gilt chrome, positioned clear of the vault curve */
+html[data-theme="amarr"][data-app="chains"] .candstrip{top:72px;right:26px;background:rgba(18,12,5,.92);border-color:#6a5530}
+html[data-theme="amarr"][data-app="chains"] .candstrip .cs-h{color:#c9a868}
+html[data-theme="amarr"][data-app="chains"] .cand-row .cn{color:#3a2c14}
+html[data-theme="amarr"][data-app="chains"] .cand-row .cm{color:#7a6238}
+html[data-theme="amarr"][data-app="chains"] .cand-row .sec-hi{color:#3a6a20}
+html[data-theme="amarr"][data-app="chains"] .cand-row .sec-lo{color:#8a5a1a}
+html[data-theme="amarr"][data-app="chains"] .cand-row:hover{border-color:#8a6a32}
+html[data-theme="amarr"][data-app="chains"] .cand-row.on{border-color:#8a6a32;box-shadow:0 0 10px rgba(163,52,42,.4)}
+/* planet coverage: manuscript ink + gilt badges */
+html[data-theme="amarr"][data-app="chains"] .cov .pn{color:#3a2c14}
+html[data-theme="amarr"][data-app="chains"] .cov .pt i{background:rgba(138,106,50,.14);border-color:#8a6a32;color:#5a3e10}
+/* pilot chalkboard + basket chip: same ink correction */
+html[data-theme="amarr"][data-app="chains"] .rolepill{color:#3a2c14}
+html[data-theme="amarr"][data-app="chains"] .rolepill:hover{border-color:#8a6a32}
+html[data-theme="amarr"][data-app="chains"] .rolepill .r{color:#7a6238;border-color:#8a6a32}
+html[data-theme="amarr"][data-app="chains"] .rolepill .r-1{color:#1a4a5a;border-color:#1a4a5a}
+html[data-theme="amarr"][data-app="chains"] .rolepill .r-2{color:#3a6a20;border-color:#3a6a20}
+html[data-theme="amarr"][data-app="chains"] .rolepill .r-3{color:#8a5a1a;border-color:#8a5a1a}
+html[data-theme="amarr"][data-app="chains"] .prodchip input{background:#efe6cc;border-color:#b89858;color:#3a2c14}
+html[data-theme="amarr"][data-app="chains"] .prodchip .chip-x{color:#7a6238}
+/* tooltip: reliquary panel rings collapse on a 2-line tip — gilt plaque */
+html[data-theme="amarr"][data-app="chains"] #uniTip{border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.55)}
+/* ================================================================
    CALDARI — brutalist corporate-functionalism, full munitions spec
    blueprint grid + scanlines · missile-bay stat cards w/ armor
    plates · rivet strips · stencil serials · segmented readout bars

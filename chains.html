@@ -96,9 +96,22 @@ td .reg{font-size:9px}
 .maplegend i{font-style:normal;display:inline-flex;align-items:center;gap:5px}
 .maplegend .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .maphint{position:absolute;left:12px;top:10px;font-size:9px;z-index:5}
-.candstrip{position:absolute;right:10px;top:10px;bottom:40px;width:248px;overflow-y:auto;z-index:6;padding:8px}
+.candstrip{position:absolute;right:10px;top:10px;bottom:40px;width:248px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;z-index:6;padding:8px}
 .candstrip .cs-h{font-size:8.5px;margin-bottom:6px}
 .cand-row{font-size:10px;padding:6px 8px;margin-top:4px;cursor:pointer;line-height:1.5}
+/* ---- clean glass: the universe map + candidate strip stay free of theme
+   decor. themes.js injects .thm-dec vein/sheen overlays into every .panel and
+   .card, and the faction layers add ::before/::after glyphs and slicks; those
+   read fine on ordinary cards but smear across the starfield and the top-25
+   list. The map card is lifted above the hunt panel's own overlay (it has an
+   opaque themed background, so the panel veins can't shine through), and all
+   injected/pseudo decor inside it is display-gated off. The page theme —
+   backgrounds, borders, fonts, clip shapes — is untouched. ---- */
+.mappanel{isolation:isolate;z-index:8}
+.mappanel .thm-dec{display:none!important}
+.mappanel::before,.mappanel::after,
+.cand-row::before,.cand-row::after,
+#uniTip::before,#uniTip::after{content:none!important;display:none!important}
 .cand-row .cn{font-size:11px;display:flex;justify-content:space-between;gap:6px}
 .cand-row .cm{font-size:9px}
 /* logistics deck */
@@ -582,6 +595,17 @@ function renderUniverseMap(){
   const ctx=canvas.getContext('2d');if(!ctx)return;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,rect.width,rect.height);
+  /* theme map inks — themes.css palette bridges may override (amarr's
+     parchment cards need dark sepia/crimson); fallbacks are the original
+     dark-backdrop colours so every other theme renders unchanged */
+  const INK={
+    gate:themeCol('--map-gate','rgba(184,216,106,.07)'),
+    star:themeCol('--map-star','rgba(184,200,160,.35)'),
+    full:themeCol('--map-full','#e0f0c0'),
+    part:themeCol('--map-part','#d8a24a'),
+    home:themeCol('--map-home','#7ab8c8'),
+    sel:themeCol('--map-sel','#b8d86a')
+  };
   const b=universeBounds();
   const PAD=0.06;
   const usableW=rect.width*(1-2*PAD),usableH=rect.height*(1-2*PAD);
@@ -592,7 +616,7 @@ function renderUniverseMap(){
   }
   const SYS=UNIVERSE.systems;
   /* gate lines */
-  ctx.strokeStyle='rgba(184,216,106,.07)';ctx.lineWidth=0.5;ctx.beginPath();
+  ctx.strokeStyle=INK.gate;ctx.lineWidth=0.5;ctx.beginPath();
   for(const id in SYS){const s=SYS[id];const gates=s[6];if(!gates||!gates.length)continue;
     const [px,py]=project(s);
     for(const gid of gates){if(gid<=+id)continue;const t=SYS[String(gid)];if(!t)continue;
@@ -600,7 +624,7 @@ function renderUniverseMap(){
   ctx.stroke();
   /* backdrop */
   _pts=[];
-  ctx.fillStyle='rgba(184,200,160,.35)';
+  ctx.fillStyle=INK.star;
   for(const id in SYS){const s=SYS[id];const [px,py]=project(s);
     if(px<-20||py<-20||px>rect.width+20||py>rect.height+20)continue;
     ctx.beginPath();ctx.arc(px,py,0.8,0,7);ctx.fill();
@@ -610,18 +634,18 @@ function renderUniverseMap(){
     const top=lastHunt.rows.slice(0,60);
     top.forEach(r=>{const s=SYS[r.id];if(!s)return;const [px,py]=project(s);
       const full=r.covered===lastHunt.p0s.length;
-      const col=full?'#e0f0c0':'#d8a24a';
+      const col=full?INK.full:INK.part;
       ctx.beginPath();ctx.arc(px,py,full?4.5:3,0,7);
       ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;
       _pts.push({x:px,y:py,id:r.id,sec:s[1],name:s[0],covered:r.covered,total:lastHunt.p0s.length,jumps:r.jumps,isResult:true});});
     /* home */
     if(lastHunt.homeId&&SYS[lastHunt.homeId]){const [hx,hy]=project(SYS[lastHunt.homeId]);
-      ctx.strokeStyle='#7ab8c8';ctx.lineWidth=1.5;
+      ctx.strokeStyle=INK.home;ctx.lineWidth=1.5;
       ctx.beginPath();ctx.arc(hx,hy,7,0,7);ctx.stroke();}
   }
   /* selected */
   if(selectedSystemId&&SYS[selectedSystemId]){const [sx,sy]=project(SYS[selectedSystemId]);
-    ctx.strokeStyle='#b8d86a';ctx.lineWidth=2;
+    ctx.strokeStyle=INK.sel;ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(sx,sy,9,0,7);ctx.stroke();
     ctx.beginPath();ctx.moveTo(sx-13,sy);ctx.lineTo(sx-7,sy);ctx.moveTo(sx+7,sy);ctx.lineTo(sx+13,sy);
     ctx.moveTo(sx,sy-13);ctx.lineTo(sx,sy-7);ctx.moveTo(sx,sy+7);ctx.lineTo(sx,sy+13);ctx.stroke();}
