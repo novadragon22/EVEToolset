@@ -38,6 +38,18 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .ctl .hint{font-size:10.5px}
 /* the skyline: tall narrow tower cards with a vertical fuel tube */
 .skyline{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;align-items:start}
+/* moon-watch style type lanes: one lane per structure type, hungriest first */
+.typelanes{display:flex;flex-direction:column;gap:16px}
+.tlane{position:relative}
+.tlane-hd{display:flex;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.tlane-hd h2{font-size:11.5px;margin:0}
+.tlane-hd .cnt{font-size:10px;padding:2px 9px}
+.tlane-hd .desc{font-size:10px}
+.tlane .towers{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;align-items:start;padding:4px 14px 14px}
+.corpstrip{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.thead{display:flex;gap:10px;align-items:flex-start}
+.thead-t{min-width:0}
+.timg{display:block;width:46px;height:46px;border-radius:7px;object-fit:cover;flex:none;margin-top:1px}
 .tower{position:relative;padding:0 0 14px;display:grid;grid-template-columns:34px 1fr;gap:0}
 .tube{position:relative;margin:14px 0 0 12px;width:12px;align-self:stretch;min-height:190px}
 .tube .fill{position:absolute;left:0;right:0;bottom:0}
@@ -80,7 +92,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
   <button class="btn primary" id="loadBtn">Walk the skyline</button>
   <span class="hint" id="loadNote">Reads corp structures for each pilot's corporation — needs the Station Manager role in game; pilots without it are noted, not failed.</span>
 </div>
-<div class="skyline" id="out"><div class="empty" style="grid-column:1/-1">Press <b>Walk the skyline</b> to read corp structures.<br>Sign-in lives in the Toolset menu.</div></div>
+<div id="out"><div class="empty">Press <b>Walk the skyline</b> to read corp structures.<br>Sign-in lives in the Toolset menu.</div></div>
 </div>
 
 <div id="toast"></div>
@@ -207,7 +219,7 @@ let towersByCorp=null;
 async function loadAll(){
   if(noPilotsGuard('out'))return;
   const btn=$('loadBtn');btn.disabled=true;
-  $('out').innerHTML='<div class="empty" style="grid-column:1/-1"><span class="spin"></span>Walking the skyline…</div>';
+  $('out').innerHTML='<div class="empty"><span class="spin"></span>Walking the skyline…</div>';
   const corps={};   // corpId -> {name, structures, err, via}
   for(const id of visibleIds()){
     try{
@@ -241,34 +253,69 @@ async function loadAll(){
 const MAX_FUEL_DAYS=60;  // tube scale only — a full tube means 60+ days
 function render(){
   const corps=towersByCorp;
-  let html='',low=0,total=0;
+  /* corp read summary strip stays on top; towers regroup into moon-watch
+     style lanes, one per structure type, resolved live from ESI type names
+     (no hardcoded hull list — Athanor/Tatara/Fortizar/Azbel/anything just
+     groups by whatever its type_id resolves to). Lanes are ordered by their
+     hungriest member and towers inside each lane run lowest→highest fuel. */
+  const HULL_CLASS={'Athanor':'refinery','Tatara':'refinery',
+    'Astrahus':'citadel','Fortizar':'citadel','Keepstar':'citadel',
+    'Raitaru':'engineering complex','Azbel':'engineering complex','Sotiyo':'engineering complex',
+    'Ansiblex Jump Gate':'navigation','Pharolux Cyno Beacon':'navigation','Tenebrex Cyno Jammer':'navigation',
+    'Metenox Moon Drill':'moon drill','Orbital Skyhook':'sovereignty'};
+  let strip='',all=[],low=0,total=0;
   for(const cid of Object.keys(corps)){
     const c=corps[cid];
-    html+='<div class="corpband panel"><span>'+esc(c.name)+'</span><span>'+((c.structures||[]).length||0)+' structures · read via '+esc(c.via||'—')+'</span></div>';
-    if(c.err){html+='<div class="charerr" style="grid-column:1/-1">⚠ '+esc(c.err)+'</div>';continue;}
-    if(!(c.structures||[]).length){html+='<div class="empty" style="grid-column:1/-1;padding:20px">no Upwell structures on the books</div>';continue;}
-    html+=c.structures.map(s=>{
-      total++;
-      const fuelMs=s.fuel_expires?Date.parse(s.fuel_expires)-now():null;
-      const days=fuelMs==null?null:fuelMs/86400000;
-      const pct=days==null?0:Math.max(2,Math.min(100,100*days/MAX_FUEL_DAYS));
-      const lowFuel=days!=null&&days<7;
-      if(lowFuel)low++;
-      const state=(s.state||'').replace(/_/g,' ');
-      const svcs=(s.services||[]).map(v=>'<div class="svc"><span class="dot '+(v.state==='online'?'on':'off')+'"></span>'+esc((v.name||'').replace(/_/g,' '))+'</div>').join('');
-      return '<div class="tower panel'+(lowFuel?' lowfuel':'')+'">'+
-        '<div class="tube"><span class="cap"></span><span class="fill '+(lowFuel?'low':'ok')+'" style="height:'+pct.toFixed(0)+'%"></span></div>'+
-        '<div class="tbody">'+
-        '<div class="tn">'+esc(s._name||('Structure '+s.structure_id))+'</div>'+
-        '<div class="tt">'+esc(nameOf(s.type_id,'Type '+s.type_id))+'</div>'+
-        '<div class="sys">'+esc(nameOf(s.system_id,'System'))+'</div>'+
-        '<div class="fuelnum"><div class="fv">'+(fuelMs==null?'no fuel data':fmtDur(fuelMs))+'</div><div class="fl">fuel remaining'+(days!=null?' · expires '+s.fuel_expires.slice(0,10):'')+'</div></div>'+
-        '<span class="state st-'+(s.state==='shield_vulnerable'||s.state==='armor_vulnerable'||s.state==='hull_vulnerable'?'warn':'ok')+'">'+esc(state||'state unknown')+'</span>'+
-        (svcs?'<div class="svcs">'+svcs+'</div>':'')+
-        '</div></div>';
-    }).join('');
+    strip+='<div class="corpband panel"><span>'+esc(c.name)+'</span><span>'+((c.structures||[]).length||0)+' structures · read via '+esc(c.via||'—')+'</span></div>';
+    if(c.err){strip+='<div class="charerr">⚠ '+esc(c.err)+'</div>';continue;}
+    (c.structures||[]).forEach(s=>{const t=Object.assign({},s);t._corp=c.name;all.push(t);});
   }
-  $('out').innerHTML=html||'<div class="empty" style="grid-column:1/-1">no corporations resolvable from the roster</div>';
+  strip='<div class="corpstrip">'+ (strip||'') +'</div>';
+  if(!all.length){
+    $('out').innerHTML=strip+'<div class="empty">no Upwell structures on the books</div>';
+    reportDashboard('0 structures','ok');
+    $('loadNote').textContent='Skyline read '+new Date().toUTCString().slice(17,25)+' EVE';
+    return;
+  }
+  const fuelMsOf=s=>s.fuel_expires?Date.parse(s.fuel_expires)-now():Infinity;
+  const groups={};
+  all.forEach(s=>{const tn=nameOf(s.type_id,'Type '+s.type_id);(groups[tn]=groups[tn]||[]).push(s);});
+  const lanes=Object.keys(groups).map(tn=>{
+    const list=groups[tn].slice().sort((a,b)=>fuelMsOf(a)-fuelMsOf(b));
+    return {tn,list,min:fuelMsOf(list[0])};
+  }).sort((a,b)=>a.min-b.min||a.tn.localeCompare(b.tn));
+  const tower=s=>{
+    total++;
+    const fuelMs=s.fuel_expires?Date.parse(s.fuel_expires)-now():null;
+    const days=fuelMs==null?null:fuelMs/86400000;
+    const pct=days==null?0:Math.max(2,Math.min(100,100*days/MAX_FUEL_DAYS));
+    const lowFuel=days!=null&&days<7;
+    if(lowFuel)low++;
+    const state=(s.state||'').replace(/_/g,' ');
+    const svcs=(s.services||[]).map(v=>'<div class="svc"><span class="dot '+(v.state==='online'?'on':'off')+'"></span>'+esc((v.name||'').replace(/_/g,' '))+'</div>').join('');
+    return '<div class="tower panel'+(lowFuel?' lowfuel':'')+'">'+
+      '<div class="tube"><span class="cap"></span><span class="fill '+(lowFuel?'low':'ok')+'" style="height:'+pct.toFixed(0)+'%"></span></div>'+
+      '<div class="tbody">'+
+      '<div class="thead"><img class="timg" src="https://images.evetech.net/types/'+(+s.type_id||0)+'/render?size=64" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'+
+      '<div class="thead-t">'+
+      '<div class="tn">'+esc(s._name||('Structure '+s.structure_id))+'</div>'+
+      '<div class="tt">'+esc(s._corp||'')+'</div>'+
+      '<div class="sys">'+esc(nameOf(s.system_id,'System'))+'</div>'+
+      '</div></div>'+
+      '<div class="fuelnum"><div class="fv">'+(fuelMs==null?'no fuel data':fmtDur(fuelMs))+'</div><div class="fl">fuel remaining'+(days!=null?' · expires '+s.fuel_expires.slice(0,10):'')+'</div></div>'+
+      '<span class="state st-'+(s.state==='shield_vulnerable'||s.state==='armor_vulnerable'||s.state==='hull_vulnerable'?'warn':'ok')+'">'+esc(state||'state unknown')+'</span>'+
+      (svcs?'<div class="svcs">'+svcs+'</div>':'')+
+      '</div></div>';
+  };
+  const html=lanes.map(L=>{
+    const hot=L.min!==Infinity&&L.min/86400000<7;
+    const cls=HULL_CLASS[L.tn];
+    const desc=(cls?cls+' · ':'')+'lowest fuel '+(L.min===Infinity?'no fuel data':fmtDur(L.min));
+    return '<div class="tlane panel'+(hot?' hot':'')+'">'+
+      '<div class="tlane-hd"><h2>'+esc(L.tn)+'</h2><span class="cnt">'+L.list.length+'</span><span class="desc">'+esc(desc)+'</span></div>'+
+      '<div class="towers">'+L.list.map(tower).join('')+'</div></div>';
+  }).join('');
+  $('out').innerHTML=strip+'<div class="typelanes">'+html+'</div>';
   reportDashboard(total+' structures'+(low?' · '+low+' low fuel!':''), low?'bad':'ok');
   $('loadNote').textContent='Skyline read '+new Date().toUTCString().slice(17,25)+' EVE';
 }

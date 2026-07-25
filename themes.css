@@ -1749,6 +1749,16 @@ html[data-app="citadel"] .empty{color:var(--muted)}
 html[data-app="citadel"] #toast{background:var(--panel);border:1px solid var(--green);color:var(--green);font-family:var(--mono)}
 html[data-app="citadel"] #toast.bad{border-color:var(--red);color:var(--red)}
 html[data-app="citadel"] .spin{border:2px solid var(--line2);border-top-color:var(--green);border-radius:50%}
+/* type lanes (moon-watch style headings per hull, hungriest lane first) */
+html[data-app="citadel"] .tlane{border-left:5px solid var(--green)}
+html[data-app="citadel"] .tlane.hot{border-left-color:var(--red)}
+html[data-app="citadel"] .tlane-hd{border-bottom:1px solid var(--line)}
+html[data-app="citadel"] .tlane-hd h2{font-family:var(--tower);letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+html[data-app="citadel"] .tlane.hot .tlane-hd h2{color:var(--red)}
+html[data-app="citadel"] .tlane-hd .cnt{font-family:var(--mono);color:var(--text);border:1px solid var(--line2);border-radius:9px}
+html[data-app="citadel"] .tlane-hd .desc{color:var(--muted2);font-family:var(--mono)}
+html[data-app="citadel"] .tlane.hot .tlane-hd .desc{color:var(--red)}
+html[data-app="citadel"] .timg{background:rgba(0,0,0,.5);border:1px solid var(--line)}
 
 /* -------- COLONY ORBIT (colonies.html) — planet-tile baseline --------
    Identity: warm PI clay palette echo, Comfortaa rounded type, SVG ring
