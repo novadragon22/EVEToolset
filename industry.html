@@ -386,14 +386,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
     <input id="bpSearchInput" type="text" placeholder="Search by name…" style="font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.03);border:1px solid var(--line2);color:var(--text);padding:7px 12px;min-width:220px">
   </div>
   <div class="bp-filter">
-    <button class="bp-filt-btn on btn" data-filt="all" id="bpFiltAll">All (0)</button>
     <button class="bp-filt-btn btn" data-filt="owned" id="bpFiltOwned">Owned (0)</button>
-    <button class="bp-filt-btn btn" data-filt="missing" id="bpFiltMissing">Missing (0)</button>
+    <button class="bp-filt-btn on btn" data-filt="missing" id="bpFiltMissing">Missing (0)</button>
   </div>
   <div class="bp-filter" id="bpSourceFilter">
-    <button class="bp-src-btn on btn" data-src="all" id="bpSrcAll">All Sources (0)</button>
     <button class="bp-src-btn btn" data-src="personal" id="bpSrcPersonal">Personal (0)</button>
-    <button class="bp-src-btn btn" data-src="corp" id="bpSrcCorp">Corp (0)</button>
   </div>
   <div class="bp-grid" id="bpGrid">
     <div class="sub" style="padding:20px 4px">Loading blueprint catalog…</div>
@@ -1391,7 +1388,7 @@ document.getElementById('importJsonFile').addEventListener('change', (e)=>{
   e.target.value='';
 });
 
-let bpTypeFilt='blueprint', bpStatusFilt='all', bpSourceFilt='all', bpSearchTerm='';
+let bpTypeFilt='blueprint', bpStatusFilt='missing', bpSourceFilt='all', bpSearchTerm='';
 const BP_RENDER_CHUNK=80; let bpRenderLimit=BP_RENDER_CHUNK; // 8 cols × 10 rows // Library renders in chunks — 4,900+ SDE entries at once froze the tab
 function applyBpFilters(){
   // Filtering is data-level now: any filter/search change resets to the first
@@ -2003,12 +2000,9 @@ function renderBpLibrary(){
 
   document.getElementById('bpSubBlueprint').textContent = 'Blueprints ('+counts.blueprint+')';
   document.getElementById('bpSubReaction').textContent = 'Reactions ('+counts.reaction+')';
-  document.getElementById('bpFiltAll').textContent = 'All ('+counts.all+')';
   document.getElementById('bpFiltOwned').textContent = 'Owned ('+counts.owned+')';
   document.getElementById('bpFiltMissing').textContent = 'Missing ('+counts.missing+')';
-  document.getElementById('bpSrcAll').textContent = 'All Sources ('+counts.all+')';
   document.getElementById('bpSrcPersonal').textContent = 'Personal ('+counts.personal+')';
-  document.getElementById('bpSrcCorp').textContent = 'Corp ('+counts.corp+')';
 
   const more = document.getElementById('bpShowMore');
   if(more) more.onclick = ()=>{ bpRenderLimit += BP_RENDER_CHUNK; renderBpLibrary(); };

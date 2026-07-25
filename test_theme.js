@@ -229,7 +229,7 @@ for (const f of files) {
     await new Promise(r => setTimeout(r, 60));
     const cards0 = idoc.querySelectorAll('#bpGrid .bp-card').length;
     const more = idoc.getElementById('bpShowMore');
-    // first chunk only, with a Show-more affordance (catalog is ~5k entries)
+    // Default: Missing + All Sources → shows the full ~3.5k T1 catalog without ESI
     let p = cards0 > 0 && cards0 <= 80 && !!more;
     if (more) more.onclick();
     await new Promise(r => setTimeout(r, 30));
