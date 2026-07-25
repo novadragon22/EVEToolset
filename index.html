@@ -326,7 +326,9 @@ function renderRoster(){
     const label=c.charName+(c.corpName?' · '+c.corpName:'');
     return `<span class="rchip" title="${label.replace(/"/g,'&quot;')}"><img alt="" src="https://images.evetech.net/characters/${id}/portrait?size=64" onerror="this.style.visibility='hidden'"><span class="x" title="Sign out" onclick="removeSuiteChar('${id}')"><svg width="12" height="12" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`;
   }).join('')+addChip : addChip;
-  document.getElementById('addCharBtn').onclick=()=>{ renderScopeList(); document.getElementById('scopeOverlay').classList.add('show'); };
+  /* straight to EVE SSO — the scope-explainer overlay is skipped by request;
+     the overlay markup + renderScopeList() are kept for possible reuse */
+  document.getElementById('addCharBtn').onclick=()=>{ beginLogin(); };
 }
 handleSuiteRedirect(); renderRoster();
 </script>
