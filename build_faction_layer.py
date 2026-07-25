@@ -186,7 +186,11 @@ def derived_extras(rules):
     out = []
     for sel, body in rules:
         if '.kcard' in sel:
-            out.append(sel.replace('.kcard', '.card') + '{' + body + '}')
+            # .card:not(.bp-card): the industry Blueprint Library renders up to
+            # ~5k .bp-card.card nodes — the full kcard treatment (gradients,
+            # shadows, animated pseudos) on that many cards is a perf killer.
+            # Library cards stay palette-themed via variables only.
+            out.append(sel.replace('.kcard', '.card:not(.bp-card)') + '{' + body + '}')
             out.append(sel.replace('.kcard', '.tile') + '{' + body + '}')
         if '.panel-hd' in sel and '.panel-head' not in sel:
             out.append(sel.replace('.panel-hd', '.panel-head') + '{' + body + '}')

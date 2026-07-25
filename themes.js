@@ -67,6 +67,10 @@
   function decCards(el) {
     if (el.__thmC) return;
     el.__thmC = 1;
+    // Library grids render thousands of .bp-card.card nodes — two injected
+    // decor elements each is pure overhead there (the theme layer also
+    // excludes them via .card:not(.bp-card)).
+    if (el.classList && el.classList.contains('bp-card')) return;
     el.appendChild(make('i', 'thm-dec thm-d1'));
     el.appendChild(make('i', 'thm-dec thm-d2'));
   }

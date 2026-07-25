@@ -221,6 +221,35 @@ for (const f of files) {
   if (!pass) fail++;
   console.log(`${pass ? 'PASS' : 'FAIL'} decor runtime (dynamic): kcardDecs=${dynDecs} panelDecs=${dynPDecs} lamps=${dynLamps}`);
 
+  // 7) Industry Blueprint Library: chunked rendering + light bp-cards
+  {
+    const ind = boot('industry.html', 'minmatar');
+    const iw = ind.dom.window, idoc = iw.document;
+    try { iw.eval(themesJsSrc); } catch (e) {}
+    await new Promise(r => setTimeout(r, 60));
+    const cards0 = idoc.querySelectorAll('#bpGrid .bp-card').length;
+    const more = idoc.getElementById('bpShowMore');
+    // first chunk only, with a Show-more affordance (catalog is ~5k entries)
+    let p = cards0 > 0 && cards0 <= 120 && !!more;
+    if (more) more.onclick();
+    await new Promise(r => setTimeout(r, 30));
+    const cards1 = idoc.querySelectorAll('#bpGrid .bp-card').length;
+    p = p && cards1 > cards0 && cards1 <= 240;
+    // Library cards skip the heavy theme decor (no injected .thm-dec)
+    const bpc = idoc.querySelector('#bpGrid .bp-card');
+    const bpDecs = bpc ? bpc.querySelectorAll(':scope > .thm-dec').length : -1;
+    p = p && bpDecs === 0;
+    // data-level search: an impossible term renders zero cards + empty message, no crash
+    const si = idoc.getElementById('bpSearchInput');
+    si.value = 'zzzznope'; si.dispatchEvent(new iw.Event('input'));
+    await new Promise(r => setTimeout(r, 30));
+    const cardsS = idoc.querySelectorAll('#bpGrid .bp-card').length;
+    const emptyMsg = idoc.getElementById('bpGrid').textContent.includes('No blueprints match');
+    p = p && cardsS === 0 && emptyMsg;
+    if (!p) fail++;
+    console.log(`${p ? 'PASS' : 'FAIL'} industry library: chunk=${cards0} afterMore=${cards1} bpCardDecs=${bpDecs} searchZero=${cardsS === 0 && emptyMsg}`);
+  }
+
   console.log(fail === 0 ? '\nALL TESTS PASSED' : `\n${fail} FAILURES`);
   process.exit(fail === 0 ? 0 : 1);
 })();

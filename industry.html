@@ -177,15 +177,15 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .forge-info .ft .act{margin-right:12px;font-size:10px;padding:4px 10px}
 .forge-info .fm{font-size:12.5px;margin-top:8px}
 .forge-time{font-size:15px;text-align:right;min-width:120px}
-.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:22px;max-height:70vh;overflow-y:auto;padding-right:6px}
+.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;max-height:70vh;overflow-y:auto;padding-right:6px}
 .bp-grid::-webkit-scrollbar, #researchBpList::-webkit-scrollbar{width:10px}
-.bp-card{padding:24px;cursor:pointer;position:relative;overflow:hidden;transition:.3s cubic-bezier(.2,.9,.3,1.2);content-visibility:auto;contain-intrinsic-size:auto 220px}
+.bp-card{padding:12px 14px;cursor:pointer;position:relative;overflow:hidden;transition:.3s cubic-bezier(.2,.9,.3,1.2);content-visibility:auto;contain-intrinsic-size:auto 168px}
 .bp-card::before, .bp-card::after{content:'';position:absolute;width:18px;height:18px;opacity:.8}
 .bp-card::before{top:-2px;left:-2px}
 .bp-card::after{bottom:-2px;right:-2px}
-.bp-card:hover{transform:translateY(-8px) scale(1.02)}
-.bp-icon{width:50px;height:50px;display:grid;place-items:center;margin-bottom:18px;font-size:22px}
-.bp-name{font-size:14.5px;margin-bottom:12px}
+.bp-card:hover{transform:translateY(-3px)}
+.bp-icon{width:34px;height:34px;display:grid;place-items:center;margin-bottom:8px;font-size:17px}
+.bp-name{font-size:12.5px;margin-bottom:6px}
 .bp-me{display:flex;gap:8px;font-size:10.5px}
 .bp-me span{padding:4px 9px}
 .bp-filter{display:flex;gap:8px;margin-bottom:20px}
@@ -194,8 +194,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .bp-filt-btn{font-size:11px;padding:8px 16px;cursor:pointer}
 .bp-card.hidden-filt{display:none}
 .struct-pick-btn{font-size:11px;padding:8px 16px;cursor:pointer}
-.bp-build{font-size:11px;margin-top:10px}
-.bp-add{display:block;width:100%;margin-top:14px;font-size:10.5px;padding:8px 0;cursor:pointer}
+.bp-build{font-size:11px;margin-top:6px}
+.bp-add{display:block;width:100%;margin-top:8px;font-size:10.5px;padding:6px 0;cursor:pointer}
 .bp-card.missing{opacity:.7}
 .plan-wrap{display:grid;grid-template-columns:1fr 360px;gap:30px}
 .plan-target{padding:28px 32px;margin-bottom:26px;position:relative}
@@ -236,7 +236,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .br-name{font-size:13px;flex:1}
 .br-sub{font-size:11px;margin-top:3px}
 .br-tag{font-size:9.5px;padding:4px 9px}
-.bp-owner{margin-top:12px;font-size:9.5px;padding:4px 9px;display:inline-block}
+.bp-owner{margin-top:8px;font-size:9.5px;padding:4px 9px;display:inline-block}
 .mat-row.sub-build .mn{font-size:12px}
 .mat-row.sub-build .mn i{font-size:10px;margin-left:6px}
 .mat-row.indent2{padding-left:24px}
@@ -1388,15 +1388,13 @@ document.getElementById('importJsonFile').addEventListener('change', (e)=>{
 });
 
 let bpTypeFilt='blueprint', bpStatusFilt='all', bpSourceFilt='all', bpSearchTerm='';
+const BP_RENDER_CHUNK=120; let bpRenderLimit=BP_RENDER_CHUNK; // Library renders in chunks — 4,900+ SDE entries at once froze the tab
 function applyBpFilters(){
-  document.querySelectorAll('.bp-card').forEach(card=>{
-    const typeOk = bpTypeFilt==='all' || card.dataset.type===bpTypeFilt;
-    const statusOk = bpStatusFilt==='all' || card.dataset.status===bpStatusFilt;
-    const sourceOk = bpSourceFilt==='all' || (card.dataset.source||'').split(',').includes(bpSourceFilt);
-    const nameEl = card.querySelector('.bp-name');
-    const searchOk = !bpSearchTerm || (nameEl && nameEl.textContent.toLowerCase().includes(bpSearchTerm));
-    card.classList.toggle('hidden-filt', !(typeOk && statusOk && sourceOk && searchOk));
-  });
+  // Filtering is data-level now: any filter/search change resets to the first
+  // chunk and re-renders. Only up to BP_RENDER_CHUNK matching cards exist in
+  // the DOM at a time (renderBpLibrary), which keeps the Library fast.
+  bpRenderLimit = BP_RENDER_CHUNK;
+  renderBpLibrary();
 }
 document.getElementById('bpSearchInput').addEventListener('input', (e)=>{
   bpSearchTerm = e.target.value.trim().toLowerCase();
@@ -1916,51 +1914,76 @@ document.getElementById('libraryLoadBtn').onclick = async ()=>{
   renderBpLibrary();
 };
 
+function bpEntryMeta(d){
+  const isReaction = !!d.isReaction;
+  const owned = d.bpTypeID!=null ? libraryOwnedByBpTypeId[d.bpTypeID] : null;
+  const allCopies = d.bpTypeID!=null ? (libraryAllCopiesByBpTypeId[d.bpTypeID]||[]) : [];
+  const hasPersonal = allCopies.some(c=>c.source==='personal');
+  const hasCorp = allCopies.some(c=>c.source==='corp');
+  return { isReaction, owned, allCopies, hasPersonal, hasCorp,
+           status: owned ? 'owned' : 'missing',
+           sources: [hasPersonal?'personal':null, hasCorp?'corp':null].filter(Boolean) };
+}
+
+function bpCardHtml(name, d, m){
+  const { isReaction, owned, allCopies, hasPersonal, hasCorp, status } = m;
+  const meTe = owned
+    ? '<div class="bp-me"><span>ME '+owned.material_efficiency+'%</span>'+(isReaction?'':'<span>TE '+owned.time_efficiency+'%</span>')+'</div>'
+    : '';
+  const copiesLine = allCopies.length>1
+    ? '<div class="sub" style="font-size:10.5px;margin-top:4px">×'+allCopies.length+' cop'+(allCopies.length===1?'y':'ies')+' owned (best shown) — '+
+      allCopies.map(c=>'['+(c.source==='corp'?'Corp':'Personal')+'] ME '+c.material_efficiency+'%/TE '+c.time_efficiency+'%'+(c.runs<0?' BPO':' ('+c.runs+' runs)')).join(', ')+'</div>'
+    : '';
+  const mins = d.buildTime ? Math.round(d.buildTime/60) : null;
+  const buildLine = status==='owned'
+    ? '<div class="bp-build">Base '+(isReaction?'reaction':'build')+' time: <b class="ok">'+(mins!=null?mins+' min':'—')+'</b></div>'
+    : '<div class="bp-build dim">Not owned — buy or build the blueprint first</div>';
+  const needsResearch = owned && !isReaction && (owned.material_efficiency<10 || owned.time_efficiency<20);
+  const researchBtn = needsResearch ? '<button class="bp-add research btn">Add to research ▸</button>' : '';
+  const addBtn = status==='owned' ? '<button class="bp-add btn">Add to build planner ▸</button>' : '<button class="bp-add find btn">Find this blueprint ▸</button>';
+  const ownerLine = status==='owned'
+    ? '<div class="bp-owner personal">'+(hasPersonal&&hasCorp?'Owned (Personal + Corp)':hasCorp?'Owned (Corp Hangar)':'Owned (Personal)')+'</div>'
+    : '';
+  const icon = isReaction ? '⚛' : '🚀';
+  return '<div class="bp-card card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+m.sources.join(',')+'" data-bptypeid="'+d.bpTypeID+'">'+
+    '<div class="bp-icon">'+icon+'</div>'+
+    '<div class="bp-name">'+name+'</div>'+
+    meTe + copiesLine + buildLine + ownerLine + addBtn + researchBtn +
+  '</div>';
+}
+
 function renderBpLibrary(){
   const grid = document.getElementById('bpGrid');
   const entries = Object.entries(BP_SDE_DETAIL);
   if(!entries.length){ grid.innerHTML = '<div class="sub" style="padding:20px 4px">No blueprint catalog data loaded.</div>'; return; }
 
+  // One pass: full-catalog counts for the filter buttons + the filtered list.
   const counts = { all:0, blueprint:0, reaction:0, owned:0, missing:0, personal:0, corp:0 };
-  const cardsHtml = entries.map(([name, d])=>{
-    const isReaction = !!d.isReaction;
-    const owned = d.bpTypeID!=null ? libraryOwnedByBpTypeId[d.bpTypeID] : null;
-    const status = owned ? 'owned' : 'missing';
-    const allCopies = d.bpTypeID!=null ? (libraryAllCopiesByBpTypeId[d.bpTypeID]||[]) : [];
-    const hasPersonal = allCopies.some(c=>c.source==='personal');
-    const hasCorp = allCopies.some(c=>c.source==='corp');
-    const sources = [hasPersonal?'personal':null, hasCorp?'corp':null].filter(Boolean).join(',');
-    counts.all++; counts[isReaction?'reaction':'blueprint']++; counts[status]++;
-    if(hasPersonal) counts.personal++;
-    if(hasCorp) counts.corp++;
+  const filtered = [];
+  for(const [name, d] of entries){
+    const m = bpEntryMeta(d);
+    counts.all++; counts[m.isReaction?'reaction':'blueprint']++; counts[m.status]++;
+    if(m.hasPersonal) counts.personal++;
+    if(m.hasCorp) counts.corp++;
+    const typeOk = bpTypeFilt==='all' || (m.isReaction?'reaction':'blueprint')===bpTypeFilt;
+    const statusOk = bpStatusFilt==='all' || m.status===bpStatusFilt;
+    const sourceOk = bpSourceFilt==='all' || m.sources.includes(bpSourceFilt);
+    const searchOk = !bpSearchTerm || name.toLowerCase().includes(bpSearchTerm);
+    if(typeOk && statusOk && sourceOk && searchOk) filtered.push([name, d, m]);
+  }
 
-    const meTe = owned
-      ? '<div class="bp-me"><span>ME '+owned.material_efficiency+'%</span>'+(isReaction?'':'<span>TE '+owned.time_efficiency+'%</span>')+'</div>'
-      : '';
-    const copiesLine = allCopies.length>1
-      ? '<div class="sub" style="font-size:10.5px;margin-top:4px">×'+allCopies.length+' cop'+(allCopies.length===1?'y':'ies')+' owned (best shown) — '+
-        allCopies.map(c=>'['+(c.source==='corp'?'Corp':'Personal')+'] ME '+c.material_efficiency+'%/TE '+c.time_efficiency+'%'+(c.runs<0?' BPO':' ('+c.runs+' runs)')).join(', ')+'</div>'
-      : '';
-    const mins = d.buildTime ? Math.round(d.buildTime/60) : null;
-    const buildLine = status==='owned'
-      ? '<div class="bp-build">Base '+(isReaction?'reaction':'build')+' time: <b class="ok">'+(mins!=null?mins+' min':'—')+'</b></div>'
-      : '<div class="bp-build dim">Not owned — buy or build the blueprint first</div>';
-    const needsResearch = owned && !isReaction && (owned.material_efficiency<10 || owned.time_efficiency<20);
-    const researchBtn = needsResearch ? '<button class="bp-add research btn">Add to research ▸</button>' : '';
-    const addBtn = status==='owned' ? '<button class="bp-add btn">Add to build planner ▸</button>' : '<button class="bp-add find btn">Find this blueprint ▸</button>';
-    const ownerLine = status==='owned'
-      ? '<div class="bp-owner personal">'+(hasPersonal&&hasCorp?'Owned (Personal + Corp)':hasCorp?'Owned (Corp Hangar)':'Owned (Personal)')+'</div>'
-      : '';
-    const icon = isReaction ? '⚛' : '🚀';
+  // Chunked render: only the first bpRenderLimit matches become DOM. The rest
+  // stay data until "Show more" — rendering all 4,900+ entries at once (each
+  // ~10 nodes) is what made this tab crawl.
+  const shown = filtered.slice(0, bpRenderLimit);
+  const remaining = filtered.length - shown.length;
+  grid.innerHTML =
+    (shown.map(([n,d,m])=>bpCardHtml(n,d,m)).join('') ||
+      '<div class="sub" style="padding:20px 4px">No blueprints match the current filters.</div>') +
+    (remaining>0
+      ? '<div class="bp-more-row" style="grid-column:1/-1;text-align:center;padding:6px 0"><button id="bpShowMore" class="btn">Show '+Math.min(BP_RENDER_CHUNK,remaining)+' more · '+remaining.toLocaleString()+' of '+filtered.length.toLocaleString()+' matches not shown</button></div>'
+      : '');
 
-    return '<div class="bp-card card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+sources+'" data-bptypeid="'+d.bpTypeID+'">'+
-      '<div class="bp-icon">'+icon+'</div>'+
-      '<div class="bp-name">'+name+'</div>'+
-      meTe + copiesLine + buildLine + ownerLine + addBtn + researchBtn +
-    '</div>';
-  }).join('');
-
-  grid.innerHTML = cardsHtml;
   document.getElementById('bpSubBlueprint').textContent = 'Blueprints ('+counts.blueprint+')';
   document.getElementById('bpSubReaction').textContent = 'Reactions ('+counts.reaction+')';
   document.getElementById('bpFiltAll').textContent = 'All ('+counts.all+')';
@@ -1970,9 +1993,10 @@ function renderBpLibrary(){
   document.getElementById('bpSrcPersonal').textContent = 'Personal ('+counts.personal+')';
   document.getElementById('bpSrcCorp').textContent = 'Corp ('+counts.corp+')';
 
+  const more = document.getElementById('bpShowMore');
+  if(more) more.onclick = ()=>{ bpRenderLimit += BP_RENDER_CHUNK; renderBpLibrary(); };
   wireBpCardHandlers();
   wireBpDetailDrawer();
-  applyBpFilters();
 }
 renderBpLibrary();
 

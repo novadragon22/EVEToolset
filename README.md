@@ -105,6 +105,12 @@ Deliberate scope notes:
   gets a neutral `--sw` fill from SUITE GLUE.
 - The Triglavian singularity + em-trig are header-centered (`left:50%`), exactly
   as in the preview — v2's right-aligned placement was an adaptation and is gone.
+- **Industry Blueprint Library exception**: the Library renders up to ~5,000
+  `.bp-card.card` entries from the SDE. It renders in chunks of 120 with a
+  "Show more" button, filters/search apply at the data level before rendering,
+  and both the theme layer (`.card:not(.bp-card)` in DERIVED EXTRAS) and
+  themes.js skip the heavy per-card treatment there — Library cards stay
+  palette-themed via variables only. Harness section 7 locks this in.
 - Body pseudo-elements stay untouched (several APP LOOKS already claim them); all
   faction atmosphere rides the injected `.thm-overlay` instead. Masthead decor rides
   the injected `.thm-halo` rather than header pseudos for the same reason.
