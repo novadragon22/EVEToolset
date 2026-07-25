@@ -246,8 +246,13 @@ for (const f of files) {
     const cardsS = idoc.querySelectorAll('#bpGrid .bp-card').length;
     const emptyMsg = idoc.getElementById('bpGrid').textContent.includes('No blueprints match');
     p = p && cardsS === 0 && emptyMsg;
+    // 12-column cap + landscape no-scrollbox (jsdom does no layout — assert the source contract)
+    const isrc = fs.readFileSync(`${DIR}/industry.html`, 'utf8');
+    const cap12 = isrc.includes('.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;max-height:70vh;overflow-y:auto;padding-right:6px;max-width:2250px;align-items:start}');
+    const landscapeFlow = isrc.includes('@media (orientation:landscape){.bp-grid{max-height:none;overflow-y:visible;padding-right:0}}');
+    p = p && cap12 && landscapeFlow;
     if (!p) fail++;
-    console.log(`${p ? 'PASS' : 'FAIL'} industry library: chunk=${cards0} afterMore=${cards1} bpCardDecs=${bpDecs} searchZero=${cardsS === 0 && emptyMsg}`);
+    console.log(`${p ? 'PASS' : 'FAIL'} industry library: chunk=${cards0} afterMore=${cards1} bpCardDecs=${bpDecs} searchZero=${cardsS === 0 && emptyMsg} cap12=${cap12} landscapeFlow=${landscapeFlow}`);
   }
 
   console.log(fail === 0 ? '\nALL TESTS PASSED' : `\n${fail} FAILURES`);
