@@ -100,7 +100,6 @@ body{margin:0}
 
 </style>
 <link rel="stylesheet" href="themes.css">
-<script src="themes.js" defer></script>
 </head>
 <body>
 <div id="uiScaleWrap">
@@ -126,21 +125,21 @@ body{margin:0}
   </div>
   <div class="add-search float" style="height:auto;padding:10px 14px;position:relative;z-index:15">
     <div style="display:flex;gap:6px;margin-bottom:6px">
-      <input id="productSearchInput" placeholder="Search a product to add…" style="flex:1;background:transparent;border:none;color:var(--gold-bright);font-family:inherit;font-size:11px;outline:none">
-      <span id="productSearchBtn" style="cursor:pointer;color:var(--gold);font-size:11px">+</span>
+      <input id="productSearchInput" placeholder="Search a product to add…" style="flex:1;background:transparent;border:none;color:#f0dcc0;font-family:inherit;font-size:11px;outline:none">
+      <span id="productSearchBtn" style="cursor:pointer;color:#e8a850;font-size:11px">+</span>
     </div>
-    <div id="productSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:20;background:rgba(8,6,4,.97);border:1px solid rgba(var(--gold-rgb),.35);max-height:220px;overflow-y:auto"></div>
+    <div id="productSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:20;background:rgba(8,6,4,.97);border:1px solid rgba(220,160,90,.35);max-height:220px;overflow-y:auto"></div>
     <div id="basketChips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
   </div>
   <div class="settings-strip float">
-    <span style="color:var(--gold)">🏠</span><input id="homeInput" placeholder="Home system" style="width:80px;background:transparent;border:none;border-bottom:1px solid rgba(var(--gold-rgb),.3);color:var(--gold-bright);font-family:inherit;font-size:8px">
+    <span style="color:#e8a850">🏠</span><input id="homeInput" placeholder="Home system" style="width:80px;background:transparent;border:none;border-bottom:1px solid rgba(220,160,90,.3);color:#f0dcc0;font-family:inherit;font-size:8px">
     <span class="sec-pill on">Hi</span><span class="sec-pill">Low</span><span class="sec-pill">Null</span>
-    <label style="color:var(--muted);margin-left:4px;cursor:pointer"><input type="checkbox" id="wholeChainChk" style="vertical-align:middle"> whole chain, one system</label>
+    <label style="color:#8a7458;margin-left:4px;cursor:pointer"><input type="checkbox" id="wholeChainChk" style="vertical-align:middle"> whole chain, one system</label>
   </div>
   <div class="market-panel float">
-    <div class="lbl">Salable value / week <span id="marketMsg" style="color:var(--muted2);font-weight:400"></span></div><div class="big-val" id="salableVal">—</div>
-    <div class="market-row"><span>Shopping list cost</span><span style="color:var(--red)" id="shoppingCost">—</span></div>
-    <div class="market-row"><span>Profit / week</span><span style="color:var(--gold-bright)" id="profitVal">—</span></div>
+    <div class="lbl">Salable value / week <span id="marketMsg" style="color:#6a5a48;font-weight:400"></span></div><div class="big-val" id="salableVal">—</div>
+    <div class="market-row"><span>Shopping list cost</span><span style="color:#d66a5a" id="shoppingCost">—</span></div>
+    <div class="market-row"><span>Profit / week</span><span style="color:#f0dcc0" id="profitVal">—</span></div>
   </div>
   <div class="chain-strip float">
     <div class="lbl" id="chainTitle">Chain</div>
@@ -150,12 +149,12 @@ body{margin:0}
   <div class="pilot-strip"></div>
 
   <canvas id="universeCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:auto"></canvas>
-  <div id="universeTooltip" class="float" style="display:none;position:absolute;padding:6px 10px;font-size:9px;color:var(--gold-bright);pointer-events:none;z-index:30;white-space:nowrap"></div>
-  <div class="float" id="mapScale" style="position:absolute;bottom:60px;left:20px;padding:6px 10px;font-size:8px;color:var(--muted);display:none">
-    <div style="display:flex;align-items:center;gap:6px"><div style="width:40px;height:1px;background:var(--muted)"></div><span id="mapScaleText">— ly</span></div>
+  <div id="universeTooltip" class="float" style="display:none;position:absolute;padding:6px 10px;font-size:9px;color:#f0dcc0;pointer-events:none;z-index:30;white-space:nowrap"></div>
+  <div class="float" id="mapScale" style="position:absolute;bottom:60px;left:20px;padding:6px 10px;font-size:8px;color:#8a7458;display:none">
+    <div style="display:flex;align-items:center;gap:6px"><div style="width:40px;height:1px;background:#8a7458"></div><span id="mapScaleText">— ly</span></div>
   </div>
-  <div class="float" id="sovLegend" style="position:absolute;bottom:60px;right:20px;padding:8px 12px;font-size:8px;color:var(--muted);display:none">
-    <div style="margin-bottom:4px;color:var(--gold)">Standing (alliance/corp contacts)</div>
+  <div class="float" id="sovLegend" style="position:absolute;bottom:60px;right:20px;padding:8px 12px;font-size:8px;color:#8a7458;display:none">
+    <div style="margin-bottom:4px;color:#e8a850">Standing (alliance/corp contacts)</div>
     <div id="sovLegendRows"></div>
   </div>
 
@@ -187,11 +186,11 @@ body{margin:0}
   <div class="pilot-strip"></div>
 
   <div class="colony-row" id="myColoniesGrid" style="flex-wrap:wrap;max-width:900px">
-    <div style="padding:20px;color:var(--muted);font-size:10px">Loading colonies…</div>
+    <div style="padding:20px;color:#8a7458;font-size:10px">Loading colonies…</div>
   </div>
 
   <div class="capacity-panel float">
-    <div class="lbl">Live extraction → factory capacity <span id="myColSub" style="color:var(--muted2);font-weight:400"></span></div>
+    <div class="lbl">Live extraction → factory capacity <span id="myColSub" style="color:#6a5a48;font-weight:400"></span></div>
     <div id="capacityRows"></div>
   </div>
 </div>
@@ -230,7 +229,7 @@ body{margin:0}
     <select id="mkPocoTax" class="rank-sel float" title="POCO export tax rate — imports are charged at half this rate (standard customs-office behavior). Tax = rate × per-tier reference base values (P0 5 / P1 400 / P2 7,200 / P3 60,000 / P4 1,200,000 ISK per unit) — reference figures, pick the rate your POCOs actually charge.">
       <option value="0">POCO: 0% (none)</option><option value="5">POCO: 5%</option><option value="8">POCO: 8%</option><option value="10" selected>POCO: 10% (NPC)</option><option value="12">POCO: 12%</option><option value="15">POCO: 15%</option><option value="17">POCO: 17%</option>
     </select>
-    <span id="mkMsg" style="color:var(--muted2);font-size:9px;align-self:center">(7.5% sales tax assumed — real-time prices via Fuzzwork)</span>
+    <span id="mkMsg" style="color:#6a5a48;font-size:9px;align-self:center">(7.5% sales tax assumed — real-time prices via Fuzzwork)</span>
   </div>
   <div class="rank-list" id="mkRankList"></div>
 </div>
@@ -255,18 +254,18 @@ body{margin:0}
     <span class="gear-btn">⚙</span>
   </div>
   <div class="import-btn float">⭱ Import route</div>
-  <div class="float" style="position:absolute;top:80px;right:170px;padding:7px 12px;font-size:9px;color:var(--gold-dim);display:flex;align-items:center;gap:6px">
+  <div class="float" style="position:absolute;top:80px;right:170px;padding:7px 12px;font-size:9px;color:#c89860;display:flex;align-items:center;gap:6px">
     <label for="autoAssignSel" style="cursor:pointer">Auto-assign:</label>
-    <select id="autoAssignSel" style="cursor:pointer;background:var(--panel);color:var(--gold-dim);border:1px solid rgba(var(--gold-rgb),.35);border-radius:4px;font-size:9px;padding:2px 6px">
+    <select id="autoAssignSel" style="cursor:pointer;background:#1a140f;color:#c89860;border:1px solid rgba(200,152,96,.35);border-radius:4px;font-size:9px;padding:2px 6px">
       <option value="0">Off</option>
       <option value="1">Minimize characters</option>
     </select>
   </div>
-  <div class="float" style="position:absolute;top:118px;right:170px;padding:7px 12px;font-size:9px;color:var(--gold-dim);display:flex;align-items:center;gap:6px" title="Route optimiser plans hauls around this ship's infrastructure hold capacity">
+  <div class="float" style="position:absolute;top:118px;right:170px;padding:7px 12px;font-size:9px;color:#c89860;display:flex;align-items:center;gap:6px" title="Route optimiser plans hauls around this ship's infrastructure hold capacity">
     <label for="haulShipSel" style="cursor:pointer">Hauler:</label>
-    <select id="haulShipSel" style="cursor:pointer;background:var(--panel);color:var(--gold-dim);border:1px solid rgba(var(--gold-rgb),.35);border-radius:4px;font-size:9px;padding:2px 6px"></select>
-    <input id="haulCapacityInput" type="number" min="1" step="1" style="width:64px;background:var(--panel);border:1px solid rgba(var(--gold-rgb),.3);color:var(--gold-bright);border-radius:4px;padding:2px 6px;font-size:9px" title="Infrastructure hold capacity (m³) — reference value, edit to match your fit">
-    <span style="color:var(--muted2)">m³ infra hold</span>
+    <select id="haulShipSel" style="cursor:pointer;background:#1a140f;color:#c89860;border:1px solid rgba(200,152,96,.35);border-radius:4px;font-size:9px;padding:2px 6px"></select>
+    <input id="haulCapacityInput" type="number" min="1" step="1" style="width:64px;background:#0d0f14;border:1px solid rgba(220,160,90,.3);color:#f0dcc0;border-radius:4px;padding:2px 6px;font-size:9px" title="Infrastructure hold capacity (m³) — reference value, edit to match your fit">
+    <span style="color:#6a5a48">m³ infra hold</span>
   </div>
   <div class="pilot-strip readonly"></div>
   <button class="roles-fab" id="charRolesBtn" style="position:absolute;bottom:56px;left:20px;z-index:5" title="Assign colony roles per character">⚑ Character Roles<span class="badge" id="charRolesBadge">0</span></button>
@@ -280,10 +279,10 @@ body{margin:0}
   <div class="buffer-panel float">
     <div class="lbl">Buffer &amp; haul cadence</div>
     <div id="logiBuffer"></div>
-    <div class="lbl" style="margin-top:10px">Route optimiser <span id="haulShipLbl" style="color:var(--muted2);font-weight:400;text-transform:none"></span></div>
+    <div class="lbl" style="margin-top:10px">Route optimiser <span id="haulShipLbl" style="color:#6a5a48;font-weight:400;text-transform:none"></span></div>
     <div id="logiRoute"></div>
   </div>
-  <div class="float" id="logiNote" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 18px;font-size:9px;color:var(--muted)">
+  <div class="float" id="logiNote" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 18px;font-size:9px;color:#8a7458">
     Pick a target product on Candidates to see its real production chain here.
   </div>
 </div>
@@ -304,14 +303,14 @@ body{margin:0}
 <div id="setModal" style="display:none;position:fixed;inset:0;background:rgba(2,1,3,.7);z-index:100;align-items:center;justify-content:center">
   <div class="float" style="width:280px;padding:18px" onclick="event.stopPropagation()">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <span style="color:var(--gold);font-size:11px;letter-spacing:.1em;text-transform:uppercase">Display settings</span>
-      <span id="cfgClose" style="cursor:pointer;color:var(--muted)">✕</span>
+      <span style="color:#e8a850;font-size:11px;letter-spacing:.1em;text-transform:uppercase">Display settings</span>
+      <span id="cfgClose" style="cursor:pointer;color:#8a7458">✕</span>
     </div>
     <div class="lbl">UI scale</div>
     <div style="display:flex;align-items:center;gap:10px">
       <input id="cfgUiRange" type="range" min="50" max="500" value="100" style="flex:1">
-      <input id="cfgUi" type="number" min="50" max="500" value="100" style="width:56px;background:var(--panel);border:1px solid rgba(var(--gold-rgb),.3);color:var(--gold-bright);border-radius:4px;padding:4px 6px;text-align:right">
-      <span style="color:var(--muted);font-size:10px">%</span>
+      <input id="cfgUi" type="number" min="50" max="500" value="100" style="width:56px;background:#0d0f14;border:1px solid rgba(220,160,90,.3);color:#f0dcc0;border-radius:4px;padding:4px 6px;text-align:right">
+      <span style="color:#8a7458;font-size:10px">%</span>
     </div>
   </div>
 </div>
@@ -373,14 +372,14 @@ function selectCandidateSystem(id){
 }
 function renderCandidateResults(){
   const wrap=document.getElementById('candidateList'); if(!wrap) return;
-  if(!results.length){ wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:9px">No candidates yet — search for a product above to start scoring systems.</div>'; return; }
+  if(!results.length){ wrap.innerHTML='<div style="padding:20px;text-align:center;color:#8a7458;font-size:9px">No candidates yet — search for a product above to start scoring systems.</div>'; return; }
   wrap.innerHTML=results.slice(0,20).map(r=>{
     const s=SYS[r.id]; const name=s[0]; const region=REG[s[2]]||'Unknown';
     const pct=Math.round((r.covered/r.total)*100);
     const jtxt=r.jumps==null?'—':(r.jumps===Infinity?'unreachable':r.jumps+'j');
     const isSel=String(r.id)===String(selectedSystemId);
-    return `<div class="cand-row" data-id="${r.id}" style="display:flex;justify-content:space-between;font-size:9px;padding:5px 6px;margin:0 -6px;border-bottom:1px solid rgba(var(--gold-rgb),.15);cursor:pointer;color:${r.covered===r.total?'var(--gold-bright)':'var(--gold-dim)'};${isSel?'background:rgba(var(--gold-rgb),.18);border-left:2px solid var(--gold)':''}">
-      <span>${isSel?'✓ ':''}${name}</span><span style="color:var(--muted)">${roundSec(r.sec).toFixed(1)} · ${r.covered}/${r.total} · ${jtxt} · ${region}</span></div>`;
+    return `<div class="cand-row" data-id="${r.id}" style="display:flex;justify-content:space-between;font-size:9px;padding:5px 6px;margin:0 -6px;border-bottom:1px solid rgba(220,160,90,.15);cursor:pointer;color:${r.covered===r.total?'#f0dcc0':'#c89860'};${isSel?'background:rgba(232,168,80,.18);border-left:2px solid #e8a850':''}">
+      <span>${isSel?'✓ ':''}${name}</span><span style="color:#8a7458">${roundSec(r.sec).toFixed(1)} · ${r.covered}/${r.total} · ${jtxt} · ${region}</span></div>`;
   }).join('');
   wrap.querySelectorAll('.cand-row').forEach(row=>row.onclick=()=>selectCandidateSystem(row.dataset.id));
 }
@@ -394,12 +393,12 @@ function renderSuggestions(){
   if(q) ids=ids.filter(id=>PI.recipe[id].name.toLowerCase().includes(q));
   ids.sort((a,b)=>PI.recipe[a].name.localeCompare(PI.recipe[b].name));
   const total=ids.length; const matches=ids.slice(0,40);
-  const tierBar=`<div style="display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid rgba(var(--gold-rgb),.2);position:sticky;top:0;background:rgba(8,6,4,.97)">
-    ${[null,1,2,3,4].map(t=>`<span class="tier-filt" data-t="${t===null?'':t}" style="cursor:pointer;padding:2px 8px;font-size:8.5px;border:1px solid rgba(var(--gold-rgb),.3);border-radius:3px;${suggTierFilter===t?'background:rgba(var(--gold-rgb),.25);color:var(--gold)':'color:var(--muted)'}">${t===null?'All':'P'+t}</span>`).join('')}
+  const tierBar=`<div style="display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid rgba(220,160,90,.2);position:sticky;top:0;background:rgba(8,6,4,.97)">
+    ${[null,1,2,3,4].map(t=>`<span class="tier-filt" data-t="${t===null?'':t}" style="cursor:pointer;padding:2px 8px;font-size:8.5px;border:1px solid rgba(220,160,90,.3);border-radius:3px;${suggTierFilter===t?'background:rgba(232,168,80,.25);color:#e8a850':'color:#8a7458'}">${t===null?'All':'P'+t}</span>`).join('')}
   </div>`;
-  if(!matches.length){ box.innerHTML=tierBar+'<div style="padding:6px 10px;color:var(--muted2);font-size:9px">No matching products</div>'; box.style.display='block'; wireTierFilter(box); return; }
-  box.innerHTML=tierBar+matches.map(id=>`<div class="prod-sugg" data-id="${id}" style="padding:6px 10px;cursor:pointer;font-size:9.5px;color:var(--gold-bright);border-bottom:1px solid rgba(var(--gold-rgb),.12)">${PI.recipe[id].name} <span style="color:var(--muted2)">P${PI.tier[id]}</span></div>`).join('')
-    +(total>40?`<div style="padding:5px 10px;color:var(--muted2);font-size:8.5px">+${total-40} more — keep typing to narrow it down</div>`:'');
+  if(!matches.length){ box.innerHTML=tierBar+'<div style="padding:6px 10px;color:#6a5a48;font-size:9px">No matching products</div>'; box.style.display='block'; wireTierFilter(box); return; }
+  box.innerHTML=tierBar+matches.map(id=>`<div class="prod-sugg" data-id="${id}" style="padding:6px 10px;cursor:pointer;font-size:9.5px;color:#f0dcc0;border-bottom:1px solid rgba(220,160,90,.12)">${PI.recipe[id].name} <span style="color:#6a5a48">P${PI.tier[id]}</span></div>`).join('')
+    +(total>40?`<div style="padding:5px 10px;color:#6a5a48;font-size:8.5px">+${total-40} more — keep typing to narrow it down</div>`:'');
   box.style.display='block';
   box.querySelectorAll('.prod-sugg').forEach(row=>row.onclick=()=>addProductToBasket(row.dataset.id));
   wireTierFilter(box);
@@ -429,8 +428,8 @@ function doProductSearch(){
 function renderBasketChips(){
   const wrap=document.getElementById('basketChips'); if(!wrap) return;
   const ids=Object.keys(sel);
-  wrap.innerHTML=ids.length?ids.map(id=>`<span style="font-size:8px;padding:3px 7px;border:1px solid rgba(var(--gold-rgb),.35);color:var(--gold-bright);display:inline-flex;align-items:center;gap:5px">${PI.recipe[id].name} ×${sel[id]}<span class="chip-x" data-id="${id}" style="cursor:pointer;color:var(--muted)">✕</span></span>`).join('')
-    :'<span style="font-size:8px;color:var(--muted2)">No products selected yet</span>';
+  wrap.innerHTML=ids.length?ids.map(id=>`<span style="font-size:8px;padding:3px 7px;border:1px solid rgba(220,160,90,.35);color:#f0dcc0;display:inline-flex;align-items:center;gap:5px">${PI.recipe[id].name} ×${sel[id]}<span class="chip-x" data-id="${id}" style="cursor:pointer;color:#8a6858">✕</span></span>`).join('')
+    :'<span style="font-size:8px;color:#6a5a48">No products selected yet</span>';
   wrap.querySelectorAll('.chip-x').forEach(x=>x.onclick=()=>removeProductFromBasket(x.dataset.id));
   renderHeaderChips();
   repositionCandidatePanels();
@@ -453,7 +452,7 @@ window.addEventListener('resize', repositionCandidatePanels);
 function renderHeaderChips(){
   const ids=Object.keys(sel);
   const html=ids.length? ids.map(id=>`<div class="pchip"><img src="https://images.evetech.net/types/${id}/icon?size=32" alt="${PI.recipe[id]?PI.recipe[id].name:id}" onerror="this.style.visibility='hidden'"></div>`).join('')
-    : '<div class="pchip" style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted2)">—</div>';
+    : '<div class="pchip" style="display:flex;align-items:center;justify-content:center;font-size:9px;color:#6a5a48">—</div>';
   document.querySelectorAll('.product-chips').forEach(el=>el.innerHTML=html);
 }
 { const b=document.getElementById('productSearchBtn'); if(b) b.onclick=doProductSearch; }
@@ -586,11 +585,11 @@ async function renderMyColonies(){
   const grid=document.getElementById('myColoniesGrid'), capWrap=document.getElementById('capacityRows'), subEl=document.getElementById('myColSub');
   if(!grid) return;
   const ids=visibleCharIds();
-  if(!ids.length){ grid.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px">Sign in from the launcher to see your live colonies, extractor rates, and outputs.</div>'; if(capWrap) capWrap.innerHTML=''; return; }
-  grid.innerHTML='<div style="padding:14px;color:var(--muted);font-size:10px">Loading colonies…</div>';
+  if(!ids.length){ grid.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">Sign in from the launcher to see your live colonies, extractor rates, and outputs.</div>'; if(capWrap) capWrap.innerHTML=''; return; }
+  grid.innerHTML='<div style="padding:14px;color:#8a7458;font-size:10px">Loading colonies…</div>';
   await Promise.all(ids.map(loadColonies));
   const rows=[]; ids.forEach(id=>(colonies[id]||[]).forEach(c=>rows.push({id,c})));
-  if(!rows.length){ grid.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px">No planetary colonies found on your characters.</div>'; if(capWrap) capWrap.innerHTML=''; return; }
+  if(!rows.length){ grid.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">No planetary colonies found on your characters.</div>'; if(capWrap) capWrap.innerHTML=''; return; }
   await Promise.all(rows.map(r=>loadColonyDetail(r.id, r.c.planet_id)));
   if(subEl) subEl.textContent=`${rows.length} colonies across ${ids.length} character${ids.length!==1?'s':''} — live from ESI`;
 
@@ -598,21 +597,21 @@ async function renderMyColonies(){
     const det=colDetail[c.planet_id]; const sysNm=SYS[c.system]?SYS[c.system][0]:('System '+c.system);
     const hasActive=(det.extractors||[]).length>0;
     const ptype=c.type?String(c.type).charAt(0).toUpperCase()+String(c.type).slice(1):'';
-    const exLines=hasActive? det.extractors.map(e=>`⛏ ${PI.names[e.prod]||('type '+e.prod)} <b style="color:var(--gold)">${Math.round(e.perHr).toLocaleString()}/hr</b>`).join('<br>')
-      : '<span style="color:var(--red)">extractor idle</span>';
-    return `<div class="my-colony"><div class="my-planet${hasActive?'':' alert'}"><div class="ring"></div><span class="cc-badge"${hasActive?'':' style="color:var(--red)"'}>L${c.upgrade}</span></div>
+    const exLines=hasActive? det.extractors.map(e=>`⛏ ${PI.names[e.prod]||('type '+e.prod)} <b style="color:#e8a850">${Math.round(e.perHr).toLocaleString()}/hr</b>`).join('<br>')
+      : '<span style="color:#d66a5a">extractor idle</span>';
+    return `<div class="my-colony"><div class="my-planet${hasActive?'':' alert'}"><div class="ring"></div><span class="cc-badge"${hasActive?'':' style="color:#d66a5a"'}>L${c.upgrade}</span></div>
       <div class="sysname">${sysNm}</div><div class="sub">${ptype}</div>
       <div class="stat">${exLines}</div>
       <div class="stat">🏭 ${det.factoryPins||0} factory pin${det.factoryPins===1?'':'s'}</div>
-      <div class="stat" style="color:var(--muted2)">${chars[id]?chars[id].charName:''}</div></div>`;
+      <div class="stat" style="color:#6a5a48">${chars[id]?chars[id].charName:''}</div></div>`;
   }).join('');
 
   const extAgg={}; rows.forEach(({c})=>{ (colDetail[c.planet_id].extractors||[]).forEach(e=>{ extAgg[e.prod]=(extAgg[e.prod]||0)+e.perHr; }); });
   const exKeys=Object.keys(extAgg);
   if(capWrap){
     capWrap.innerHTML=exKeys.length? exKeys.map(t=>{ const perHr=extAgg[t]; const feeds=perHr/6000;
-      return `<div class="cap-row"><span>${PI.names[t]||t} (P0)</span><span>${Math.round(perHr).toLocaleString()}/hr</span><span style="color:var(--green)">feeds ${feeds.toFixed(2)} Basic facilities</span></div>`;
-    }).join('') : '<div class="cap-row"><span style="color:var(--muted2)">No active extractors right now.</span></div>';
+      return `<div class="cap-row"><span>${PI.names[t]||t} (P0)</span><span>${Math.round(perHr).toLocaleString()}/hr</span><span style="color:#7ec87e">feeds ${feeds.toFixed(2)} Basic facilities</span></div>`;
+    }).join('') : '<div class="cap-row"><span style="color:#6a5a48">No active extractors right now.</span></div>';
   }
 }
 
@@ -808,8 +807,8 @@ async function renderMyColonies(){
         if(best){ tip.style.display='block';
           const uiScale=+(getComputedStyle(document.documentElement).getPropertyValue('--ui'))||1;
           tip.style.left=((mx+16)/uiScale)+'px'; tip.style.top=((my-8)/uiScale)+'px';
-          tip.innerHTML=best.isResult? `${best.name}<br><span style="color:var(--muted)">${roundSec(best.sec).toFixed(1)} sec · ${best.covered}/${best.total} covered</span>`
-            : `${best.name}<br><span style="color:var(--muted)">${roundSec(best.sec).toFixed(1)} sec</span>`;
+          tip.innerHTML=best.isResult? `${best.name}<br><span style="color:#8a7458">${roundSec(best.sec).toFixed(1)} sec · ${best.covered}/${best.total} covered</span>`
+            : `${best.name}<br><span style="color:#8a7458">${roundSec(best.sec).toFixed(1)} sec</span>`;
         } else tip.style.display='none';
       });
       c.addEventListener('mouseleave', ()=>{ document.getElementById('universeTooltip').style.display='none'; });
@@ -895,7 +894,7 @@ async function renderWhatToMake(){
   const list=document.getElementById('mkRankList'), msg=document.getElementById('mkMsg'); if(!list) return;
   const prods=Object.keys(PI.recipe).filter(o=>PI.tier[o]===mkTier);
   const idset=new Set(); prods.forEach(o=>chainTypeIds(o).forEach(t=>idset.add(t)));
-  list.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px">Loading prices for '+prods.length+' P'+mkTier+' products…</div>';
+  list.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">Loading prices for '+prods.length+' P'+mkTier+' products…</div>';
   try{ await fetchHubPrices(mkHub,[...idset]); if(msg) msg.textContent='(7.5% sales tax assumed — real-time prices via Fuzzwork)'; }
   catch(e){ if(msg) msg.textContent='(price fetch failed — check network)'; }
   const SALES_TAX=0.075;
@@ -907,7 +906,7 @@ async function renderWhatToMake(){
     return {o,rev,inCost,profitRun,margin,outN:e.out}; }).filter(r=>!r.na);
   rows=rows.filter(r=>r.profitRun!=null);
   rows.sort((a,b)=>(b.profitRun/b.outN)-(a.profitRun/a.outN));
-  if(!rows.length){ list.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px">No priced P'+mkTier+' products found at this hub right now.</div>'; return; }
+  if(!rows.length){ list.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">No priced P'+mkTier+' products found at this hub right now.</div>'; return; }
   const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.profitRun/r.outN)));
   list.innerHTML=rows.slice(0,25).map(r=>{
     const perUnit=r.profitRun/r.outN; const pct=Math.round(Math.abs(perUnit)/maxAbs*100);
@@ -1006,22 +1005,32 @@ function fmtHrs(sec){ const h=sec/3600; return h<1?Math.round(sec/60)+'m':(h===M
 // 0-100 percent space the logistics chain nodes use (no SVG viewBox), so the
 // chain diagram below can anchor its stage nodes directly onto real planets
 // instead of floating in empty space.
+let systemMapPlanets=[]; // [{type, leftPct, topPct, angleDeg, rPct}, ...] for the currently selected system
 function renderSystemMap(){
-  // Mock planet markers removed: planet-type counts per system are real SDE data,
-  // but orbital positions are not available — so nothing is drawn at invented
-  // coordinates. The label below reports only real data.
   const svg=document.getElementById('systemMapSvg'), label=document.getElementById('systemMapLabel');
   if(!svg) return;
-  svg.innerHTML='';
   const sysId=selectedSystemId;
   const sys= sysId ? SYS[sysId] : null;
-  if(!sys){ if(label) label.textContent=''; return; }
+  systemMapPlanets=[];
+  if(!sys){ svg.innerHTML=''; if(label) label.textContent=''; return; }
   const [name,, , , , have] = sys;
-  const entries=Object.entries(have||{});
-  const planetCount=entries.reduce((a,[,n])=>a+n,0);
-  if(label) label.textContent = planetCount
-    ? name+' — '+planetCount+' planet'+(planetCount===1?'':'s')+': '+entries.map(([t,n])=>n+'\u00d7 '+(PTN[t]||t)).join(', ')
-    : name;
+  const planets=[]; Object.entries(have||{}).forEach(([t,n])=>{ for(let i=0;i<n;i++) planets.push(t); });
+  if(label) label.textContent = name+' — '+planets.length+' planet'+(planets.length===1?'':'s');
+  if(!planets.length){ svg.innerHTML=''; return; }
+  const cx=50, cy=50, ringGap=Math.min(38/planets.length, 6), startR=12;
+  const typeColor={T:'#4ac89a',I:'#8fd6f0',G:'#c8a0e8',O:'#4a90c4',L:'#e86a3a',B:'#a8906a',S:'#e8d060',P:'#e85a5a',H:'#7a7a7a'};
+  let svgHtml = `<circle cx="${cx}%" cy="${cy}%" r="3.4%" fill="#f0c060" opacity="0.9"/><circle cx="${cx}%" cy="${cy}%" r="3.4%" fill="none" stroke="#f0c060" stroke-width="1" opacity="0.4"><animate attributeName="r" values="3.4%;4.6%;3.4%" dur="4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="4s" repeatCount="indefinite"/></circle>`;
+  planets.forEach((t,i)=>{
+    const r = startR + i*ringGap; // percent of container
+    const angle = (i * 137.5) % 360; // golden-angle spacing so rings don't visually align radially
+    const rad = angle*Math.PI/180;
+    const leftPct = cx + r*Math.cos(rad), topPct = cy + r*Math.sin(rad);
+    const color = typeColor[t] || '#c89860';
+    systemMapPlanets.push({type:t, leftPct, topPct, angleDeg:angle, rPct:r});
+    svgHtml += `<circle cx="${cx}%" cy="${cy}%" r="${r}%" fill="none" stroke="rgba(220,160,90,.12)" stroke-width="1"/>`;
+    svgHtml += `<circle cx="${leftPct}%" cy="${topPct}%" r="1%" fill="${color}" opacity="0.85"><title>${PTN[t]||t}</title></circle>`;
+  });
+  svg.innerHTML = svgHtml;
 }
 
 async function renderLogistics(){
@@ -1030,9 +1039,9 @@ async function renderLogistics(){
   if(!nodesWrap) return;
   const basketIds=Object.keys(sel);
   const targets= basketIds.length? basketIds : (target?[String(target)]:[]);
-  if(!targets.length){ nodesWrap.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Pick a target product on Candidates to see its real production chain here.</div>';
+  if(!targets.length){ nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Pick a target product on Candidates to see its real production chain here.</div>';
     if(bufWrap) bufWrap.innerHTML=''; if(svgWrap) svgWrap.innerHTML=''; return; }
-  nodesWrap.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Scoring systems for '+targets.length+' product'+(targets.length>1?'s':'')+'…</div>';
+  nodesWrap.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px;position:absolute;top:40%;left:50%;transform:translateX(-50%)">Scoring systems for '+targets.length+' product'+(targets.length>1?'s':'')+'…</div>';
   await ensureColoniesLoaded();
   const owners=systemOwnerMap();
   const usedOwners=new Set();
@@ -1042,6 +1051,7 @@ async function renderLogistics(){
   const routeStops=new Map(); // system id -> {sysName, jumps} deduped across the whole plan
   let totalTripsAll=0;
   const rowCount=targets.length;
+  const usedPlanetIdx=new Set(); // don't anchor two chains onto the same planet marker
   targets.forEach((t,rowIdx)=>{
     const stages=traceChain(t);
     // single product keeps the original zigzag layout centered in the pane;
@@ -1051,7 +1061,27 @@ async function renderLogistics(){
     const stagger = rowCount===1 ? 7 : Math.min(5, rowHeight*0.22);
     const upOff = rowCount===1 ? 6 : Math.min(6, rowHeight*0.22);
     const downOff = rowCount===1 ? 21 : Math.min(14, rowHeight*0.34);
-    const positions = stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: rowCenter + ((i%2===0)?-stagger:stagger) }));
+    // Anchor stage I (the raw material) onto a real planet on the system map
+    // that actually produces it, then radiate the rest of the chain outward
+    // along that same angle — so the diagram reads as "built up from this
+    // planet" instead of floating in a generic zigzag. Falls back to the old
+    // zigzag when no system is selected, or the system lacks that resource.
+    let anchor=null;
+    if(stages.length && systemMapPlanets.length){
+      const rawTypes = PI.p0pt[stages[0]] || [];
+      for(let pi=0; pi<systemMapPlanets.length; pi++){
+        if(usedPlanetIdx.has(pi)) continue;
+        if(rawTypes.includes(systemMapPlanets[pi].type)){ anchor=systemMapPlanets[pi]; usedPlanetIdx.add(pi); break; }
+      }
+    }
+    const positions = anchor
+      ? stages.map((_,i)=>{
+          const angle = anchor.angleDeg + rowIdx*10; // small per-row fan-out so overlapping chains from the same planet don't stack exactly
+          const rad = angle*Math.PI/180;
+          const r = anchor.rPct + i*9; // percent — grows outward one "stage ring" at a time past the planet's own orbit
+          return { left: Math.max(6, Math.min(92, 50 + r*Math.cos(rad))), top: Math.max(8, Math.min(88, 50 + r*Math.sin(rad))) };
+        })
+      : stages.map((_,i)=>({ left: 12 + (76*i/Math.max(1,stages.length-1)), top: rowCenter + ((i%2===0)?-stagger:stagger) }));
     const picks=stages.map((s,i)=>{
       // the final stage is the target product itself — if a system was explicitly selected on Candidates, build there directly rather than re-scoring
       if(i===stages.length-1 && selectedSystemId && SYS[selectedSystemId]){
@@ -1071,7 +1101,7 @@ async function renderLogistics(){
       return pick;
     });
     const prodName = PI.recipe[t] ? PI.recipe[t].name : t;
-    nodesHtml+=`<div class="logi-role" style="top:${Math.max(2,rowCenter-stagger-upOff-8)}%;left:12px;color:var(--gold-bright);font-weight:600;font-size:8px">${prodName}${sel[t]?' ×'+sel[t]:''}</div>`;
+    nodesHtml+=`<div class="logi-role" style="top:${Math.max(2,rowCenter-stagger-upOff-8)}%;left:12px;color:#f0dcc0;font-weight:600;font-size:8px">${prodName}${sel[t]?' ×'+sel[t]:''}</div>`;
     stages.forEach((s,i)=>{ const pick=picks[i]; const roman=['I','II','III','IV','V'][i]||String(i+1);
       const sysName=pick?SYS[pick.id][0]:'no system found (check character roles)';
       const label = PI.p0pt[s]&&!PI.recipe[s] ? 'raw material' : PI.recipe[s].name;
@@ -1080,9 +1110,9 @@ async function renderLogistics(){
       const pilotName= ownerId!=null && chars[ownerId] ? chars[ownerId].charName : null;
       nodesHtml+=`<div class="logi-node" style="top:${positions[i].top}%;left:${positions[i].left}%"><div class="designation">${roman}</div>${sysName}</div>
         <div class="logi-role" style="top:${positions[i].top-upOff}%;left:${positions[i].left-3}%">${label}</div>
-        <div class="logi-role" style="top:${positions[i].top+downOff}%;left:${positions[i].left-3}%;color:var(--green)">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>
+        <div class="logi-role" style="top:${positions[i].top+downOff}%;left:${positions[i].left-3}%;color:#7ec87e">${pick?pick.covered+'/'+pick.total+' planet types':''}${pick&&pick.jumps!=null?' · '+pick.jumps+'j':''}</div>
         ${pick&&ownerId!=null?`<div class="role-pill role-${role}" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%" onclick="openRoleMenu('${ownerId}', this, '${(pilotName||'Character').replace(/"/g,'&quot;')}')" title="${pilotName||'Character'}'s colony role — click to assign">${ROLE_LABEL[role]}${pilotName?' · '+pilotName:''}</div>`
-          : pick?`<div class="logi-role" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%;color:var(--muted2)">no colony here yet</div>`:''}`;
+          : pick?`<div class="logi-role" style="top:${positions[i].top+downOff+9}%;left:${positions[i].left-3}%;color:#6a5a48">no colony here yet</div>`:''}`;
       if(pick){ routeStops.set(pick.id, { sysName: SYS[pick.id][0], jumps: pick.jumps }); }
       if(i>0){ const a=positions[i-1], b=positions[i];
         lines+=`<line x1="${a.left+4}%" y1="${a.top+3}%" x2="${b.left+4}%" y2="${b.top+3}%" stroke="rgba(220,160,90,.3)" stroke-width="2"/>`; }
@@ -1102,7 +1132,7 @@ async function renderLogistics(){
         rows+=`<div class="buf-row"><span>${['I','II','III','IV','V'][i]} → ${['I','II','III','IV','V'][i+1]}</span>
           <span><b>${fmtHrs(cadence)}</b> haul cadence · ${PI.p0pt[a]&&!PI.recipe[a]?'raw':PI.recipe[a].name} → ${PI.recipe[b]?PI.recipe[b].name:b}, matched to the slower stage's cycle · ~${Math.round(totalM3).toLocaleString()} m³ ≈ <b>${trips}</b> trip${trips===1?'':'s'} in selected hauler</span></div>`;
       }
-      bufSections+=`<div style="margin-bottom:8px">${rowCount>1?'<div style="font-size:8px;color:var(--gold-bright);font-weight:600;margin-bottom:2px">'+prodName+'</div>':''}${rows||'<div class="buf-row"><span style="color:var(--muted2)">Single-stage chain — no hauls needed.</span></div>'}</div>`;
+      bufSections+=`<div style="margin-bottom:8px">${rowCount>1?'<div style="font-size:8px;color:#f0dcc0;font-weight:600;margin-bottom:2px">'+prodName+'</div>':''}${rows||'<div class="buf-row"><span style="color:#6a5a48">Single-stage chain — no hauls needed.</span></div>'}</div>`;
     }
   });
   nodesWrap.innerHTML=nodesHtml;
@@ -1113,7 +1143,7 @@ async function renderLogistics(){
   if(shipLbl) shipLbl.textContent=`— ${shipObj?shipObj.name:'custom hauler'}, ${haulCapacity.toLocaleString()} m³`;
   if(routeWrap){
     const stops=[...routeStops.values()].sort((x,y)=>(x.jumps??1e9)-(y.jumps??1e9));
-    if(!stops.length){ routeWrap.innerHTML='<div class="route-row"><span style="color:var(--muted2)">No systems scored yet — pick a target product to plan a route.</span></div>'; }
+    if(!stops.length){ routeWrap.innerHTML='<div class="route-row"><span style="color:#6a5a48">No systems scored yet — pick a target product to plan a route.</span></div>'; }
     else{
       routeWrap.innerHTML=stops.map((s,i)=>`<div class="route-row"><span><span class="stop-idx">${i+1}.</span><span class="stop-name">${s.sysName}</span></span><span>${s.jumps!=null?s.jumps+' jumps from home':'jumps unknown'}</span></div>`).join('')
         +`<div class="route-summary">Nearest-first route across ${stops.length} system${stops.length===1?'':'s'} · ~${totalTripsAll} total trip${totalTripsAll===1?'':'s'} to clear every haul stage at current cadence</div>`;
@@ -1235,12 +1265,12 @@ async function renderMyColonies(force){
   const grid=document.getElementById('myColoniesGrid'), capWrap=document.getElementById('capacityRows'), subEl=document.getElementById('myColSub');
   if(!grid) return;
   const ids=visibleCharIds();
-  if(!ids.length){ grid.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px">Sign in from the launcher to see your live colonies, extractor rates, and outputs.</div>'; if(capWrap) capWrap.innerHTML=''; updateSyncChips(); return; }
-  grid.innerHTML='<div style="padding:14px;color:var(--muted);font-size:10px">Loading colonies…</div>';
+  if(!ids.length){ grid.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">Sign in from the launcher to see your live colonies, extractor rates, and outputs.</div>'; if(capWrap) capWrap.innerHTML=''; updateSyncChips(); return; }
+  grid.innerHTML='<div style="padding:14px;color:#8a7458;font-size:10px">Loading colonies…</div>';
   if(force){ colonies={}; }
   await Promise.all(ids.map(loadColonies));
   const rows=[]; ids.forEach(id=>(colonies[id]||[]).forEach(c=>{ rows.push({id,c}); colonyOwner[c.planet_id]=id; }));
-  if(!rows.length){ grid.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px">No planetary colonies found on your characters.</div>'; if(capWrap) capWrap.innerHTML=''; lastColonySync=Date.now(); updateSyncChips(); writePiDashboard(0,0); return; }
+  if(!rows.length){ grid.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">No planetary colonies found on your characters.</div>'; if(capWrap) capWrap.innerHTML=''; lastColonySync=Date.now(); updateSyncChips(); writePiDashboard(0,0); return; }
   await Promise.all(rows.map(r=>loadColonyDetail(r.id, r.c.planet_id, force)));
   lastColonySync=Date.now(); updateSyncChips();
   const now=Date.now();
@@ -1254,12 +1284,12 @@ async function renderMyColonies(force){
     const exLines=(det.extractors||[]).length
       ? det.extractors.map(e=>{
           const nm=PI.names[e.prod]||('type '+e.prod);
-          if(e.expired) return `⛏ ${nm} <b style="color:var(--red)">EXPIRED</b>`;
+          if(e.expired) return `⛏ ${nm} <b style="color:#d66a5a">EXPIRED</b>`;
           const left=e.expiry!=null?e.expiry-now:null;
           const soon=left!=null&&left<24*3600e3;
-          return `⛏ ${nm} <b style="color:var(--gold)">${Math.round(e.perHr).toLocaleString()}/hr</b>${left!=null?` <span style="color:${soon?'var(--amber)':'var(--muted)'}">⏱ ${pFmtDur(left)}</span>`:''}`;
+          return `⛏ ${nm} <b style="color:#e8a850">${Math.round(e.perHr).toLocaleString()}/hr</b>${left!=null?` <span style="color:${soon?'#e8b860':'#8a7458'}">⏱ ${pFmtDur(left)}</span>`:''}`;
         }).join('<br>')
-      : '<span style="color:var(--red)">extractor idle</span>';
+      : '<span style="color:#d66a5a">extractor idle</span>';
     let storeLine='';
     const withCap=(det.stores||[]).filter(s=>s.cap);
     if(withCap.length){
@@ -1268,12 +1298,12 @@ async function renderMyColonies(force){
       const col=pct>=95?'#d66a5a':pct>=80?'#e8b860':'#8a7458';
       storeLine=`<div class="stat">📦 <span style="color:${col}">${PIN_CAP_LABEL[worst.kind]||worst.kind} ${pct}% full</span></div>`;
     }
-    return `<div class="my-colony" data-pid="${c.planet_id}" style="cursor:pointer" title="Click for the full pin & storage breakdown"><div class="my-planet${hasAlert?' alert':''}"><div class="ring"></div><span class="cc-badge"${hasAlert?' style="color:var(--red)"':''}>L${c.upgrade}</span></div>
+    return `<div class="my-colony" data-pid="${c.planet_id}" style="cursor:pointer" title="Click for the full pin & storage breakdown"><div class="my-planet${hasAlert?' alert':''}"><div class="ring"></div><span class="cc-badge"${hasAlert?' style="color:#d66a5a"':''}>L${c.upgrade}</span></div>
       <div class="sysname">${sysNm}</div><div class="sub">${ptype}</div>
       <div class="stat">${exLines}</div>
       <div class="stat">🏭 ${det.factoryPins||0} factory pin${det.factoryPins===1?'':'s'}</div>
       ${storeLine}
-      <div class="stat" style="color:var(--muted2)">${chars[id]?chars[id].charName:''}</div></div>`;
+      <div class="stat" style="color:#6a5a48">${chars[id]?chars[id].charName:''}</div></div>`;
   }).join('');
   grid.querySelectorAll('.my-colony[data-pid]').forEach(el=>el.onclick=()=>openColonyDrawer(el.dataset.pid));
 
@@ -1291,12 +1321,12 @@ async function renderMyColonies(force){
   const exKeys=Object.keys(extAgg);
   if(capWrap){
     capWrap.innerHTML=(exKeys.length? exKeys.map(t=>{ const perHr=extAgg[t]; const feeds=perHr/6000;
-      return `<div class="cap-row"><span>${PI.names[t]||t} (P0)</span><span>${Math.round(perHr).toLocaleString()}/hr</span><span style="color:var(--green)">feeds ${feeds.toFixed(2)} Basic facilities</span></div>`;
-    }).join('') : '<div class="cap-row"><span style="color:var(--muted2)">No active extractors right now.</span></div>')
-    +`<div class="cap-row"><span>Expired extraction programs</span><span style="color:${expiredTotal?'var(--red)':'var(--green)'}">${expiredTotal||'none'}</span><span>${expiredTotal?'restart them in-game to resume P0 flow':''}</span></div>`
-    +`<div class="cap-row"><span>Next extractor expiry</span><span>${nextExpiry?pFmtDur(nextExpiry-now):'—'}</span><span style="color:var(--muted2)">${nextExpiry?new Date(nextExpiry).toUTCString().slice(5,22)+' EVE':''}</span></div>`
-    +`<div class="cap-row"><span>Stored on colonies</span><span>${Math.round(storedM3).toLocaleString()} m³</span><span id="piStoredVal" style="color:var(--muted2)">pricing…</span></div>`
-    +`<div class="cap-row"><span>Est. net production value</span><span id="piIskDay">…</span><span style="color:var(--muted2)">per day at hub buy, before POCO tax — assumes factories stay fed</span></div>`;
+      return `<div class="cap-row"><span>${PI.names[t]||t} (P0)</span><span>${Math.round(perHr).toLocaleString()}/hr</span><span style="color:#7ec87e">feeds ${feeds.toFixed(2)} Basic facilities</span></div>`;
+    }).join('') : '<div class="cap-row"><span style="color:#6a5a48">No active extractors right now.</span></div>')
+    +`<div class="cap-row"><span>Expired extraction programs</span><span style="color:${expiredTotal?'#d66a5a':'#7ec87e'}">${expiredTotal||'none'}</span><span>${expiredTotal?'restart them in-game to resume P0 flow':''}</span></div>`
+    +`<div class="cap-row"><span>Next extractor expiry</span><span>${nextExpiry?pFmtDur(nextExpiry-now):'—'}</span><span style="color:#6a5a48">${nextExpiry?new Date(nextExpiry).toUTCString().slice(5,22)+' EVE':''}</span></div>`
+    +`<div class="cap-row"><span>Stored on colonies</span><span>${Math.round(storedM3).toLocaleString()} m³</span><span id="piStoredVal" style="color:#6a5a48">pricing…</span></div>`
+    +`<div class="cap-row"><span>Est. net production value</span><span id="piIskDay">…</span><span style="color:#6a5a48">per day at hub buy, before POCO tax — assumes factories stay fed</span></div>`;
   }
   /* best-effort valuation via the same hub price cache the What-to-make view uses */
   (async ()=>{
@@ -1338,39 +1368,39 @@ function openColonyDrawer(pid){
   html+='<div class="lbl" style="margin-top:6px">Extractors</div>';
   html+=(det.extractors||[]).length? det.extractors.map(e=>{
     const nm=PI.names[e.prod]||('type '+e.prod);
-    const state=e.expired?'<b style="color:var(--red)">EXPIRED</b>':(e.expiry!=null?('⏱ '+pFmtDur(e.expiry-now)+' left'):'running');
-    return `<div class="cap-row"><span>⛏ ${nm}</span><span>${Math.round(e.rawPerHr).toLocaleString()}/hr · ${e.heads} head${e.heads===1?'':'s'}</span><span style="color:${e.expired?'var(--red)':'var(--muted)'}">${state}</span></div>`;
-  }).join(''):'<div class="cap-row"><span style="color:var(--muted2)">No extractor control units.</span></div>';
+    const state=e.expired?'<b style="color:#d66a5a">EXPIRED</b>':(e.expiry!=null?('⏱ '+pFmtDur(e.expiry-now)+' left'):'running');
+    return `<div class="cap-row"><span>⛏ ${nm}</span><span>${Math.round(e.rawPerHr).toLocaleString()}/hr · ${e.heads} head${e.heads===1?'':'s'}</span><span style="color:${e.expired?'#d66a5a':'#8a7458'}">${state}</span></div>`;
+  }).join(''):'<div class="cap-row"><span style="color:#6a5a48">No extractor control units.</span></div>';
   /* factories, decoded via SDE schematics */
-  html+='<div class="lbl" style="margin-top:10px">Factories <span style="color:var(--muted2);text-transform:none;letter-spacing:0">(schematics from SDE snapshot)</span></div>';
+  html+='<div class="lbl" style="margin-top:10px">Factories <span style="color:#6a5a48;text-transform:none;letter-spacing:0">(schematics from SDE snapshot)</span></div>';
   const facEntries=Object.entries(det.facSchem||{});
   html+=facEntries.length? facEntries.map(([sid,n])=>{
     const s=PI_SCHEM[sid];
-    if(!s) return `<div class="cap-row"><span>🏭 ${n}× schematic ${sid}</span><span style="color:var(--muted2)">unknown — newer than SDE snapshot</span><span></span></div>`;
+    if(!s) return `<div class="cap-row"><span>🏭 ${n}× schematic ${sid}</span><span style="color:#6a5a48">unknown — newer than SDE snapshot</span><span></span></div>`;
     const outHr=n*s.q*3600/s.ct;
     const ins=s.in.map(([t,q])=>`${(PI.names[t]||t)} −${Math.round(n*q*3600/s.ct)}/hr`).join(' · ');
-    return `<div class="cap-row"><span>🏭 ${n}× ${PI.names[s.o]||s.o}</span><span style="color:var(--gold)">+${Math.round(outHr).toLocaleString()}/hr</span><span style="color:var(--muted)">${ins}</span></div>`;
-  }).join(''):'<div class="cap-row"><span style="color:var(--muted2)">No processor pins.</span></div>';
+    return `<div class="cap-row"><span>🏭 ${n}× ${PI.names[s.o]||s.o}</span><span style="color:#e8a850">+${Math.round(outHr).toLocaleString()}/hr</span><span style="color:#8a7458">${ins}</span></div>`;
+  }).join(''):'<div class="cap-row"><span style="color:#6a5a48">No processor pins.</span></div>';
   /* balance */
   const nets=colonyNets(det);
   const netKeys=Object.keys(nets).filter(t=>Math.abs(nets[t])>0.01);
   if(netKeys.length){
-    html+='<div class="lbl" style="margin-top:10px">Production balance <span style="color:var(--muted2);text-transform:none;letter-spacing:0">(units/hr, factories assumed fed)</span></div>';
+    html+='<div class="lbl" style="margin-top:10px">Production balance <span style="color:#6a5a48;text-transform:none;letter-spacing:0">(units/hr, factories assumed fed)</span></div>';
     html+=netKeys.sort((a,b)=>nets[b]-nets[a]).map(t=>{
       const v=nets[t]; const col=v>=0?'#7ec87e':'#d66a5a';
-      return `<div class="cap-row"><span>${PI.names[t]||t}</span><span style="color:${col}">${v>=0?'+':''}${Math.round(v).toLocaleString()}/hr</span><span style="color:var(--muted2)">${v>=0?'surplus — export or feed onward':'deficit — needs imports'}</span></div>`;
+      return `<div class="cap-row"><span>${PI.names[t]||t}</span><span style="color:${col}">${v>=0?'+':''}${Math.round(v).toLocaleString()}/hr</span><span style="color:#6a5a48">${v>=0?'surplus — export or feed onward':'deficit — needs imports'}</span></div>`;
     }).join('');
   }
   /* storage */
-  html+='<div class="lbl" style="margin-top:10px">Storage <span style="color:var(--muted2);text-transform:none;letter-spacing:0">(capacities from SDE)</span></div>';
+  html+='<div class="lbl" style="margin-top:10px">Storage <span style="color:#6a5a48;text-transform:none;letter-spacing:0">(capacities from SDE)</span></div>';
   html+=(det.stores||[]).length? det.stores.map(s=>{
     const pct=s.cap?Math.min(100,Math.round(s.used/s.cap*100)):null;
     const col=pct!=null&&pct>=95?'#d66a5a':pct!=null&&pct>=80?'#e8b860':'#e8a850';
-    const bar=pct!=null?`<div style="height:4px;background:rgba(var(--gold-rgb),.15);margin:3px 0 5px"><div style="height:100%;width:${pct}%;background:${col}"></div></div>`:'';
+    const bar=pct!=null?`<div style="height:4px;background:rgba(220,160,90,.15);margin:3px 0 5px"><div style="height:100%;width:${pct}%;background:${col}"></div></div>`:'';
     const cont=s.cont.slice().sort((a,b)=>((PI_VOL[b.t]||0)*b.q)-((PI_VOL[a.t]||0)*a.q)).slice(0,6)
-      .map(x=>`<div class="cap-row"><span style="color:var(--muted)">· ${PI.names[x.t]||x.t}</span><span>${x.q.toLocaleString()}</span><span style="color:var(--muted2)">${Math.round((PI_VOL[x.t]||0)*x.q).toLocaleString()} m³</span></div>`).join('');
+      .map(x=>`<div class="cap-row"><span style="color:#8a7458">· ${PI.names[x.t]||x.t}</span><span>${x.q.toLocaleString()}</span><span style="color:#6a5a48">${Math.round((PI_VOL[x.t]||0)*x.q).toLocaleString()} m³</span></div>`).join('');
     return `<div class="cap-row"><span>📦 ${PIN_CAP_LABEL[s.kind]||s.kind}</span><span>${Math.round(s.used).toLocaleString()}${s.cap?' / '+s.cap.toLocaleString():''} m³</span><span style="color:${col}">${pct!=null?pct+'% full':''}</span></div>${bar}${cont}`;
-  }).join(''):'<div class="cap-row"><span style="color:var(--muted2)">No launchpads or storage pins.</span></div>';
+  }).join(''):'<div class="cap-row"><span style="color:#6a5a48">No launchpads or storage pins.</span></div>';
   body.innerHTML=html;
   d.classList.add('open'); bd.classList.add('open');
 }
@@ -1417,7 +1447,7 @@ async function renderWhatToMake(){
   const list=document.getElementById('mkRankList'), msg=document.getElementById('mkMsg'); if(!list) return;
   const prods=Object.keys(PI.recipe).filter(o=>PI.tier[o]===mkTier);
   const idset=new Set(); prods.forEach(o=>chainTypeIds(o).forEach(t=>idset.add(t)));
-  list.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px">Loading prices for '+prods.length+' P'+mkTier+' products…</div>';
+  list.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">Loading prices for '+prods.length+' P'+mkTier+' products…</div>';
   let fetchFailed=false;
   try{ await fetchHubPrices(mkHub,[...idset]); }
   catch(e){ fetchFailed=true; }
@@ -1438,7 +1468,7 @@ async function renderWhatToMake(){
     return {o,rev,inCost,profitRun,margin,outN:e.out}; }).filter(r=>!r.na);
   rows=rows.filter(r=>r.profitRun!=null);
   rows.sort((a,b)=>(b.profitRun/b.outN)-(a.profitRun/a.outN));
-  if(!rows.length){ list.innerHTML='<div style="padding:20px;color:var(--muted);font-size:10px">No priced P'+mkTier+' products found at this hub right now.</div>'; return; }
+  if(!rows.length){ list.innerHTML='<div style="padding:20px;color:#8a7458;font-size:10px">No priced P'+mkTier+' products found at this hub right now.</div>'; return; }
   const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.profitRun/r.outN)));
   list.innerHTML=rows.slice(0,25).map(r=>{
     const perUnit=r.profitRun/r.outN; const pct=Math.round(Math.abs(perUnit)/maxAbs*100);
