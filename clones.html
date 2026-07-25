@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html data-app="clones">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Clone Bay</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ----
+   Layout DNA: a vat room — centred narrow masthead, then a responsive grid of
+   tall pod cards, one per pilot. Each pod is a vertical medical readout:
+   vitals strip, cooldown meter, active implant rack, jump-clone drawers.
+   Nothing tabular, nothing full-width: the pods ARE the page.             */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.page{max-width:1420px;margin:0 auto;padding:26px 34px 70px;position:relative;z-index:1}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+/* centred masthead — unlike the left-aligned bars elsewhere in the suite */
+.topbar{text-align:center;margin-bottom:8px;padding-bottom:16px;position:relative}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap;position:absolute;left:0;top:4px}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px;position:absolute;right:0;top:4px}
+.kicker{font-size:10px;margin-bottom:8px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 12px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto}
+.pilots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.ctlrow{display:flex;gap:12px;align-items:center;justify-content:center;margin:14px 0 24px;flex-wrap:wrap}
+.ctlrow .btn{font-size:10.5px;padding:8px 18px;cursor:pointer}
+.ctlrow .hint{font-size:10.5px}
+/* the vat room */
+.bay{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px;align-items:start}
+.pod{position:relative;padding:0 0 16px}
+.pod-hd{padding:13px 16px 11px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.pod-hd .pn{font-size:13.5px}
+.pod-hd .pc{font-size:9.5px;white-space:nowrap}
+.vitals{display:flex;padding:0 16px;gap:0;margin-bottom:12px}
+.vital{flex:1;padding:8px 10px 7px}
+.vital .l{font-size:8.5px}
+.vital .v{font-size:13px;margin-top:3px}
+.home{padding:0 16px;font-size:11px;margin-bottom:12px}
+.home .hl{font-size:8.5px;display:block;margin-bottom:3px}
+.cdwrap{padding:0 16px;margin-bottom:14px}
+.cdwrap .hl{font-size:8.5px;display:block;margin-bottom:5px}
+.cdbar{height:12px;position:relative}
+.cdbar .fill{position:absolute;inset:0 auto 0 0}
+.cdbar .txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+/* implant rack: 10 vertical slots */
+.rack{padding:0 16px;margin-bottom:14px}
+.rack .hl{font-size:8.5px;display:block;margin-bottom:6px}
+.slot{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:11px}
+.slot .sn{width:16px;flex:none;font-size:9px;text-align:right}
+.slot .pin{width:7px;height:7px;flex:none}
+.slot .im{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot.void .im{font-size:10px}
+/* jump clone drawers */
+.jcs{padding:0 16px}
+.jcs .hl{font-size:8.5px;display:block;margin-bottom:6px}
+details.jc{margin-bottom:6px}
+details.jc summary{font-size:11px;padding:7px 10px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:8px}
+details.jc summary::-webkit-details-marker{display:none}
+details.jc summary .jn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+details.jc summary .jt{font-size:9.5px;flex:none}
+details.jc .jcbody{padding:6px 10px 8px;font-size:10.5px;line-height:1.6}
+.poderr{padding:10px 16px;font-size:10.5px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8;grid-column:1/-1}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
+</head>
+<body>
+<div class="page">
+
+<header class="topbar">
+  <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
+  <span class="eveclock" id="eveclock"></span>
+  <div class="kicker">Infomorph Registry · Medical Deck</div>
+  <h1>Clone<span class="diamond"></span>Bay</h1>
+  <div class="subline">Every body the roster owns — active implants slot by slot, jump-clone vats and where they float, and whether the next jump is off cooldown.</div>
+  <div class="pilots" id="pilots"></div>
+</header>
+
+<div class="ctlrow">
+  <button class="btn primary" id="loadBtn">Open the vats</button>
+  <span class="hint" id="loadNote">Reads clones, implants and the two Infomorph skills per pilot. Sign-in lives in the Toolset menu.</span>
+</div>
+
+<div class="bay" id="out"><div class="empty">Press <b>Open the vats</b> to read the clone registry from ESI.</div></div>
+
+</div>
+<div id="toast"></div>
+<script>
+const MY_SECTION='clones';
+
+'use strict';
+/* ================================================================== */
+/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
+/* Sign-in happens exclusively in index.html. The SSO client id is    */
+/* NOT embedded here: index.html publishes it to localStorage         */
+/* (eve_suite_client_id) and this tool reads it for token refreshes.  */
+/* ================================================================== */
+function suiteClientId(){try{return localStorage.getItem('eve_suite_client_id')||'';}catch(e){return '';}}
+const SHARED_KEY='eve_suite_chars';
+const SECTION_KEY='eve_suite_char_sections';
+const DASHBOARD_KEY='eve_suite_dashboard';
+const ESI='https://esi.evetech.net/latest';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const now=()=>Date.now();
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
+let chars=loadChars();
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
+function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
+function visibleIds(){return Object.keys(chars).filter(sectionOn);}
+function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
+function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
+function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'ready';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
+  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
+async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
+async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
+  const cid=suiteClientId();
+  if(!cid)throw new Error('sign-in config not shared yet — open the Toolset menu (index.html) once');
+  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:cid}).toString());
+  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[id]=ns;saveChars();return ns;}
+async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
+  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
+async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
+  if(o.body!==undefined)h['Content-Type']='application/json';
+  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
+  return {json:await r.json(),res:r};}
+async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
+async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
+/* ---- persistent id→name cache (shared with the rest of the suite) ---- */
+const NAME_CACHE_KEY='eve_suite_namecache_v1';
+let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
+function saveNameCache(){try{const ks=Object.keys(nameCache);
+  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
+  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
+async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
+    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
+  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
+      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
+    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
+async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
+  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
+  if(need.length)saveNameCache();
+  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
+function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
+async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
+  try{const s=await esiGet('/universe/structures/'+id+'/',token);
+    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
+  catch(e){return 'Structure '+id;}}
+async function locationName(id,token){if(id==null)return '—';
+  if(id>=1e12)return structureName(id,token);
+  await resolveNames([id]);return nameOf(id,'Location '+id);}
+/* ---- pilot toggles: TEXT tags only — portraits/icons live in index.html ---- */
+function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
+  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
+  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
+    const t='click to '+(on?'exclude from':'include in')+' this tool';
+    return '<button class="ptag'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'">'+esc(c.charName||('Char '+id))+'</button>';}).join('');
+  el.querySelectorAll('.ptag').forEach(b=>{b.onclick=()=>{const id=b.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
+window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
+function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
+  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
+setInterval(tickClock,15000);tickClock();
+try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
+renderPilots();
+function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
+  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
+  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a pilot name above to include one.</div>';return true;}
+  return false;}
+
+/* ================= Clone Bay ================= */
+/* Jump-clone cooldown: 24h base, reduced 1h per level of Infomorph
+   Synchronizing (type 33399). Max jump clones: 1 per level of Infomorph
+   Psychology (type 24242). Both read live from the skills endpoint —
+   nothing here is assumed.                                            */
+const SKILL_SYNC=33399, SKILL_PSY=24242;
+let pods=[];   // per char: {id,name,clones,implants[],sync,psy,err,scopeErr}
+
+async function loadAll(){
+  if(noPilotsGuard('out'))return;
+  const btn=$('loadBtn');btn.disabled=true;
+  $('out').innerHTML='<div class="empty"><span class="spin"></span>Opening the vats…</div>';
+  pods=[];
+  for(const id of visibleIds()){
+    const pod={id,name:(chars[id]||{}).charName||('Char '+id)};
+    try{
+      const s=await getTok(id);
+      if(!s)throw new Error('token expired — re-open the Toolset menu');
+      pod.tok=s.access;
+      const [cl,imps]=await Promise.all([
+        esiGet('/characters/'+id+'/clones/',s.access),
+        esiGet('/characters/'+id+'/implants/',s.access).catch(e=>{if(e.status===403)pod.scopeErr=true;return [];}),
+      ]);
+      pod.clones=cl;pod.implants=imps||[];
+      try{
+        const sk=await esiGet('/characters/'+id+'/skills/',s.access);
+        const find=t=>{const f=(sk.skills||[]).find(x=>x.skill_id===t);return f?f.trained_skill_level:0;};
+        pod.sync=find(SKILL_SYNC);pod.psy=find(SKILL_PSY);
+      }catch(e){pod.sync=null;pod.psy=null;}
+    }catch(e){
+      pod.err=e.status===403
+        ? 'this token lacks the clones scope — remove & re-add the character in the Toolset menu'
+        : e.message;
+    }
+    pods.push(pod);
+  }
+  /* resolve names: implants + jump clone implants + locations */
+  const typeIds=pods.flatMap(p=>(p.implants||[]).concat((p.clones&&p.clones.jump_clones||[]).flatMap(j=>j.implants||[])));
+  try{await resolveNames(typeIds);}catch(e){}
+  const locJobs=[];
+  pods.forEach(p=>{
+    if(!p.clones)return;
+    const hl=p.clones.home_location;
+    if(hl&&hl.location_id)locJobs.push(locationName(hl.location_id,p.tok).then(n=>{p.homeName=n;}));
+    (p.clones.jump_clones||[]).forEach(j=>{
+      locJobs.push(locationName(j.location_id,p.tok).then(n=>{j._locName=n;}));
+    });
+  });
+  try{await Promise.all(locJobs);}catch(e){}
+  render();
+  btn.disabled=false;
+}
+
+function cooldown(p){
+  /* returns {ready:bool, msLeft, windowH} or null when never jumped / unknown */
+  if(!p.clones)return null;
+  const last=p.clones.last_clone_jump_date?Date.parse(p.clones.last_clone_jump_date):null;
+  const lvl=p.sync==null?null:p.sync;
+  const windowH=lvl==null?24:24-lvl;   // if skills unreadable, show worst case and say so
+  if(!last)return {ready:true,msLeft:0,windowH,unknownSkill:lvl==null,never:true};
+  const readyAt=last+windowH*3600000;
+  return {ready:readyAt<=now(),msLeft:readyAt-now(),windowH,unknownSkill:lvl==null};
+}
+
+function render(){
+  if(!pods.length){$('out').innerHTML='<div class="empty">Nothing to show.</div>';return;}
+  let readyCount=0,totalPods=0;
+  $('out').innerHTML=pods.map(p=>{
+    if(p.err)return '<div class="pod card"><div class="pod-hd"><span class="pn">'+esc(p.name)+'</span></div><div class="poderr">⚠ '+esc(p.err)+'</div></div>';
+    totalPods++;
+    const cd=cooldown(p);
+    if(cd&&cd.ready)readyCount++;
+    const jcs=(p.clones.jump_clones||[]);
+    const maxJc=p.psy==null?'?':p.psy;
+    const imps=(p.implants||[]).slice().sort((a,b)=>String(nameOf(a,'')).localeCompare(String(nameOf(b,''))));
+    const slots=[];
+    for(let i=0;i<10;i++){
+      const t=imps[i];
+      slots.push(t
+        ?'<div class="slot"><span class="sn">'+(i+1)+'</span><span class="pin on"></span><span class="im" title="'+esc(nameOf(t))+'">'+esc(nameOf(t))+'</span></div>'
+        :'<div class="slot void"><span class="sn">'+(i+1)+'</span><span class="pin"></span><span class="im">— empty socket —</span></div>');
+    }
+    const cdHtml=!cd?'':
+      '<div class="cdwrap"><span class="hl">Jump-clone cooldown · '+cd.windowH+'h window'+(cd.unknownSkill?' (skills unreadable — showing untrained 24h)':' (Infomorph Sync '+p.sync+')')+'</span>'+
+      '<div class="cdbar"><span class="fill '+(cd.ready?'ok':'wait')+'" style="width:'+(cd.ready?100:Math.max(2,100-100*cd.msLeft/(cd.windowH*3600000))).toFixed(1)+'%"></span>'+
+      '<span class="txt">'+(cd.never?'no jump on record — ready':(cd.ready?'READY TO JUMP':fmtDur(cd.msLeft)+' remaining'))+'</span></div></div>';
+    return '<div class="pod card">'+
+      '<div class="pod-hd"><span class="pn">'+esc(p.name)+'</span><span class="pc">'+jcs.length+' / '+maxJc+' vats'+(p.psy!=null?' · Psy '+p.psy:'')+'</span></div>'+
+      '<div class="vitals">'+
+        '<div class="vital"><div class="l">Implants live</div><div class="v">'+(p.implants||[]).length+' / 10</div></div>'+
+        '<div class="vital"><div class="l">Jump clones</div><div class="v">'+jcs.length+'</div></div>'+
+        '<div class="vital"><div class="l">Status</div><div class="v">'+(cd&&cd.ready?'ready':'cooling')+'</div></div>'+
+      '</div>'+
+      '<div class="home"><span class="hl">Home station (death clone)</span>'+esc(p.homeName||'—')+'</div>'+
+      cdHtml+
+      '<div class="rack"><span class="hl">Active clone · implant rack</span>'+slots.join('')+
+      (p.scopeErr?'<div class="poderr">⚠ implant scope missing — sockets shown empty</div>':'')+'</div>'+
+      '<div class="jcs"><span class="hl">Vat storage</span>'+
+      (jcs.length?jcs.map(j=>{
+        const nm=j.name||('Clone '+j.jump_clone_id);
+        return '<details class="jc"><summary><span class="jn">'+esc(nm)+' · '+esc(j._locName||'…')+'</span><span class="jt">'+(j.implants||[]).length+' implants</span></summary>'+
+          '<div class="jcbody">'+((j.implants||[]).length?(j.implants||[]).map(t=>esc(nameOf(t))).join('<br>'):'no implants in this clone')+'</div></details>';
+      }).join(''):'<div class="slot void"><span class="im">— no jump clones installed —</span></div>')+
+      '</div></div>';
+  }).join('');
+  reportDashboard(readyCount+'/'+totalPods+' pods jump-ready', readyCount?'ok':'muted');
+  $('loadNote').textContent='Registry read '+new Date().toUTCString().slice(17,25)+' EVE';
+  const errs=pods.filter(p=>p.err).length;
+  if(errs)toast(errs+' pilot(s) could not be read — see their pods',true);
+}
+$('loadBtn').onclick=loadAll;
+window.onRosterChange=()=>{ if(pods.length)loadAll(); };
+</script>
+<script>
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html data-app="lanes">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Freight Lanes</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Unica+One&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.plan{max-width:1240px;margin:0 auto;padding:26px 34px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:22px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+/* flight desk: a single wide filing strip of inputs */
+.desk{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:16px 18px;margin-bottom:8px;align-items:end}
+.desk label{display:block;font-size:8.5px;margin-bottom:5px}
+.desk input,.desk select{width:100%;font-size:12px;padding:8px 10px}
+.desk .btn{font-size:10.5px;padding:9px 14px;cursor:pointer}
+.waybar{display:flex;gap:10px;align-items:center;padding:0 18px 14px;flex-wrap:wrap;margin-bottom:16px}
+.waybar .wl{font-size:9px}
+.waybar input{font-size:11.5px;padding:6px 9px;width:170px}
+.waybar .btn{font-size:9.5px;padding:6px 11px;cursor:pointer}
+/* the lane: horizontal segmented route */
+.lane{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:22px 18px;margin-bottom:18px}
+.node{flex:none;width:150px;text-align:center;position:relative;padding-top:4px}
+.node .np{width:15px;height:15px;margin:0 auto 9px;border-radius:50%;position:relative;z-index:1}
+.node .nn{font-size:12px}
+.node .nl{font-size:9px;margin-top:3px}
+.leg{flex:none;width:160px;position:relative;margin-top:10px}
+.leg .line{position:absolute;top:0;left:-70px;right:-70px;height:2px}
+.leg .lbox{position:relative;z-index:1;margin:14px auto 0;width:138px;padding:8px 9px;text-align:center}
+.leg .ly{font-size:12.5px}
+.leg .fu{font-size:9.5px;margin-top:3px}
+.leg.over .ly{animation:blink 1.1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
+.totals{display:flex;flex-wrap:wrap;gap:0;margin-bottom:16px}
+.totals .t{flex:1 1 170px;padding:13px 16px}
+.totals .t .l{font-size:8.5px}
+.totals .t .v{font-size:19px;margin-top:5px}
+.smallprint{font-size:10px;line-height:1.7;padding:12px 16px}
+
+</style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
+</head>
+<body>
+
+<div class="plan">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Capital Logistics · Flight Plan</div>
+      <h1>Freight<span class="diamond"></span>Lanes</h1>
+      <div class="subline">A flight-plan strip for jump freighters — origin to destination with optional midpoints, straight-line light-years from live SDE coordinates, and fuel per leg from your actual skills. Rebuilt anew; the full Jump Freight Planner (2-D map, fatigue, kill heatmap) ships alongside as <b>jump.html</b>.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+
+<div class="desk panel">
+  <div><label>Origin system</label><input id="fromIn" placeholder="e.g. Jita"></div>
+  <div><label>Destination system</label><input id="toIn" placeholder="e.g. Amarr"></div>
+  <div><label>Ship</label><select id="shipSel"></select></div>
+  <div><label>Jump Drive Calibration</label><select id="jdcSel"></select></div>
+  <div><label>Jump Fuel Conservation</label><select id="jfcSel"></select></div>
+  <div><label>Jump Freighters skill</label><select id="jfSel"></select></div>
+  <div><button class="btn primary" id="planBtn">File the plan</button></div>
+</div>
+<div class="waybar panel">
+  <span class="wl">MIDPOINTS (in order, optional)</span>
+  <span id="ways"></span>
+  <button class="btn" id="addWay">+ midpoint</button>
+</div>
+
+<div id="out"><div class="empty">File a plan to see the lane.<br>This tool needs no sign-in at all — it reads only public system coordinates.</div></div>
+</div>
+
+<div id="toast"></div>
+<script>
+const MY_SECTION='lanes';
+
+'use strict';
+/* ================================================================== */
+/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
+/* Sign-in happens exclusively in index.html. The SSO client id is    */
+/* NOT embedded here: index.html publishes it to localStorage         */
+/* (eve_suite_client_id) and this tool reads it for token refreshes.  */
+/* No theme selector and no character portraits live in this file —   */
+/* pilots appear as text tags only; icons belong to index.html.       */
+/* ================================================================== */
+function suiteClientId(){try{return localStorage.getItem('eve_suite_client_id')||'';}catch(e){return '';}}
+const SHARED_KEY='eve_suite_chars';
+const SECTION_KEY='eve_suite_char_sections';
+const DASHBOARD_KEY='eve_suite_dashboard';
+const ESI='https://esi.evetech.net/latest';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const now=()=>Date.now();
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
+let chars=loadChars();
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
+function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
+function visibleIds(){return Object.keys(chars).filter(sectionOn);}
+function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
+function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
+function fmtISK(n){if(n==null||isNaN(n))return '—';const a=Math.abs(n),s=n<0?'−':'';
+  if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+a.toFixed(a>0&&a<10?2:0);}
+function fmtFull(n){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('en-US',{maximumFractionDigits:2});}
+function fmtInt(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function timeago(ts){const m=(now()-ts)/60000;if(m<1)return 'just now';if(m<60)return Math.round(m)+'m ago';if(m<1440)return Math.round(m/60)+'h ago';return Math.round(m/1440)+'d ago';}
+function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
+  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
+function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
+async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
+async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
+  const cid=suiteClientId();
+  if(!cid)throw new Error('sign-in config not shared yet — open the Toolset menu (index.html) once');
+  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:cid}).toString());
+  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[id]=ns;saveChars();return ns;}
+async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
+  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
+async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
+  if(o.body!==undefined)h['Content-Type']='application/json';
+  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
+  return {json:await r.json(),res:r};}
+async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
+async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
+async function esiGetPaged(path,token,cap){const sep=path.includes('?')?'&':'?';
+  const first=await esiFetch(path+sep+'page=1',{token});let out=first.json;
+  const pages=Math.min(parseInt(first.res.headers.get('X-Pages')||'1',10),cap||10);
+  for(let p=2;p<=pages;p++){try{out=out.concat((await esiFetch(path+sep+'page='+p,{token})).json);}catch(e){}}
+  return out;}
+function pLimit(n){let act=0;const q=[];
+  const next=()=>{if(act>=n||!q.length)return;act++;const [fn,res,rej]=q.shift();
+    Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});};
+  return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();});}
+/* ---- persistent id→name cache (shared with the rest of the suite) ---- */
+const NAME_CACHE_KEY='eve_suite_namecache_v1';
+let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
+function saveNameCache(){try{const ks=Object.keys(nameCache);
+  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
+  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
+async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
+    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
+  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
+      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
+    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
+async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
+  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
+  if(need.length)saveNameCache();
+  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
+function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
+async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
+  try{const s=await esiGet('/universe/structures/'+id+'/',token);
+    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
+  catch(e){return 'Structure '+id;}}
+async function locationName(id,token){if(id==null)return '—';
+  if(id>=1e12)return structureName(id,token);
+  await resolveNames([id]);return nameOf(id,'Location '+id);}
+/* ---- persistent type-info cache (volume, group) ---- */
+const TYPE_CACHE_KEY='eve_suite_typeinfo_v1';
+let typeCache={};try{typeCache=JSON.parse(localStorage.getItem(TYPE_CACHE_KEY)||'{}');}catch(e){}
+function saveTypeCache(){try{const ks=Object.keys(typeCache);
+  if(ks.length>6000)ks.slice(0,ks.length-5000).forEach(k=>delete typeCache[k]);
+  localStorage.setItem(TYPE_CACHE_KEY,JSON.stringify(typeCache));}catch(e){}}
+const typeLimit=pLimit(6);
+async function typeInfo(id){if(typeCache[id])return typeCache[id];
+  const t=await typeLimit(()=>esiGet('/universe/types/'+id+'/'));
+  typeCache[id]={name:t.name,volume:t.volume,pv:t.packaged_volume,gid:t.group_id};
+  nameCache[id]={n:t.name,c:'inventory_type'};saveTypeCache();return typeCache[id];}
+/* ---- pilot toggles: TEXT tags only — portraits/icons live in index.html ---- */
+function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
+  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
+  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
+    const t='click to '+(on?'exclude from':'include in')+' this tool';
+    return '<button class="ptag'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'">'+esc(c.charName||('Char '+id))+'</button>';}).join('');
+  el.querySelectorAll('.ptag').forEach(b=>{b.onclick=()=>{const id=b.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
+window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
+function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
+  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
+setInterval(tickClock,15000);tickClock();
+try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
+renderPilots();
+function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
+  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
+  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a pilot name above to include one.</div>';return true;}
+  return false;}
+
+
+/* ================= Freight Lanes ================= */
+/* Ship + fuel constants carried over verbatim from the original Jump
+   Freight Planner (jump.html): base range 5.0 LY, +20% per JDC level;
+   fuel = ceil(ly × 3100 × (1−0.1×JFC) × (1−0.1×JF)) isotopes.        */
+const SHIPS={
+  ark:{name:'Ark',race:'Amarr',iso:'Helium Isotopes',baseRange:5.0,baseFuel:3100},
+  rhea:{name:'Rhea',race:'Caldari',iso:'Nitrogen Isotopes',baseRange:5.0,baseFuel:3100},
+  anshar:{name:'Anshar',race:'Gallente',iso:'Oxygen Isotopes',baseRange:5.0,baseFuel:3100},
+  nomad:{name:'Nomad',race:'Minmatar',iso:'Hydrogen Isotopes',baseRange:5.0,baseFuel:3100},
+};
+const LY_M=9.4607e15;   // metres per light-year
+let ship='anshar',JDC=5,JFC=5,JF=5;
+function maxRange(){return SHIPS[ship].baseRange*(1+0.2*JDC);}
+function fuelPerLy(){return SHIPS[ship].baseFuel*(1-0.1*JFC)*(1-0.1*JF);}
+
+$('shipSel').innerHTML=Object.entries(SHIPS).map(([k,s])=>'<option value="'+k+'"'+(k===ship?' selected':'')+'>'+s.name+' ('+s.race+')</option>').join('');
+$('shipSel').onchange=e=>{ship=e.target.value;};
+function fillSk(id,min,cb){const s=$(id);s.innerHTML='';for(let i=min;i<=5;i++){const o=document.createElement('option');o.value=i;o.textContent=roman(i);if(i===5)o.selected=true;s.appendChild(o);}s.onchange=e=>cb(+e.target.value);}
+fillSk('jdcSel',0,v=>{JDC=v;});fillSk('jfcSel',0,v=>{JFC=v;});fillSk('jfSel',1,v=>{JF=v;});
+
+let wayCount=0;
+$('addWay').onclick=()=>{
+  wayCount++;
+  const sp=document.createElement('input');
+  sp.className='wayin';sp.placeholder='midpoint system';
+  $('ways').appendChild(sp);
+};
+
+const sysCache={};   // name(lower) -> {id,name,pos}
+async function systemByName(name){
+  const k=name.toLowerCase();
+  if(sysCache[k])return sysCache[k];
+  const r=await esiPost('/universe/ids/',[name]);
+  const s=(r.systems||[])[0];
+  if(!s)throw new Error('unknown system: "'+name+'" (ESI needs the exact name)');
+  const d=await esiGet('/universe/systems/'+s.id+'/');
+  const out={id:s.id,name:d.name,pos:d.position,sec:d.security_status};
+  sysCache[k]=out;return out;
+}
+function lyBetween(a,b){
+  const dx=a.pos.x-b.pos.x,dy=a.pos.y-b.pos.y,dz=a.pos.z-b.pos.z;
+  return Math.sqrt(dx*dx+dy*dy+dz*dz)/LY_M;
+}
+
+async function plan(){
+  const names=[$('fromIn').value.trim(),
+    ...[...document.querySelectorAll('.wayin')].map(i=>i.value.trim()).filter(Boolean),
+    $('toIn').value.trim()].filter(Boolean);
+  if(names.length<2){toast('need at least an origin and a destination',true);return;}
+  $('out').innerHTML='<div class="empty"><span class="spin"></span>Filing the plan…</div>';
+  try{
+    const stops=[];
+    for(const n of names)stops.push(await systemByName(n));
+    const fpl=fuelPerLy(),mr=maxRange();
+    let totLy=0,totFuel=0,over=0;
+    const legs=stops.slice(1).map((b,i)=>{
+      const a=stops[i];
+      const ly=lyBetween(a,b);
+      const fuel=Math.ceil(ly*fpl);
+      const bad=ly>mr;
+      if(bad)over++;else{totLy+=ly;totFuel+=fuel;}
+      return {a,b,ly,fuel,bad};
+    });
+    const nodeHtml=s=>'<div class="node"><span class="np'+(s.sec>=0.45?' hi':'')+'"></span><div class="nn">'+esc(s.name)+'</div><div class="nl">'+s.sec.toFixed(1)+' sec'+(s.sec>=0.45?' · NO CYNO (highsec)':'')+'</div></div>';
+    const legHtml=l=>'<div class="leg'+(l.bad?' over':'')+'"><span class="line"></span><div class="lbox">'+
+      '<div class="ly">'+l.ly.toFixed(2)+' LY'+(l.bad?' — OVER RANGE':'')+'</div>'+
+      '<div class="fu">'+(l.bad?'add a midpoint':fmtInt(l.fuel)+' '+SHIPS[ship].iso.split(' ')[0].toLowerCase()+' iso')+'</div></div></div>';
+    let lane='';
+    stops.forEach((s,i)=>{lane+=nodeHtml(s);if(i<legs.length)lane+=legHtml(legs[i]);});
+    const hiSecDest=stops.slice(1).some(s=>s.sec>=0.45);
+    $('out').innerHTML=
+      '<div class="lane panel">'+lane+'</div>'+
+      '<div class="totals panel">'+
+      '<div class="t"><div class="l">Ship · max jump</div><div class="v">'+SHIPS[ship].name+' · '+maxRange().toFixed(1)+' LY</div></div>'+
+      '<div class="t"><div class="l">Jumps</div><div class="v">'+legs.length+(over?' ('+over+' over range)':'')+'</div></div>'+
+      '<div class="t"><div class="l">Distance jumped</div><div class="v">'+totLy.toFixed(2)+' LY</div></div>'+
+      '<div class="t"><div class="l">Fuel · '+esc(SHIPS[ship].iso)+'</div><div class="v">'+fmtInt(totFuel)+'</div></div>'+
+      '</div>'+
+      '<div class="smallprint panel">Distances are straight-line light-years from live ESI system coordinates. Fuel = ⌈ly × '+fmtFull(fpl)+'⌉ per jump (base 3,100 × JFC × JF), the same formula as the original planner. '+
+      (hiSecDest?'<b>Note:</b> legs ending in highsec (0.45+) can\'t be jumped to — cynos can\'t be lit there; route to a lowsec midpoint instead. ':'')+
+      'Jump fatigue, gate routing and threat live in the full planner (jump.html).</div>';
+    reportDashboard(legs.length+' jumps · '+fmtInt(totFuel)+' iso', over?'bad':'ok');
+  }catch(e){$('out').innerHTML='<div class="empty">plan failed: '+esc(e.message)+'</div>';}
+}
+$('planBtn').onclick=plan;
+[$('fromIn'),$('toIn')].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')plan();}));
+
+</script>
+<script>
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
+</script>
+</body>
+</html>

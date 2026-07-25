@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html data-app="market">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Exchange Floor</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Oxanium:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0}
+.page{max-width:1360px;margin:0 auto;padding:26px 34px 70px;position:relative;z-index:1}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px;flex-wrap:wrap}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.backlink{font-size:10px;padding:7px 12px;margin-top:6px;display:none;align-items:center;white-space:nowrap}
+.kicker{font-size:9.5px;margin-bottom:7px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:620px}
+.tb-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end}
+.eveclock{font-size:11px;white-space:nowrap}
+.pilots{display:flex;flex-wrap:wrap;gap:5px;max-width:420px;justify-content:flex-end}
+.pchip{width:26px;height:26px;cursor:pointer;transition:all var(--dur-fast)}
+.nochars{font-size:10px}
+
+
+.tabs{display:flex;gap:2px;margin-bottom:20px;flex-wrap:wrap;padding:3px;width:fit-content;max-width:100%}
+.nav-tab{padding:9px 20px;font-size:10.5px;cursor:pointer;position:relative}
+.nav-tab.on::before{content:'';position:absolute;top:7px;right:7px;width:5px;height:5px;animation:livedot 1.6s ease-in-out infinite}
+@keyframes livedot{50%{opacity:.35}}
+@media (prefers-reduced-motion: reduce){
+.nav-tab.on::before{animation:none}
+}
+.view{display:none}
+.view.on{display:block}
+.recent{display:flex;gap:0;flex-wrap:wrap;margin-top:12px;padding-top:8px;align-items:center}
+.recent:not(:empty)::before{content:'TAPE ▸';font-size:8.5px;margin-right:10px}
+.rchipx{font-size:10.5px;padding:3px 10px;cursor:pointer;position:relative}
+.rchipx+.rchipx::before{content:'◈';position:absolute;left:-6px;font-size:8px;top:6px}
+.rchipx:hover{text-underline-offset:3px}
+.panel{position:relative;margin-bottom:16px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.panel-hd h2{font-size:11.5px;margin:0}
+.panel-hd .hint{font-size:11px}
+.panel-bd{padding:14px 16px}
+.searchrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.searchrow input{flex:1;min-width:240px}
+.itemhead{display:flex;align-items:center;gap:10px}
+.itemhead img{width:32px;height:32px}
+.itemhead .tn{font-size:13.5px}
+.hubname{font-size:12px}
+.chartwrap{position:relative;margin-top:10px}
+#histTip{position:absolute;pointer-events:none;font-size:10.5px;padding:6px 9px;display:none;z-index:5;white-space:nowrap}
+.hubrow td input{width:110px}
+.hubrow td input.nm{width:130px}
+.apr-tot{display:flex;gap:26px;flex-wrap:wrap;margin-top:14px;font-size:12.5px;padding:10px 16px}
+.apr-tot b{font-size:14px}
+.selrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.badline{font-size:11px}
+.btn{font-size:10px;padding:7px 14px;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:default}
+input[type=text],textarea,select{font-size:12px;padding:8px 10px}
+textarea{width:100%;resize:vertical;line-height:1.5}
+table{width:100%;border-collapse:collapse}
+th{font-size:9.5px;text-align:left;padding:7px 10px}
+td{padding:7px 10px;font-size:12.5px}
+td.num,th.num{text-align:right}
+.badge{font-size:9px;padding:2px 8px}
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.kcard{padding:13px 16px}
+.kcard .l{font-size:9.5px}
+.kcard .n{font-size:23px;margin-top:6px}
+.kcard .s{font-size:10.5px;margin-top:4px}
+.empty{padding:34px 20px;text-align:center;font-size:12.5px}
+.warnbar{font-size:12px;padding:10px 14px;margin-bottom:16px}
+.note{font-size:11px;line-height:1.55}
+.hint{font-size:11px}
+.charhead{display:flex;align-items:center;gap:10px}
+.charhead img{width:34px;height:34px}
+.charhead .cn{font-size:13px}
+.charhead .cc{font-size:10.5px}
+.spin{display:inline-block;width:11px;height:11px;animation:sp 0.8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(12px);font-size:11.5px;padding:10px 18px;opacity:0;pointer-events:none;transition:all .25s;z-index:99}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+canvas.chart{width:100%;display:block}
+details.grp summary{cursor:pointer;font-size:11.5px;padding:6px 0;list-style:none}
+details.grp summary::before{content:'▸ '}
+details.grp[open] summary::before{content:'▾ '}
+@media (max-width:860px){
+.page{padding:18px 14px 60px}
+.topbar{flex-direction:column}
+.tb-right{justify-content:flex-start}
+}
+</style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Saira:wght@400;500;600&family=Quicksand:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=Teko:wght@500;600&family=Michroma&family=Cinzel:wght@500;600&family=Comfortaa:wght@400;600&family=Saira+Stencil+One&display=swap" rel="stylesheet">
+</head>
+
+<body>
+<div class="page">
+
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">New Eden Commodities · Live Board</div>
+      <h1>Exchange<span class="diamond"></span>Floor</h1>
+      <div class="subline">Hub price checks, cargo appraisal and your live market orders — powered by the shared suite sign-in. Public price data needs no login at all.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>  </div>
+</header>
+<nav class="tabs">
+  <button class="nav-tab on" data-v="price">Price Check</button>
+  <button class="nav-tab" data-v="appraise">Appraisal</button>
+  <button class="nav-tab" data-v="orders">My Orders</button>
+  <button class="nav-tab" data-v="hubs">Hubs</button>
+</nav>
+
+<div class="view on" id="v-price">
+  <div class="panel"><div class="panel-hd"><h2>Look up an item</h2><span class="hint">exact in-game names · one per line for a multi-item check</span></div>
+    <div class="panel-bd">
+      <div class="searchrow">
+        <input type="text" id="q" placeholder="e.g. PLEX  ·  Tritanium  ·  Large Skill Injector" autocomplete="off">
+        <button class="btn primary" id="goBtn">Check prices</button>
+        <button class="btn" id="multiBtn" title="Paste several names, one per line">Multi-line…</button>
+      </div>
+      <textarea id="qMulti" rows="5" style="display:none;margin-top:10px" placeholder="One exact item name per line"></textarea>
+      <div class="recent" id="recent"></div>
+    </div>
+  </div>
+  <div id="priceOut"></div>
+</div>
+
+<div class="view" id="v-appraise">
+  <div class="panel"><div class="panel-hd"><h2>Cargo appraisal</h2><span class="hint">paste from inventory (Ctrl+A, Ctrl+C) or type "Item x qty" lines</span></div>
+    <div class="panel-bd">
+      <textarea id="aprIn" rows="9" placeholder="Tritanium	1500000&#10;Pyerite x 420000&#10;Compressed Veldspar 12000"></textarea>
+      <div class="selrow" style="margin-top:10px">
+        <span class="hint">price at</span><select id="aprHub"></select>
+        <button class="btn primary" id="aprBtn">Appraise</button>
+        <button class="btn" id="aprCopy" style="display:none">Copy summary</button>
+      </div>
+      <div id="aprBad"></div>
+    </div>
+  </div>
+  <div id="aprOut"></div>
+</div>
+
+<div class="view" id="v-orders">
+  <div class="selrow"><button class="btn primary" id="ordBtn">Refresh orders</button><span class="hint" id="ordNote"></span></div>
+  <div id="ordOut"></div>
+</div>
+
+<div class="view" id="v-hubs">
+  <div class="panel"><div class="panel-hd"><h2>Trade hubs</h2><span class="hint">used by Price Check &amp; Appraisal</span></div>
+    <div class="panel-bd">
+      <p class="note">The defaults are the five classic trade hubs, shipped as <b>reference IDs — adjust to match your market</b>.
+      Names shown in green are resolved live from ESI, so what you see is what the ID actually points at; a red badge means the ID didn't resolve.
+      You can point a row at any region + NPC station (player structures aren't queryable here without a structure-market scope pass, so stick to stations).</p>
+      <table><thead><tr><th>Label</th><th>Region ID</th><th>Station ID</th><th>Resolved as</th><th></th></tr></thead><tbody id="hubRows"></tbody></table>
+      <div class="selrow" style="margin-top:12px">
+        <button class="btn" id="hubAdd">+ Add hub</button>
+        <button class="btn" id="hubReset">Reset to defaults</button>
+        <button class="btn primary" id="hubSave">Save &amp; verify</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="toast"></div>
+<script>
+const MY_SECTION='market';
+
+'use strict';
+/* ================================================================== */
+/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
+/* Sign-in happens exclusively in index.html; this tool reads the      */
+/* pre-authorised characters from eve_suite_chars and refreshes their  */
+/* tokens itself. No scopes beyond the suite set are ever requested.   */
+/* ================================================================== */
+const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5';
+const SHARED_KEY='eve_suite_chars';
+const SECTION_KEY='eve_suite_char_sections';
+const DASHBOARD_KEY='eve_suite_dashboard';
+const ESI='https://esi.evetech.net/latest';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const now=()=>Date.now();
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
+let chars=loadChars();
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
+function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
+function visibleIds(){return Object.keys(chars).filter(sectionOn);}
+function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
+function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
+function fmtISK(n){if(n==null||isNaN(n))return '—';const a=Math.abs(n),s=n<0?'−':'';
+  if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+a.toFixed(a>0&&a<10?2:0);}
+function fmtFull(n){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('en-US',{maximumFractionDigits:2});}
+function fmtInt(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function timeago(ts){const m=(now()-ts)/60000;if(m<1)return 'just now';if(m<60)return Math.round(m)+'m ago';if(m<1440)return Math.round(m/60)+'h ago';return Math.round(m/1440)+'d ago';}
+function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
+  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
+function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
+async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
+async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
+  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:SUITE_CLIENT_ID}).toString());
+  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[id]=ns;saveChars();return ns;}
+async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
+  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
+async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
+  if(o.body!==undefined)h['Content-Type']='application/json';
+  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
+  return {json:await r.json(),res:r};}
+async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
+async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
+async function esiGetPaged(path,token,cap){const sep=path.includes('?')?'&':'?';
+  const first=await esiFetch(path+sep+'page=1',{token});let out=first.json;
+  const pages=Math.min(parseInt(first.res.headers.get('X-Pages')||'1',10),cap||10);
+  for(let p=2;p<=pages;p++){try{out=out.concat((await esiFetch(path+sep+'page='+p,{token})).json);}catch(e){}}
+  return out;}
+function pLimit(n){let act=0;const q=[];
+  const next=()=>{if(act>=n||!q.length)return;act++;const [fn,res,rej]=q.shift();
+    Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});};
+  return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();});}
+/* ---- persistent id→name cache: types, stations, systems, chars, corps… ---- */
+const NAME_CACHE_KEY='eve_suite_namecache_v1';
+let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
+function saveNameCache(){try{const ks=Object.keys(nameCache);
+  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
+  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
+async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
+    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
+  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
+      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
+    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
+async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
+  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
+  if(need.length)saveNameCache();
+  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
+function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
+async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
+  try{const s=await esiGet('/universe/structures/'+id+'/',token);
+    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
+  catch(e){return 'Structure '+id;}}
+async function locationName(id,token){if(id==null)return '—';
+  if(id>=1e12)return structureName(id,token);
+  await resolveNames([id]);return nameOf(id,'Location '+id);}
+/* ---- persistent type-info cache (volume, group) ---- */
+const TYPE_CACHE_KEY='eve_suite_typeinfo_v1';
+let typeCache={};try{typeCache=JSON.parse(localStorage.getItem(TYPE_CACHE_KEY)||'{}');}catch(e){}
+function saveTypeCache(){try{const ks=Object.keys(typeCache);
+  if(ks.length>6000)ks.slice(0,ks.length-5000).forEach(k=>delete typeCache[k]);
+  localStorage.setItem(TYPE_CACHE_KEY,JSON.stringify(typeCache));}catch(e){}}
+const typeLimit=pLimit(6);
+async function typeInfo(id){if(typeCache[id])return typeCache[id];
+  const t=await typeLimit(()=>esiGet('/universe/types/'+id+'/'));
+  typeCache[id]={name:t.name,volume:t.volume,pv:t.packaged_volume,gid:t.group_id};
+  nameCache[id]={n:t.name,c:'inventory_type'};saveTypeCache();return typeCache[id];}
+/* ---- pilot strip (suite roster, per-tool include toggles) ---- */
+function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
+  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
+  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
+    const t=esc(c.charName||('Char '+id))+(c.corpName?' · '+esc(c.corpName):'')+' — click to '+(on?'exclude from':'include in')+' this tool';
+    return '<div class="pchip'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'" style="background-image:url(https://images.evetech.net/characters/'+id+'/portrait?size=64)"></div>';}).join('');
+  el.querySelectorAll('.pchip').forEach(ch=>{ch.onclick=()=>{const id=ch.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
+window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
+/* ---- clock, theme, back link ---- */
+function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
+  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
+setInterval(tickClock,15000);tickClock();
+try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
+renderPilots();
+function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
+  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
+  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a portrait above to include one.</div>';return true;}
+  return false;}
+
+/* ================= Market Console ================= */
+const HUBS_KEY='eve_market_hubs_v1', RECENT_KEY='eve_market_recent_v1';
+/* Long-standing trade-hub IDs shipped as editable reference values (Hubs tab).
+   Displayed names are always resolved live from ESI so a wrong ID is self-evident. */
+const DEFAULT_HUBS=[
+  {name:'Jita',   region:10000002, station:60003760},
+  {name:'Amarr',  region:10000043, station:60008494},
+  {name:'Dodixie',region:10000032, station:60011866},
+  {name:'Rens',   region:10000030, station:60004588},
+  {name:'Hek',    region:10000042, station:60005686}];
+function loadHubs(){try{const h=JSON.parse(localStorage.getItem(HUBS_KEY)||'null');return Array.isArray(h)&&h.length?h:DEFAULT_HUBS.map(x=>({...x}));}catch(e){return DEFAULT_HUBS.map(x=>({...x}));}}
+let hubs=loadHubs();
+function saveHubs(){try{localStorage.setItem(HUBS_KEY,JSON.stringify(hubs));}catch(e){}}
+function showView(k){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('on',t.dataset.v===k));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+k));
+  if(k==='hubs')renderHubs();if(k==='appraise')fillHubSelect();if(k==='orders'&&!loadOrders._ran)loadOrders();}
+document.querySelectorAll('.nav-tab').forEach(t=>{t.onclick=()=>showView(t.dataset.v);});
+
+/* ---------- hub verification & editor ---------- */
+async function verifyHubIds(){const ids=[];hubs.forEach(h=>{ids.push(h.region,h.station);});
+  await resolveNames(ids);}
+function hubLabel(h){const st=nameCache[h.station],rg=nameCache[h.region];
+  if(st&&st.n&&st.n[0]!=='#')return st.n;return h.name+' (station '+h.station+')';}
+function renderHubs(){const tb=$('hubRows');
+  tb.innerHTML=hubs.map((h,i)=>{const st=nameCache[h.station],rg=nameCache[h.region];
+    const ok=st&&st.n[0]!=='#'&&rg&&rg.n[0]!=='#';
+    const res=ok?'<span class="badge ok">'+esc(rg.n)+' · '+esc(st.n)+'</span>'
+      :(st||rg)?'<span class="badge bad">ID did not resolve</span>':'<span class="badge mut">not verified yet</span>';
+    return '<tr class="hubrow" data-i="'+i+'"><td><input class="nm" type="text" value="'+esc(h.name)+'"></td>'+
+      '<td><input type="text" value="'+h.region+'"></td><td><input type="text" value="'+h.station+'"></td>'+
+      '<td>'+res+'</td><td><button class="btn" data-del="'+i+'">✕</button></td></tr>';}).join('');
+  tb.querySelectorAll('[data-del]').forEach(b=>{b.onclick=()=>{hubs.splice(+b.dataset.del,1);saveHubs();renderHubs();};});}
+function readHubRows(){const rows=[...document.querySelectorAll('.hubrow')];
+  hubs=rows.map(r=>{const [nm,rg,st]=r.querySelectorAll('input');
+    return {name:nm.value.trim()||'Hub',region:parseInt(rg.value,10)||0,station:parseInt(st.value,10)||0};})
+    .filter(h=>h.region&&h.station);}
+$('hubAdd').onclick=()=>{readHubRows();hubs.push({name:'New hub',region:0,station:0});renderHubs();};
+$('hubReset').onclick=()=>{hubs=DEFAULT_HUBS.map(x=>({...x}));saveHubs();renderHubs();verifyHubIds().then(renderHubs);toast('Hubs reset to reference defaults');};
+$('hubSave').onclick=async()=>{readHubRows();saveHubs();toast('Saved — verifying against ESI…');await verifyHubIds();renderHubs();fillHubSelect();};
+
+/* ---------- price check ---------- */
+const orderLimit=pLimit(6);
+async function typeIds(names){const clean=[...new Set(names.map(n=>n.trim()).filter(Boolean))];
+  const found=[],missing=[];
+  for(let i=0;i<clean.length;i+=200){const chunk=clean.slice(i,i+200);
+    let res={};try{res=await esiPost('/universe/ids/',chunk);}catch(e){}
+    const hits=(res.inventory_types||[]);
+    hits.forEach(t=>{found.push(t);nameCache[t.id]={n:t.name,c:'inventory_type'};});
+    const hitNames=new Set(hits.map(t=>t.name.toLowerCase()));
+    chunk.forEach(n=>{if(!hitNames.has(n.toLowerCase()))missing.push(n);});}
+  saveNameCache();return {found,missing};}
+async function hubQuote(typeId,hub){
+  const orders=await orderLimit(()=>esiGetPaged('/markets/'+hub.region+'/orders/?order_type=all&type_id='+typeId,null,5));
+  const atSt=orders.filter(o=>o.location_id===hub.station);
+  const sells=atSt.filter(o=>!o.is_buy_order),buys=atSt.filter(o=>o.is_buy_order);
+  const rSells=orders.filter(o=>!o.is_buy_order);
+  return {
+    sell:sells.length?Math.min(...sells.map(o=>o.price)):null,
+    sellVol:sells.reduce((s,o)=>s+o.volume_remain,0),
+    buy:buys.length?Math.max(...buys.map(o=>o.price)):null,
+    buyVol:buys.reduce((s,o)=>s+o.volume_remain,0),
+    regionSell:rSells.length?Math.min(...rSells.map(o=>o.price)):null};}
+function pushRecent(n){try{let r=JSON.parse(localStorage.getItem(RECENT_KEY)||'[]');
+  r=[n,...r.filter(x=>x!==n)].slice(0,10);localStorage.setItem(RECENT_KEY,JSON.stringify(r));}catch(e){}renderRecent();}
+function renderRecent(){let r=[];try{r=JSON.parse(localStorage.getItem(RECENT_KEY)||'[]');}catch(e){}
+  $('recent').innerHTML=r.map(n=>'<span class="rchipx">'+esc(n)+'</span>').join('');
+  $('recent').querySelectorAll('.rchipx').forEach(c=>{c.onclick=()=>{$('q').value=c.textContent;doPriceCheck();};});}
+async function doPriceCheck(){
+  const multi=$('qMulti').style.display!=='none'&&$('qMulti').value.trim();
+  const names=multi?$('qMulti').value.split('\n'):[$('q').value];
+  const list=names.map(s=>s.trim()).filter(Boolean);
+  if(!list.length){toast('Type an item name first',1);return;}
+  const out=$('priceOut');out.innerHTML='<div class="empty"><span class="spin"></span> resolving names…</div>';
+  const {found,missing}=await typeIds(list);
+  if(!found.length){out.innerHTML='<div class="empty">No exact matches. ESI name lookup needs the item\'s exact in-game name (e.g. "Large Skill Injector").</div>';return;}
+  list.forEach(pushRecent);
+  await verifyHubIds();
+  out.innerHTML=(missing.length?'<div class="warnbar">No exact match for: '+missing.map(esc).join(', ')+'</div>':'')+
+    found.map(t=>'<div class="panel" id="pi-'+t.id+'"><div class="panel-hd"><div class="itemhead">'+
+      '<img src="https://images.evetech.net/types/'+t.id+'/icon?size=64" onerror="this.style.display=\'none\'">'+
+      '<span class="tn">'+esc(t.name)+'</span></div><span class="hint">type '+t.id+'</span></div>'+
+      '<div class="panel-bd"><table><thead><tr><th>Hub</th><th class="num">Best sell</th><th class="num">Sell vol</th>'+
+      '<th class="num">Best buy</th><th class="num">Buy vol</th><th class="num">Spread</th><th></th></tr></thead>'+
+      '<tbody id="pb-'+t.id+'">'+hubs.map((h,hi)=>'<tr><td class="hubname">'+esc(hubLabel(h)).split(' - ')[0]+'</td>'+
+        '<td class="num" colspan="5"><span class="spin"></span></td><td></td></tr>').join('')+'</tbody></table>'+
+      '<div class="chartwrap" id="ch-'+t.id+'"></div></div></div>').join('');
+  for(const t of found){
+    const rows=await Promise.all(hubs.map(async h=>{try{return {h,q:await hubQuote(t.id,h)};}catch(e){return {h,err:e.message};}}));
+    const tb=$('pb-'+t.id);if(!tb)continue;
+    tb.innerHTML=rows.map(({h,q,err},hi)=>{
+      if(err)return '<tr><td class="hubname">'+esc(h.name)+'</td><td colspan="6" class="badline">'+esc(err)+'</td></tr>';
+      const spread=(q.sell!=null&&q.buy!=null)?q.sell-q.buy:null;
+      return '<tr><td class="hubname" title="'+esc(hubLabel(h))+'">'+esc(h.name)+'</td>'+
+        '<td class="num">'+(q.sell!=null?fmtFull(q.sell):(q.regionSell!=null?'<span class="hint" title="no sell orders at the hub station; cheapest anywhere in region">('+fmtFull(q.regionSell)+' rgn)</span>':'—'))+'</td>'+
+        '<td class="num">'+fmtInt(q.sellVol)+'</td>'+
+        '<td class="num">'+(q.buy!=null?fmtFull(q.buy):'—')+'</td>'+
+        '<td class="num">'+fmtInt(q.buyVol)+'</td>'+
+        '<td class="num">'+(spread!=null?fmtISK(spread):'—')+'</td>'+
+        '<td><button class="btn" data-hist="'+t.id+':'+hi+'">chart</button></td></tr>';}).join('');
+    tb.querySelectorAll('[data-hist]').forEach(b=>{b.onclick=()=>{const [tid,hi]=b.dataset.hist.split(':');showHistory(+tid,hubs[+hi]);};});}
+}
+$('goBtn').onclick=doPriceCheck;
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter')doPriceCheck();});
+$('multiBtn').onclick=()=>{const m=$('qMulti');m.style.display=m.style.display==='none'?'block':'none';};
+renderRecent();
+
+/* ---------- price history chart ---------- */
+async function showHistory(typeId,hub){const wrap=$('ch-'+typeId);if(!wrap)return;
+  wrap.innerHTML='<div class="empty"><span class="spin"></span> loading a year of history from '+esc(hub.name)+'…</div>';
+  let data;try{data=await esiGet('/markets/'+hub.region+'/history/?type_id='+typeId);}
+  catch(e){wrap.innerHTML='<div class="empty">history unavailable ('+esc(e.message)+')</div>';return;}
+  if(!data.length){wrap.innerHTML='<div class="empty">no trade history in this region</div>';return;}
+  data=data.slice(-365);
+  wrap.innerHTML='<canvas class="chart" id="cv-'+typeId+'" height="240"></canvas><div id="histTip"></div>'+
+    '<div class="note" style="margin-top:6px">'+esc(hub.name)+' region · daily average price (gold) and traded volume (cyan bars) · hover for values</div>';
+  const cv=$('cv-'+typeId);drawHistory(cv,data,wrap.querySelector('#histTip'));}
+function drawHistory(cv,data,tip){
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||cv.parentElement.clientWidth||900,H=240;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  const cs=getComputedStyle(document.documentElement);
+  const GOLD=cs.getPropertyValue('--gold').trim()||'#c9a868',CYAN=cs.getPropertyValue('--cyan').trim()||'#7ab8c8',
+    LINE=cs.getPropertyValue('--line').trim()||'#1a2028',MUT=cs.getPropertyValue('--muted2').trim()||'#5a6b78';
+  const mL=64,mR=10,mT=10,mB=22,iw=W-mL-mR,ih=H-mT-mB;
+  const lo=Math.min(...data.map(d=>d.lowest)),hi=Math.max(...data.map(d=>d.highest));
+  const pad=(hi-lo)*0.08||hi*0.05||1;const y0=lo-pad,y1=hi+pad;
+  const vmax=Math.max(...data.map(d=>d.volume))||1;
+  const X=i=>mL+iw*(i/(data.length-1||1)),Y=v=>mT+ih*(1-(v-y0)/(y1-y0));
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle=LINE;ctx.fillStyle=MUT;ctx.font='9.5px IBM Plex Mono,monospace';
+  for(let g=0;g<=4;g++){const v=y0+(y1-y0)*g/4,y=Y(v);
+    ctx.beginPath();ctx.moveTo(mL,y);ctx.lineTo(W-mR,y);ctx.stroke();
+    ctx.fillText(fmtISK(v),4,y+3);}
+  ctx.fillStyle=CYAN;ctx.globalAlpha=.35;
+  const bw=Math.max(1,iw/data.length-0.5);
+  data.forEach((d,i)=>{const h=(ih*0.28)*(d.volume/vmax);ctx.fillRect(X(i)-bw/2,mT+ih-h,bw,h);});
+  ctx.globalAlpha=1;ctx.strokeStyle=GOLD;ctx.lineWidth=1.5;ctx.beginPath();
+  data.forEach((d,i)=>{const x=X(i),y=Y(d.average);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+  ctx.fillStyle=MUT;
+  let lastM='';data.forEach((d,i)=>{const m=d.date.slice(0,7);
+    if(m!==lastM&&i%1===0){lastM=m;if(i%Math.ceil(data.length/9)<2)ctx.fillText(d.date.slice(2,7),X(i)-12,H-6);}});
+  cv.onmousemove=e=>{const r=cv.getBoundingClientRect();const x=e.clientX-r.left;
+    const i=Math.max(0,Math.min(data.length-1,Math.round((x-mL)/iw*(data.length-1))));const d=data[i];if(!d)return;
+    tip.style.display='block';tip.style.left=Math.min(x+14,W-170)+'px';tip.style.top='14px';
+    tip.innerHTML=d.date+'<br>avg <b>'+fmtFull(d.average)+'</b><br>vol '+fmtInt(d.volume)+'<br>lo '+fmtISK(d.lowest)+' · hi '+fmtISK(d.highest);};
+  cv.onmouseleave=()=>{tip.style.display='none';};}
+
+/* ---------- appraisal ---------- */
+function fillHubSelect(){const s=$('aprHub');const cur=s.value;
+  s.innerHTML=hubs.map((h,i)=>'<option value="'+i+'">'+esc(h.name)+'</option>').join('');
+  if(cur&&+cur<hubs.length)s.value=cur;}
+fillHubSelect();
+function parseAppraisal(text){const items=new Map(),bad=[];
+  text.split('\n').forEach(raw=>{const line=raw.replace(/\u00a0/g,' ').trim();if(!line)return;
+    let name=null,qty=1;
+    if(line.includes('\t')){const cols=line.split('\t').map(c=>c.trim());name=cols[0].replace(/\*$/,'').trim();
+      const qcol=cols.slice(1).find(c=>/^[\d.,\s]+$/.test(c)&&c.trim()!=='');
+      qty=qcol?parseFloat(qcol.replace(/[,\s]/g,''))||1:1;}
+    else{let m=line.match(/^(.*?)[\s]*[x×][\s]*([\d.,]+)$/i)||line.match(/^(.*?)[\s]+([\d.,]+)$/);
+      if(m&&m[1].trim()&&!/^[\d.,]+$/.test(m[1].trim())){name=m[1].replace(/\*$/,'').trim();qty=parseFloat(m[2].replace(/,/g,''))||1;}
+      else{m=line.match(/^([\d.,]+)[\s]*[x×]?[\s]+(.+)$/);
+        if(m){name=m[2].replace(/\*$/,'').trim();qty=parseFloat(m[1].replace(/,/g,''))||1;}
+        else name=line.replace(/\*$/,'').trim();}}
+    if(!name){bad.push(raw);return;}
+    const k=name.toLowerCase();
+    if(items.has(k))items.get(k).qty+=qty;else items.set(k,{name,qty});});
+  return {items:[...items.values()],bad};}
+let lastAppraisal=null;
+async function doAppraise(){
+  const {items,bad}=parseAppraisal($('aprIn').value);
+  $('aprBad').innerHTML=bad.length?'<div class="badline" style="margin-top:8px">unparsed: '+bad.slice(0,6).map(esc).join(' · ')+'</div>':'';
+  if(!items.length){toast('Nothing to appraise',1);return;}
+  if(items.length>120){toast('Capped at 120 distinct items per pass',1);items.length=120;}
+  const hub=hubs[+$('aprHub').value||0];const out=$('aprOut');
+  out.innerHTML='<div class="empty"><span class="spin"></span> resolving '+items.length+' item names…</div>';
+  const {found,missing}=await typeIds(items.map(i=>i.name));
+  const byName=new Map(found.map(t=>[t.name.toLowerCase(),t.id]));
+  const rows=items.filter(i=>byName.has(i.name.toLowerCase()))
+    .map(i=>({...i,id:byName.get(i.name.toLowerCase())}));
+  if(!rows.length){out.innerHTML='<div class="empty">None of those names matched exactly in ESI.</div>';return;}
+  out.innerHTML='<div class="panel"><div class="panel-hd"><h2>Appraisal @ '+esc(hub.name)+'</h2><span class="hint" id="aprProg">pricing 0/'+rows.length+'…</span></div>'+
+    '<div class="panel-bd"><table><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Sell ea</th><th class="num">Sell total</th>'+
+    '<th class="num">Buy ea</th><th class="num">Buy total</th><th class="num">m³</th></tr></thead><tbody id="aprRows"></tbody></table>'+
+    '<div class="apr-tot" id="aprTot"></div>'+
+    (missing.length?'<div class="badline" style="margin-top:10px">no exact match: '+missing.map(esc).join(', ')+'</div>':'')+
+    '</div></div>';
+  let done=0,sellT=0,buyT=0,volT=0,volKnown=true;const frag=[];
+  await Promise.all(rows.map(async r=>{
+    try{r.q=await hubQuote(r.id,hub);}catch(e){r.q={sell:null,buy:null};}
+    try{const ti=await typeInfo(r.id);r.m3=(ti.pv!=null?ti.pv:ti.volume);}catch(e){r.m3=null;}
+    done++;const p=$('aprProg');if(p)p.textContent='pricing '+done+'/'+rows.length+'…';}));
+  rows.sort((a,b)=>((b.q.sell||0)*b.qty)-((a.q.sell||0)*a.qty));
+  rows.forEach(r=>{const st=r.q.sell!=null?r.q.sell*r.qty:null,bt=r.q.buy!=null?r.q.buy*r.qty:null;
+    if(st)sellT+=st;if(bt)buyT+=bt;
+    if(r.m3!=null)volT+=r.m3*r.qty;else volKnown=false;
+    frag.push('<tr><td>'+esc(r.name)+'</td><td class="num">'+fmtInt(r.qty)+'</td>'+
+      '<td class="num">'+(r.q.sell!=null?fmtFull(r.q.sell):'—')+'</td><td class="num">'+(st!=null?fmtISK(st):'—')+'</td>'+
+      '<td class="num">'+(r.q.buy!=null?fmtFull(r.q.buy):'—')+'</td><td class="num">'+(bt!=null?fmtISK(bt):'—')+'</td>'+
+      '<td class="num">'+(r.m3!=null?fmtFull(r.m3*r.qty):'—')+'</td></tr>');});
+  $('aprRows').innerHTML=frag.join('');
+  const p=$('aprProg');if(p)p.textContent=rows.length+' priced at hub-station orders';
+  $('aprTot').innerHTML='Sell value <b>'+fmtISK(sellT)+'</b> · Buy value <b>'+fmtISK(buyT)+'</b> · Volume <b>'+
+    fmtFull(volT)+(volKnown?'':'+')+' m³</b>';
+  lastAppraisal={hub:hub.name,rows,sellT,buyT,volT};
+  $('aprCopy').style.display='inline-block';
+  reportDashboard('appraised '+fmtISK(sellT)+' @ '+hub.name,'ok');}
+$('aprBtn').onclick=doAppraise;
+$('aprCopy').onclick=()=>{if(!lastAppraisal)return;const a=lastAppraisal;
+  const txt='Appraisal @ '+a.hub+'\n'+a.rows.map(r=>r.name+'\t'+r.qty+'\t'+(r.q.sell!=null?Math.round(r.q.sell*r.qty):'-')).join('\n')+
+    '\nSell total\t'+Math.round(a.sellT)+'\nBuy total\t'+Math.round(a.buyT)+'\nVolume m3\t'+Math.round(a.volT);
+  navigator.clipboard.writeText(txt).then(()=>toast('Summary copied'),()=>toast('Clipboard blocked',1));};
+
+/* ---------- my orders ---------- */
+async function loadOrders(){loadOrders._ran=true;
+  if(noPilotsGuard('ordOut'))return;
+  const out=$('ordOut');out.innerHTML='<div class="empty"><span class="spin"></span> pulling orders…</div>';
+  const all=[];const errs=[];
+  for(const id of visibleIds()){
+    const t=await getTok(id);
+    if(!t){errs.push(esc(chars[id].charName)+': token expired — re-add from the Toolset menu');continue;}
+    try{const os=await esiGet('/characters/'+id+'/orders/',t.access);
+      os.forEach(o=>{o._char=id;});all.push(...os);}
+    catch(e){errs.push(esc(chars[id].charName)+': '+esc(e.message));}}
+  if(!all.length){out.innerHTML=(errs.length?'<div class="warnbar">'+errs.join('<br>')+'</div>':'')+
+    '<div class="empty">No active market orders on the included pilots.</div>';
+    reportDashboard('no active orders','muted');return;}
+  await resolveNames(all.map(o=>o.type_id));
+  const locs={};for(const o of all){const key=o.location_id;
+    if(!(key in locs)){const t=await getTok(o._char);locs[key]=await locationName(key,t?t.access:null);}}
+  all.sort((a,b)=>new Date(b.issued)-new Date(a.issued));
+  let sellVal=0,escrow=0,sc=0,bc=0;
+  const rows=all.map(o=>{const buy=!!o.is_buy_order;
+    if(buy){bc++;escrow+=o.escrow||0;}else{sc++;sellVal+=o.price*o.volume_remain;}
+    const exp=new Date(o.issued).getTime()+(o.duration||90)*86400000-now();
+    return '<tr><td>'+esc(chars[o._char]?chars[o._char].charName:o._char)+'</td>'+
+      '<td>'+esc(nameOf(o.type_id))+'</td>'+
+      '<td>'+(buy?'<span class="badge cy">buy</span>':'<span class="badge ok">sell</span>')+'</td>'+
+      '<td class="num">'+fmtFull(o.price)+'</td>'+
+      '<td class="num">'+fmtInt(o.volume_remain)+' / '+fmtInt(o.volume_total)+'</td>'+
+      '<td>'+esc(locs[o.location_id]||'')+'</td>'+
+      '<td class="num" '+(exp<3*86400000?'style="color:var(--amber)"':'')+'>'+fmtDur(exp)+'</td></tr>';}).join('');
+  out.innerHTML=(errs.length?'<div class="warnbar">'+errs.join('<br>')+'</div>':'')+
+    '<div class="kv-grid">'+
+    '<div class="kcard"><div class="l">Sell orders</div><div class="n">'+sc+'</div><div class="s">'+fmtISK(sellVal)+' listed</div></div>'+
+    '<div class="kcard"><div class="l">Buy orders</div><div class="n cy">'+bc+'</div><div class="s">'+fmtISK(escrow)+' in escrow</div></div>'+
+    '</div>'+
+    '<div class="panel"><div class="panel-bd" style="overflow-x:auto"><table><thead><tr><th>Pilot</th><th>Item</th><th></th>'+
+    '<th class="num">Price</th><th class="num">Remaining</th><th>Location</th><th class="num">Expires</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div></div>';
+  reportDashboard(all.length+' order'+(all.length!==1?'s':'')+' · '+fmtISK(sellVal)+' listed','ok');
+  $('ordNote').textContent='loaded '+new Date().toLocaleTimeString();}
+$('ordBtn').onclick=loadOrders;
+window.onRosterChange=()=>{if(loadOrders._ran)loadOrders();};
+verifyHubIds().then(()=>{renderHubs();fillHubSelect();});
+</script>
+<script>
+/* Suite-wide theme, improved: picking a faction theme in any tool now
+   recolors every other open suite tab instantly (same shared key). */
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
+</script>
+</body>
+</html>

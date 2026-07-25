@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html data-app="wallet">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Counting House</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.page{max-width:1360px;margin:0 auto;padding:26px 34px 70px;position:relative;z-index:1}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.backlink{font-size:10px;padding:7px 12px;margin-top:6px;display:none;align-items:center;white-space:nowrap}
+.kicker{font-size:10px;margin-bottom:7px}
+.kicker::before{content:'§ '}
+h1{font-size:26px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:620px}
+.tb-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:5px;max-width:420px;justify-content:flex-end}
+.pchip{width:26px;height:26px;cursor:pointer;transition:all var(--dur-fast)}
+.nochars{font-size:10px}
+
+
+.selrow{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}
+.kcard{padding:14px 16px 12px;position:relative}
+.kcard::before{content:'';position:absolute;top:6px;right:8px;width:7px;height:7px;opacity:.6;transform:rotate(45deg)}
+.kcard .l{font-size:9.5px}
+.kcard .n{font-size:27px;margin-top:6px}
+.kcard .s{font-size:10.5px;margin-top:4px}
+.panel{position:relative;margin-bottom:16px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.panel-hd h2{font-size:12px;margin:0}
+.panel-hd h2::before{content:'№ '}
+.panel-hd .hint{font-size:11px}
+.panel-bd{padding:14px 16px}
+.charwallet{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 16px;flex-wrap:wrap;position:relative}
+.charwallet::after{content:'';flex:1;order:2;margin:0 6px;align-self:center;min-width:30px}
+.charwallet>div:last-child{order:3}
+.charhead{display:flex;align-items:center;gap:10px;order:1}
+.charhead img{width:34px;height:34px}
+.charhead .cn{font-size:13px}
+.charhead .cc{font-size:10.5px}
+.cw-bal{font-size:18px}
+.cw-net{font-size:11px}
+.catbar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.catbar .cn{font-size:11px;width:220px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.catbar .track{flex:1;height:10px;position:relative}
+.catbar .fill{position:absolute;inset:0 auto 0 0;opacity:.85}
+.catbar .cv{font-size:11px;width:90px;text-align:right;flex:none}
+.chartwrap{position:relative}
+#flowTip{position:absolute;pointer-events:none;font-size:10.5px;padding:6px 9px;display:none;z-index:5;white-space:nowrap}
+.twocol{display:grid}
+@media (max-width:900px){
+.twocol{grid-template-columns:1fr !important}
+}
+.btn{font-size:11px;padding:7px 13px;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:default}
+input[type=text],textarea,select{font-size:12px;padding:8px 10px}
+textarea{width:100%;resize:vertical;line-height:1.5}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;text-align:left;padding:7px 10px}
+td{padding:7px 10px;font-size:12.5px}
+td.num,th.num{text-align:right}
+.badge{font-size:9px;padding:2px 7px}
+.empty{padding:34px 20px;text-align:center;font-size:12.5px}
+.warnbar{font-size:12px;padding:10px 14px;margin-bottom:16px}
+.note{font-size:11px;line-height:1.55}
+.hint{font-size:11px}
+.spin{display:inline-block;width:11px;height:11px;animation:sp 0.8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(12px);font-size:12px;padding:10px 18px;opacity:0;pointer-events:none;transition:all .25s;z-index:99}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+canvas.chart{width:100%;display:block}
+details.grp summary{cursor:pointer;font-size:11.5px;padding:6px 0;list-style:none}
+details.grp summary::before{content:'▸ '}
+details.grp[open] summary::before{content:'▾ '}
+@media (max-width:860px){
+.page{padding:18px 14px 60px}
+.topbar{flex-direction:column}
+.tb-right{justify-content:flex-start}
+}
+</style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Saira:wght@400;500;600&family=Quicksand:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=Teko:wght@500;600&family=Michroma&family=Cinzel:wght@500;600&family=Comfortaa:wght@400;600&family=Saira+Stencil+One&display=swap" rel="stylesheet">
+</head>
+
+<body>
+<div class="page">
+
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Accounts of the Suite · Folio 30d</div>
+      <h1>The<span class="diamond"></span>Counting&nbsp;House</h1>
+      <div class="subline">Combined ISK across every signed-in pilot — 30-day flow, where it came from, where it went, and the latest trades.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>  </div>
+</header>
+<div class="selrow" style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+  <button class="btn primary" id="loadBtn">Refresh ledger</button>
+  <span class="hint" id="loadNote"></span>
+</div>
+<div id="out"><div class="empty">Press refresh to pull wallets from ESI.</div></div>
+</div>
+<div id="toast"></div>
+<script>
+const MY_SECTION='wallet';
+
+'use strict';
+/* ================================================================== */
+/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
+/* Sign-in happens exclusively in index.html; this tool reads the      */
+/* pre-authorised characters from eve_suite_chars and refreshes their  */
+/* tokens itself. No scopes beyond the suite set are ever requested.   */
+/* ================================================================== */
+const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5';
+const SHARED_KEY='eve_suite_chars';
+const SECTION_KEY='eve_suite_char_sections';
+const DASHBOARD_KEY='eve_suite_dashboard';
+const ESI='https://esi.evetech.net/latest';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const now=()=>Date.now();
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
+let chars=loadChars();
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
+function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
+function visibleIds(){return Object.keys(chars).filter(sectionOn);}
+function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
+function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
+function fmtISK(n){if(n==null||isNaN(n))return '—';const a=Math.abs(n),s=n<0?'−':'';
+  if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+a.toFixed(a>0&&a<10?2:0);}
+function fmtFull(n){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('en-US',{maximumFractionDigits:2});}
+function fmtInt(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function timeago(ts){const m=(now()-ts)/60000;if(m<1)return 'just now';if(m<60)return Math.round(m)+'m ago';if(m<1440)return Math.round(m/60)+'h ago';return Math.round(m/1440)+'d ago';}
+function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
+  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
+function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
+async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
+async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
+  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:SUITE_CLIENT_ID}).toString());
+  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[id]=ns;saveChars();return ns;}
+async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
+  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
+async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
+  if(o.body!==undefined)h['Content-Type']='application/json';
+  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
+  return {json:await r.json(),res:r};}
+async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
+async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
+async function esiGetPaged(path,token,cap){const sep=path.includes('?')?'&':'?';
+  const first=await esiFetch(path+sep+'page=1',{token});let out=first.json;
+  const pages=Math.min(parseInt(first.res.headers.get('X-Pages')||'1',10),cap||10);
+  for(let p=2;p<=pages;p++){try{out=out.concat((await esiFetch(path+sep+'page='+p,{token})).json);}catch(e){}}
+  return out;}
+function pLimit(n){let act=0;const q=[];
+  const next=()=>{if(act>=n||!q.length)return;act++;const [fn,res,rej]=q.shift();
+    Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});};
+  return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();});}
+/* ---- persistent id→name cache: types, stations, systems, chars, corps… ---- */
+const NAME_CACHE_KEY='eve_suite_namecache_v1';
+let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
+function saveNameCache(){try{const ks=Object.keys(nameCache);
+  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
+  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
+async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
+    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
+  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
+      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
+    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
+async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
+  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
+  if(need.length)saveNameCache();
+  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
+function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
+async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
+  try{const s=await esiGet('/universe/structures/'+id+'/',token);
+    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
+  catch(e){return 'Structure '+id;}}
+async function locationName(id,token){if(id==null)return '—';
+  if(id>=1e12)return structureName(id,token);
+  await resolveNames([id]);return nameOf(id,'Location '+id);}
+/* ---- persistent type-info cache (volume, group) ---- */
+const TYPE_CACHE_KEY='eve_suite_typeinfo_v1';
+let typeCache={};try{typeCache=JSON.parse(localStorage.getItem(TYPE_CACHE_KEY)||'{}');}catch(e){}
+function saveTypeCache(){try{const ks=Object.keys(typeCache);
+  if(ks.length>6000)ks.slice(0,ks.length-5000).forEach(k=>delete typeCache[k]);
+  localStorage.setItem(TYPE_CACHE_KEY,JSON.stringify(typeCache));}catch(e){}}
+const typeLimit=pLimit(6);
+async function typeInfo(id){if(typeCache[id])return typeCache[id];
+  const t=await typeLimit(()=>esiGet('/universe/types/'+id+'/'));
+  typeCache[id]={name:t.name,volume:t.volume,pv:t.packaged_volume,gid:t.group_id};
+  nameCache[id]={n:t.name,c:'inventory_type'};saveTypeCache();return typeCache[id];}
+/* ---- pilot strip (suite roster, per-tool include toggles) ---- */
+function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
+  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
+  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
+    const t=esc(c.charName||('Char '+id))+(c.corpName?' · '+esc(c.corpName):'')+' — click to '+(on?'exclude from':'include in')+' this tool';
+    return '<div class="pchip'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'" style="background-image:url(https://images.evetech.net/characters/'+id+'/portrait?size=64)"></div>';}).join('');
+  el.querySelectorAll('.pchip').forEach(ch=>{ch.onclick=()=>{const id=ch.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
+window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
+/* ---- clock, theme, back link ---- */
+function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
+  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
+setInterval(tickClock,15000);tickClock();
+try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
+renderPilots();
+function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
+  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
+  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a portrait above to include one.</div>';return true;}
+  return false;}
+
+/* ================= Wallet Ledger ================= */
+const DAY=86400000, WINDOW_D=30;
+function refLabel(rt){return (rt||'other').replace(/_/g,' ');}
+async function loadAll(){
+  if(noPilotsGuard('out'))return;
+  const out=$('out');out.innerHTML='<div class="empty"><span class="spin"></span> pulling wallets &amp; journals…</div>';
+  const per=[],errs=[];const cutoff=now()-WINDOW_D*DAY;
+  for(const id of visibleIds()){
+    const t=await getTok(id);
+    if(!t){errs.push(esc(chars[id].charName)+': token expired — re-add from the Toolset menu');continue;}
+    const rec={id,name:chars[id].charName||('Char '+id),bal:null,journal:[],tx:[]};
+    try{rec.bal=await esiGet('/characters/'+id+'/wallet/',t.access);}catch(e){errs.push(esc(rec.name)+' wallet: '+esc(e.message));}
+    try{const j=await esiGetPaged('/characters/'+id+'/wallet/journal/',t.access,4);
+      rec.journal=j.filter(e2=>new Date(e2.date).getTime()>=cutoff);}catch(e){errs.push(esc(rec.name)+' journal: '+esc(e.message));}
+    try{rec.tx=(await esiGet('/characters/'+id+'/wallet/transactions/',t.access)).slice(0,150);}catch(e){}
+    per.push(rec);}
+  if(!per.length){out.innerHTML='<div class="warnbar">'+errs.join('<br>')+'</div>';return;}
+  render(per,errs);}
+function render(per,errs){
+  const out=$('out');
+  const totalBal=per.reduce((s,p)=>s+(p.bal||0),0);
+  const allJ=per.flatMap(p=>p.journal.map(j=>({...j,_char:p.id})));
+  let inc=0,exp=0;const daily={},cats={};
+  allJ.forEach(j=>{const amt=j.amount||0;if(!amt)return;
+    if(amt>0)inc+=amt;else exp+=amt;
+    const d=j.date.slice(0,10);daily[d]=(daily[d]||0)+amt;
+    const c=refLabel(j.ref_type);cats[c]=(cats[c]||0)+amt;});
+  const net=inc+exp;
+  const days=[];for(let i=WINDOW_D-1;i>=0;i--){const d=new Date(now()-i*DAY).toISOString().slice(0,10);
+    days.push({d,v:daily[d]||0});}
+  const catRows=Object.entries(cats).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,14);
+  const catMax=Math.max(...catRows.map(c=>Math.abs(c[1])),1);
+  /* per-char 30d net from journal */
+  per.forEach(p=>{p.net=p.journal.reduce((s,j)=>s+(j.amount||0),0);});
+  per.sort((a,b)=>(b.bal||0)-(a.bal||0));
+  out.innerHTML=
+    (errs.length?'<div class="warnbar">'+errs.join('<br>')+'</div>':'')+
+    '<div class="kv-grid">'+
+      '<div class="kcard"><div class="l">Combined balance</div><div class="n">'+fmtISK(totalBal)+'</div><div class="s">'+per.length+' pilot'+(per.length!==1?'s':'')+' · '+fmtFull(totalBal)+' ISK</div></div>'+
+      '<div class="kcard"><div class="l">'+WINDOW_D+'d net</div><div class="n '+(net>=0?'gr':'rd')+'">'+(net>=0?'+':'')+fmtISK(net)+'</div><div class="s">journal entries: '+fmtInt(allJ.length)+'</div></div>'+
+      '<div class="kcard"><div class="l">'+WINDOW_D+'d income</div><div class="n gr">'+fmtISK(inc)+'</div></div>'+
+      '<div class="kcard"><div class="l">'+WINDOW_D+'d spend</div><div class="n rd">'+fmtISK(Math.abs(exp))+'</div></div>'+
+    '</div>'+
+    '<div class="panel"><div class="panel-hd"><h2>Daily net flow · last '+WINDOW_D+' days</h2><span class="hint">all included pilots · hover for values</span></div>'+
+      '<div class="panel-bd"><div class="chartwrap"><canvas class="chart" id="flowCv" height="200"></canvas><div id="flowTip"></div></div></div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="twocol">'+
+      '<div class="panel"><div class="panel-hd"><h2>Pilot balances</h2></div><div>'+
+        per.map(p=>'<div class="charwallet"><div class="charhead">'+
+          '<img src="https://images.evetech.net/characters/'+p.id+'/portrait?size=64">'+
+          '<div><div class="cn">'+esc(p.name)+'</div><div class="cc">'+esc(chars[p.id].corpName||'')+'</div></div></div>'+
+          '<div style="text-align:right"><div class="cw-bal">'+(p.bal!=null?fmtISK(p.bal):'—')+'</div>'+
+          '<div class="cw-net '+(p.net>=0?'up':'dn')+'">'+(p.net>=0?'+':'')+fmtISK(p.net)+' / '+WINDOW_D+'d</div></div></div>').join('')+
+      '</div></div>'+
+      '<div class="panel"><div class="panel-hd"><h2>Where the ISK moved</h2><span class="hint">by journal type, '+WINDOW_D+'d</span></div><div class="panel-bd">'+
+        (catRows.length?catRows.map(([c,v])=>'<div class="catbar'+(v<0?' neg':'')+'"><span class="cn" title="'+esc(c)+'">'+esc(c)+'</span>'+
+          '<span class="track"><span class="fill" style="width:'+Math.max(2,Math.abs(v)/catMax*100)+'%"></span></span>'+
+          '<span class="cv">'+(v>=0?'+':'−')+fmtISK(Math.abs(v))+'</span></div>').join('')
+        :'<div class="empty">no journal activity in the window</div>')+
+      '</div></div>'+
+    '</div>'+
+    '<div class="panel"><div class="panel-hd"><h2>Recent market transactions</h2><span class="hint">latest 60 across pilots</span></div>'+
+    '<div class="panel-bd" style="overflow-x:auto"><div id="txWrap"><div class="empty"><span class="spin"></span></div></div></div></div>';
+  drawFlow($('flowCv'),days,$('flowTip'));
+  renderTx(per);
+  reportDashboard('Σ '+fmtISK(totalBal)+' · '+(net>=0?'+':'')+fmtISK(net)+'/'+WINDOW_D+'d', net<0&&Math.abs(net)>totalBal*0.2?'warn':'ok');
+  $('loadNote').textContent='loaded '+new Date().toLocaleTimeString();}
+async function renderTx(per){
+  const tx=per.flatMap(p=>p.tx.map(t=>({...t,_char:p.id})))
+    .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,60);
+  const wrap=$('txWrap');
+  if(!tx.length){wrap.innerHTML='<div class="empty">no recent transactions</div>';return;}
+  await resolveNames(tx.flatMap(t=>[t.type_id,t.client_id,t.location_id]));
+  wrap.innerHTML='<table><thead><tr><th>When</th><th>Pilot</th><th>Item</th><th></th><th class="num">Qty</th>'+
+    '<th class="num">Unit</th><th class="num">Total</th><th>With</th><th>Where</th></tr></thead><tbody>'+
+    tx.map(t=>{const tot=t.unit_price*t.quantity;
+      return '<tr><td class="num">'+timeago(new Date(t.date).getTime())+'</td>'+
+      '<td>'+esc(chars[t._char]?chars[t._char].charName:'')+'</td>'+
+      '<td>'+esc(nameOf(t.type_id))+'</td>'+
+      '<td>'+(t.is_buy?'<span class="badge cy">buy</span>':'<span class="badge ok">sell</span>')+'</td>'+
+      '<td class="num">'+fmtInt(t.quantity)+'</td><td class="num">'+fmtFull(t.unit_price)+'</td>'+
+      '<td class="num" style="color:'+(t.is_buy?'var(--red)':'var(--green)')+'">'+(t.is_buy?'−':'+')+fmtISK(tot)+'</td>'+
+      '<td>'+esc(nameOf(t.client_id,''))+'</td>'+
+      '<td>'+esc(t.location_id>=1e12?('Structure '+t.location_id):nameOf(t.location_id,''))+'</td></tr>';}).join('')+
+    '</tbody></table>';}
+function drawFlow(cv,days,tip){
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||900,H=200;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  const cs=getComputedStyle(document.documentElement);
+  const GREEN=cs.getPropertyValue('--green').trim()||'#8cc86a',RED=cs.getPropertyValue('--red').trim()||'#d66a5a',
+    GOLD=cs.getPropertyValue('--gold').trim()||'#c9a868',LINE=cs.getPropertyValue('--line').trim()||'#1a2028',
+    MUT=cs.getPropertyValue('--muted2').trim()||'#5a6b78';
+  const mL=64,mR=10,mT=8,mB=18,iw=W-mL-mR,ih=H-mT-mB;
+  const mx=Math.max(...days.map(d=>Math.abs(d.v)),1);
+  const cum=[];let run=0;days.forEach(d=>{run+=d.v;cum.push(run);});
+  const cmx=Math.max(...cum.map(Math.abs),1);
+  const zero=mT+ih/2;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle=LINE;ctx.beginPath();ctx.moveTo(mL,zero);ctx.lineTo(W-mR,zero);ctx.stroke();
+  ctx.font='9.5px IBM Plex Mono,monospace';ctx.fillStyle=MUT;
+  ctx.fillText('+'+fmtISK(mx),4,mT+8);ctx.fillText('−'+fmtISK(mx),4,mT+ih);
+  const bw=Math.max(2,iw/days.length-2);
+  days.forEach((d,i)=>{const x=mL+iw*(i+0.5)/days.length;
+    const h=(ih/2-2)*Math.abs(d.v)/mx;
+    ctx.fillStyle=d.v>=0?GREEN:RED;ctx.globalAlpha=.7;
+    ctx.fillRect(x-bw/2,d.v>=0?zero-h:zero,bw,Math.max(1,h));ctx.globalAlpha=1;});
+  ctx.strokeStyle=GOLD;ctx.lineWidth=1.5;ctx.beginPath();
+  cum.forEach((v,i)=>{const x=mL+iw*(i+0.5)/days.length,y=zero-(ih/2-2)*(v/cmx);
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+  ctx.fillStyle=MUT;
+  days.forEach((d,i)=>{if(i%7===0)ctx.fillText(d.d.slice(5),mL+iw*(i+0.5)/days.length-14,H-4);});
+  cv.onmousemove=e=>{const r=cv.getBoundingClientRect();const x=e.clientX-r.left;
+    const i=Math.max(0,Math.min(days.length-1,Math.floor((x-mL)/iw*days.length)));const d=days[i];if(!d)return;
+    tip.style.display='block';tip.style.left=Math.min(x+14,W-180)+'px';tip.style.top='10px';
+    tip.innerHTML=d.d+'<br>net <b style="color:'+(d.v>=0?GREEN:RED)+'">'+(d.v>=0?'+':'−')+fmtISK(Math.abs(d.v))+'</b>'+
+      '<br>running '+fmtISK(cum[i]);};
+  cv.onmouseleave=()=>{tip.style.display='none';};}
+$('loadBtn').onclick=loadAll;
+window.onRosterChange=()=>{if($('out').querySelector('.kv-grid'))loadAll();};
+loadAll();
+</script>
+<script>
+/* Suite-wide theme, improved: picking a faction theme in any tool now
+   recolors every other open suite tab instantly (same shared key). */
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
+</script>
+</body>
+</html>

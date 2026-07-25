@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html data-app="academy">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Training Deck</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Audiowide&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.hall{max-width:1500px;margin:0 auto;padding:26px 30px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctl .hint{font-size:10.5px}
+/* training tracks: one tall column per pilot, side by side like exam lanes */
+.tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;align-items:start}
+.track{position:relative;padding-bottom:14px}
+.track-hd{padding:13px 16px 12px}
+.track-hd .cn{font-size:13.5px}
+.track-hd .sp{font-size:10px;margin-top:5px;display:flex;justify-content:space-between;gap:10px}
+.alarm{display:inline-block;font-size:9px;padding:3px 8px;margin-top:8px}
+.alarm.bad{animation:blink 1.1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
+/* vertical rail with entries pinned to it */
+.rail{position:relative;margin:6px 0 0;padding:4px 16px 0 34px}
+.rail::before{content:'';position:absolute;top:0;bottom:8px;left:20px;width:2px}
+.qe{position:relative;margin-bottom:13px}
+.qe::before{content:'';position:absolute;left:-19px;top:4px;width:9px;height:9px;border-radius:50%}
+.qe .qn{font-size:12px}
+.qe .qn b{margin-left:5px}
+.qe .qt{font-size:10px;margin-top:3px}
+.qe .prog{height:5px;margin-top:6px;position:relative}
+.qe .prog .fill{position:absolute;inset:0 auto 0 0}
+.qe.now .qn{font-size:12.5px}
+.attr{display:flex;flex-wrap:wrap;gap:5px;padding:0 16px;margin-top:10px}
+.attr span{font-size:9px;padding:3px 8px}
+
+</style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
+</head>
+<body>
+
+<div class="hall">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Neural Curriculum · All Pilots</div>
+      <h1>Training<span class="diamond"></span>Deck</h1>
+      <div class="subline">Every skill queue as a vertical training track — what's injecting now, what's stacked behind it, and which pilots have gone idle. Rebuilt anew; the original Skill Console ships alongside as <b>skills.html</b>.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+<div class="ctl">
+  <button class="btn primary" id="loadBtn">Sound the bell</button>
+  <span class="hint" id="loadNote"></span>
+</div>
+<div class="tracks" id="out"><div class="empty" style="grid-column:1/-1">Press <b>Sound the bell</b> to read every training queue.<br>Sign-in lives in the Toolset menu.</div></div>
+</div>
+
+<div id="toast"></div>
+<script>
+const MY_SECTION='academy';
+
+'use strict';
+/* ================================================================== */
+/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
+/* Sign-in happens exclusively in index.html. The SSO client id is    */
+/* NOT embedded here: index.html publishes it to localStorage         */
+/* (eve_suite_client_id) and this tool reads it for token refreshes.  */
+/* No theme selector and no character portraits live in this file —   */
+/* pilots appear as text tags only; icons belong to index.html.       */
+/* ================================================================== */
+function suiteClientId(){try{return localStorage.getItem('eve_suite_client_id')||'';}catch(e){return '';}}
+const SHARED_KEY='eve_suite_chars';
+const SECTION_KEY='eve_suite_char_sections';
+const DASHBOARD_KEY='eve_suite_dashboard';
+const ESI='https://esi.evetech.net/latest';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const now=()=>Date.now();
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
+let chars=loadChars();
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
+function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
+function visibleIds(){return Object.keys(chars).filter(sectionOn);}
+function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
+function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
+function fmtISK(n){if(n==null||isNaN(n))return '—';const a=Math.abs(n),s=n<0?'−':'';
+  if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+a.toFixed(a>0&&a<10?2:0);}
+function fmtFull(n){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('en-US',{maximumFractionDigits:2});}
+function fmtInt(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function timeago(ts){const m=(now()-ts)/60000;if(m<1)return 'just now';if(m<60)return Math.round(m)+'m ago';if(m<1440)return Math.round(m/60)+'h ago';return Math.round(m/1440)+'d ago';}
+function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
+  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
+function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
+async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
+async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
+  const cid=suiteClientId();
+  if(!cid)throw new Error('sign-in config not shared yet — open the Toolset menu (index.html) once');
+  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:cid}).toString());
+  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[id]=ns;saveChars();return ns;}
+async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
+  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
+async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
+  if(o.body!==undefined)h['Content-Type']='application/json';
+  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
+  return {json:await r.json(),res:r};}
+async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
+async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
+async function esiGetPaged(path,token,cap){const sep=path.includes('?')?'&':'?';
+  const first=await esiFetch(path+sep+'page=1',{token});let out=first.json;
+  const pages=Math.min(parseInt(first.res.headers.get('X-Pages')||'1',10),cap||10);
+  for(let p=2;p<=pages;p++){try{out=out.concat((await esiFetch(path+sep+'page='+p,{token})).json);}catch(e){}}
+  return out;}
+function pLimit(n){let act=0;const q=[];
+  const next=()=>{if(act>=n||!q.length)return;act++;const [fn,res,rej]=q.shift();
+    Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});};
+  return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();});}
+/* ---- persistent id→name cache (shared with the rest of the suite) ---- */
+const NAME_CACHE_KEY='eve_suite_namecache_v1';
+let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
+function saveNameCache(){try{const ks=Object.keys(nameCache);
+  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
+  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
+async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
+    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
+  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
+      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
+    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
+async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
+  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
+  if(need.length)saveNameCache();
+  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
+function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
+async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
+  try{const s=await esiGet('/universe/structures/'+id+'/',token);
+    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
+  catch(e){return 'Structure '+id;}}
+async function locationName(id,token){if(id==null)return '—';
+  if(id>=1e12)return structureName(id,token);
+  await resolveNames([id]);return nameOf(id,'Location '+id);}
+/* ---- persistent type-info cache (volume, group) ---- */
+const TYPE_CACHE_KEY='eve_suite_typeinfo_v1';
+let typeCache={};try{typeCache=JSON.parse(localStorage.getItem(TYPE_CACHE_KEY)||'{}');}catch(e){}
+function saveTypeCache(){try{const ks=Object.keys(typeCache);
+  if(ks.length>6000)ks.slice(0,ks.length-5000).forEach(k=>delete typeCache[k]);
+  localStorage.setItem(TYPE_CACHE_KEY,JSON.stringify(typeCache));}catch(e){}}
+const typeLimit=pLimit(6);
+async function typeInfo(id){if(typeCache[id])return typeCache[id];
+  const t=await typeLimit(()=>esiGet('/universe/types/'+id+'/'));
+  typeCache[id]={name:t.name,volume:t.volume,pv:t.packaged_volume,gid:t.group_id};
+  nameCache[id]={n:t.name,c:'inventory_type'};saveTypeCache();return typeCache[id];}
+/* ---- pilot toggles: TEXT tags only — portraits/icons live in index.html ---- */
+function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
+  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
+  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
+    const t='click to '+(on?'exclude from':'include in')+' this tool';
+    return '<button class="ptag'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'">'+esc(c.charName||('Char '+id))+'</button>';}).join('');
+  el.querySelectorAll('.ptag').forEach(b=>{b.onclick=()=>{const id=b.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
+window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
+function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
+  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
+setInterval(tickClock,15000);tickClock();
+try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
+renderPilots();
+function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
+  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
+  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a pilot name above to include one.</div>';return true;}
+  return false;}
+
+
+/* ================= Training Deck ================= */
+let tracks=[];
+
+async function loadAll(){
+  if(noPilotsGuard('out'))return;
+  const btn=$('loadBtn');btn.disabled=true;
+  $('out').innerHTML='<div class="empty" style="grid-column:1/-1"><span class="spin"></span>Reading queues…</div>';
+  tracks=[];
+  for(const id of visibleIds()){
+    const t={id,name:(chars[id]||{}).charName||('Char '+id)};
+    try{
+      const s=await getTok(id);
+      if(!s)throw new Error('token expired — re-open the Toolset menu');
+      const T=s.access;
+      const [sk,q]=await Promise.all([
+        esiGet('/characters/'+id+'/skills/',T),
+        esiGet('/characters/'+id+'/skillqueue/',T),
+      ]);
+      t.totalSp=sk.total_sp;t.unalloc=sk.unallocated_sp||0;t.skillCount=(sk.skills||[]).length;
+      t.queue=(q||[]).filter(e=>!e.finish_date||Date.parse(e.finish_date)>now());
+      try{t.attrs=await esiGet('/characters/'+id+'/attributes/',T);}catch(e){t.attrs=null;}
+    }catch(e){
+      t.err=e.status===403?'skills scope missing — re-add the character in the Toolset menu':e.message;
+    }
+    tracks.push(t);
+  }
+  try{await resolveNames(tracks.flatMap(t=>(t.queue||[]).map(e=>e.skill_id)));}catch(e){}
+  render();
+  btn.disabled=false;
+}
+
+function render(){
+  let training=0,idle=0;
+  $('out').innerHTML=tracks.map(t=>{
+    if(t.err)return '<div class="track panel"><div class="track-hd"><span class="cn">'+esc(t.name)+'</span></div><div class="charerr">⚠ '+esc(t.err)+'</div></div>';
+    const q=t.queue||[];
+    const cur=q[0];
+    if(cur)training++;else idle++;
+    const runway=q.length?Date.parse(q[q.length-1].finish_date)-now():0;
+    const entries=q.slice(0,12).map((e,i)=>{
+      const isNow=i===0;
+      let prog='';
+      if(isNow&&e.start_date&&e.finish_date){
+        const a=Date.parse(e.start_date),b=Date.parse(e.finish_date);
+        const pct=Math.min(100,Math.max(0,100*(now()-a)/(b-a)));
+        prog='<div class="prog"><span class="fill" style="width:'+pct.toFixed(1)+'%"></span></div>';
+      }
+      return '<div class="qe'+(isNow?' now':'')+'"><div class="qn">'+esc(nameOf(e.skill_id,'skill #'+e.skill_id))+'<b>'+roman(e.finished_level)+'</b></div>'+
+        '<div class="qt">'+(e.finish_date?(isNow?'finishes in ':'done in ')+fmtDur(Date.parse(e.finish_date)-now()):'paused — no finish date')+'</div>'+prog+'</div>';
+    }).join('');
+    const more=q.length>12?'<div class="qe"><div class="qt">… '+(q.length-12)+' more queued</div></div>':'';
+    const attrs=t.attrs?'<div class="attr">'+['intelligence','memory','perception','willpower','charisma'].map(a=>
+      '<span>'+a.slice(0,3).toUpperCase()+' '+t.attrs[a]+'</span>').join('')+'</div>':'';
+    return '<div class="track panel">'+
+      '<div class="track-hd"><span class="cn">'+esc(t.name)+'</span>'+
+      '<div class="sp"><span>'+fmtInt(t.totalSp)+' SP · '+t.skillCount+' skills</span><span>'+(t.unalloc?fmtInt(t.unalloc)+' unalloc.':'')+'</span></div>'+
+      (q.length?'<span class="alarm ok">queue runs '+fmtDur(runway)+'</span>':'<span class="alarm bad">QUEUE EMPTY — SP IDLE</span>')+
+      '</div>'+
+      (q.length?'<div class="rail">'+entries+more+'</div>':'<div class="empty" style="padding:22px">nothing training</div>')+
+      attrs+'</div>';
+  }).join('');
+  reportDashboard(training+' training'+(idle?' · '+idle+' idle!':''), idle?'bad':'ok');
+  $('loadNote').textContent='Queues read '+new Date().toUTCString().slice(17,25)+' EVE';
+}
+$('loadBtn').onclick=loadAll;
+window.onRosterChange=()=>{ if(tracks.length)loadAll(); };
+
+</script>
+<script>
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
+</script>
+</body>
+</html>
