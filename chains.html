@@ -57,6 +57,21 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .ct-prodhead{font-size:10.5px;margin:12px 0 2px}
 .ct-divider{height:1px;margin:14px 0}
 .deskfoot{font-size:10px;margin-top:12px;line-height:1.7}
+/* What to make ranking */
+#mkBody table{border-collapse:collapse;width:100%}
+#mkBody table thead th{position:sticky;top:0;background:var(--bg,#0b1116);z-index:2;cursor:pointer;user-select:none;white-space:nowrap;font-size:8.5px;text-align:right;padding:8px 8px}
+#mkBody table thead th:hover{color:var(--gold-bright)}
+#mkBody table thead th:first-child{text-align:left;padding-left:14px}
+#mkBody table tbody tr.row:nth-child(odd){background:rgba(255,255,255,.018)}
+#mkBody table tbody tr.row:hover{background:rgba(122,184,200,.09);cursor:pointer}
+#mkBody td{padding:5px 8px;font-size:11px;text-align:right;vertical-align:top}
+#mkBody td:first-child{text-align:left;padding-left:14px}
+#mkBody td.heat{position:relative}
+#mkBody .heatfill{position:absolute;left:0;top:3px;bottom:3px;border-radius:2px;opacity:.18;pointer-events:none}
+#mkBody .expander{cursor:pointer;color:var(--muted);display:inline-block;width:12px;user-select:none}
+#mkBody .expander:hover{color:var(--cyan)}
+.mkwrap{padding:16px}
+.mk-r{text-align:right}
 /* right column */
 .rpanel{padding:16px;margin-bottom:20px}
 .covgrid{display:flex;flex-wrap:wrap;gap:8px}
@@ -181,6 +196,7 @@ td .reg{font-size:9px}
       <div class="sugg panel" id="suggBox"></div>
     </div>
     <div class="tierchips" id="tierChips"></div>
+    <div class="lbl2" style="margin:10px 0 5px">WHAT TO MAKE</div>
     <div class="prodchips" id="prodChips"></div>
     <div class="chaintree" id="chainTree"><div class="empty" style="padding:14px">no product drafted — search above</div></div>
     <div class="deskfoot" id="deskFoot"></div>
@@ -212,6 +228,10 @@ td .reg{font-size:9px}
   </div>
 </div>
 
+<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+  <span id="makeToggle" class="navbtn" style="cursor:pointer;padding:4px 12px;border:1px solid var(--line2);color:var(--muted);font-size:10.5px;font-family:var(--mono)">What to make</span>
+  <span class="hint" style="font-size:10px">profit ranking · P1–P4 products</span>
+</div>
 <div class="logideck panel" id="logiDeck">
   <h2>Colony logistics — <span id="logiSysName"></span></h2>
   <span class="c">Production and transfer routing for the selected system, carried over from the original PI Planner: each stage of the chain is scored to a real system (the selected system anchors the final stage), hauls are sized against your hauler's infrastructure hold, and the route is sorted nearest-first from home.</span>
@@ -227,6 +247,15 @@ td .reg{font-size:9px}
   </div>
 </div>
 
+<div class="panel" id="makePanel" style="display:none">
+  <div class="mkwrap">
+    <h2 style="font-size:11.5px;margin:0 0 10px">What should I make? <span class="hint" style="font-weight:400">· profit ranking</span></h2>
+    <div id="mkControls" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:11px;margin-bottom:6px"></div>
+    <div id="mkChipRow" style="padding:4px 0 8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"></div>
+    <div id="mkBasisNote" class="hint" style="font-size:10px;margin-bottom:8px"></div>
+    <div id="mkBody"></div>
+  </div>
+</div>
 <div class="capband panel" id="capBand" style="display:none"></div>
 
 <div class="roleboard panel">
@@ -743,6 +772,155 @@ function bestSystemFor(prodId,nearId,nearDist){
   return best;
 }
 function fmtHrs(sec){const hh=sec/3600;return hh<1?Math.round(sec/60)+'m':(hh===Math.round(hh)?hh+'h':hh.toFixed(1)+'h');}
+
+
+/* ============================================================
+   WHAT TO MAKE — pricing + profit ranking (ported from pi.html)
+   ============================================================ */
+const HUBS=[['Jita',60003760],['Amarr',60008494],['Dodixie',60011866],['Rens',60004588],['Hek',60005686]];
+function hubName(st){ const h=HUBS.find(h=>h[1]===st); return h?h[0]:'hub'; }
+const HUB_OWNERS={
+  60003760:{fac:500001,corp:1000035,name:'Caldari Navy / Caldari State'},
+  60008494:{fac:500003,corp:1000084,name:'Emperor Family / Amarr Empire'},
+  60011866:{fac:500004,corp:1000120,name:'Federation Navy / Gallente Federation'},
+  60004588:{fac:500002,corp:1000080,name:'Brutor Tribe / Minmatar Republic'},
+  60005686:{fac:500002,corp:1000064,name:'Boundless Creation / Minmatar Republic'}
+};
+const PT_COLOR={T:'#6fd06f',I:'#9fd4e0',G:'#c9a868',O:'#5aa0d0',L:'#d66a5a',B:'#b09060',S:'#b69adf',P:'#e0a040',H:'#888'};
+let mk_priceCache={};
+let mk_pricesLoading=false;
+function mk_px(st,t){ return mk_priceCache[st+':'+t]; }
+function fmtIsk(n){ if(n==null) return '—'; if(!n) return '0'; const a=Math.abs(n);
+  if(a>=1e9) return (n/1e9).toFixed(2)+'b'; if(a>=1e6) return (n/1e6).toFixed(2)+'m'; if(a>=1e3) return (n/1e3).toFixed(1)+'k'; return Math.round(n).toString(); }
+function mk_bom(targetId, units){ const consume={};
+  (function req(t,qty){ consume[t]=(consume[t]||0)+qty; const r=PI.recipe[t]; if(!r) return;
+    const cycles=Math.ceil(qty/r.out); r.in.forEach(([x,q])=>req(String(x),cycles*q)); })(String(targetId),units);
+  return consume; }
+function mk_chainTypeIds(t){ return [...new Set(Object.keys(mk_bom(t,1)))]; }
+async function mk_fetchPrices(station,ids){ const miss=ids.filter(t=>mk_priceCache[station+':'+t]===undefined);
+  if(!miss.length) return;
+  try{ const url=`https://market.fuzzwork.co.uk/aggregates/?station=${station}&types=${miss.join(',')}`;
+    const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status); const j=await r.json();
+    miss.forEach(t=>{ const d=j[t]||{}; mk_priceCache[station+':'+t]={sell:d.sell?+d.sell.min:0,buy:d.buy?+d.buy.max:0}; });
+  }catch(e){ miss.forEach(t=>{ if(mk_priceCache[station+':'+t]===undefined) mk_priceCache[station+':'+t]=null; }); } }
+// fee state (skill-aware if roster has skill data, else base rates)
+let mk_buyHub=+(localStorage.getItem('pi_hub')||60003760);
+let mk_buyP0=localStorage.getItem('pi_bp0')==='1';
+let mk_buyP1=localStorage.getItem('pi_bp1')!=='0';
+let mk_sellMode=localStorage.getItem('pi_sellmode')||'buy';
+function mk_feeRates(){ const salesTax=0.075; const broker=0.03; const total=salesTax+(mk_sellMode==='sell'?broker:0); return {salesTax,broker,total,who:null}; }
+// make-panel state
+let mk_makeTier=4;
+let mk_mkSort={key:'perHrFac',dir:-1};
+let mk_mkPTFilter=new Set();
+let mk_mkChain=null;
+let mk_cbPalette=localStorage.getItem('pi_cb')==='1';
+let mk_makeMineOnly=localStorage.getItem('pi_mkmine')==='1';
+const mk_PT_NAME2CODE=(()=>{ const m={}; for(const c in UNIVERSE.planetTypes) m[UNIVERSE.planetTypes[c].toLowerCase()]=c; return m; })();
+function mk_prodPlanetTypes(o){ const c=mk_bom(o,1),codes=new Set(); Object.keys(c).forEach(t=>{ const pt=PI.p0pt[t]; if(pt) pt.forEach(x=>codes.add(x)); }); return codes; }
+function mk_chainTreeHtml(o){
+  const tcol=['#9fb0bc','#7ab8c8','#8cc86a','#d8a24a','#e8d296']; let h='';
+  (function walk(t,qty,depth){ const r=PI.recipe[t]; const tier=PI.tier[t]||0; const nm=(r&&r.name)||PI.names[t]||('type '+t);
+    const q=Math.round(qty).toLocaleString();
+    h+=`<div class="node" style="padding-left:${depth*18}px"><span style="color:${tcol[tier]||'#9fb0bc'};font-weight:600">P${tier}</span> ${depth?'└ ':''}${nm} <span class="hint">×${q}${r?'':' <span style="color:var(--muted2)">(raw)</span>'}</span></div>`;
+    if(r){ const cyc=Math.ceil(qty/r.out); r.in.forEach(([x,qq])=>walk(String(x),cyc*qq,depth+1)); }
+  })(String(o),1,0); return h; }
+function mk_unitEconomics(prod,st){ const r=PI.recipe[prod]; if(!r) return null; const p=mk_px(st,prod); if(!p) return null;
+  const consume=mk_bom(prod,r.out);
+  const p1=Object.keys(consume).filter(t=>PI.tier[t]===1), p0=Object.keys(consume).filter(t=>PI.p0pt[t]);
+  let costP1=0,okP1=true; p1.forEach(t=>{ const q=Math.ceil(consume[t]); const pp=mk_px(st,t); if(pp)costP1+=q*pp.sell; else okP1=false; });
+  let costP0=0,okP0=true; p0.forEach(t=>{ const q=Math.ceil(consume[t]); const pp=mk_px(st,t); if(pp)costP0+=q*pp.sell; else okP0=false; });
+  return {rev:r.out*p.buy, costP1:okP1?costP1:null, costP0:okP0?costP0:null, out:r.out, ct:r.ct}; }
+let mk_panelVisible=false;
+async function renderMake(){
+  const panel=$('makePanel'); if(!panel) return;
+  if(!mk_panelVisible){ panel.style.display='none'; return; }
+  panel.style.display='';
+  // update toggle button style
+  const tog=$('makeToggle');
+  if(tog){ tog.style.borderColor=mk_panelVisible?'var(--gold-dim)':'var(--line2)';
+    tog.style.color=mk_panelVisible?'var(--gold-bright)':'var(--muted)';
+    tog.style.background=mk_panelVisible?'rgba(201,168,104,.12)':'transparent'; }
+  const prods=Object.keys(PI.recipe).filter(o=>PI.tier[o]===mk_makeTier);
+  const idset=new Set(); prods.forEach(o=>mk_chainTypeIds(o).forEach(t=>idset.add(t)));
+  const basis=mk_buyP1?'P1':(mk_buyP0?'P0':'extract');
+  const basisLbl=basis==='P1'?'Buy P1 inputs':basis==='P0'?'Buy raw P0':'Self-extract (no input cost)';
+  const inHdr=basis==='P1'?'P1 cost/u':basis==='P0'?'P0 cost/u':'inputs/u';
+  const fees=mk_feeRates(); const feeMul=1-fees.total;
+  // controls row
+  const tierSel=`<select id="mkTier" style="font-size:11px;padding:2px 4px">${[1,2,3,4].map(t=>`<option value="${t}" ${t===mk_makeTier?'selected':''}>P${t}</option>`).join('')}</select>`;
+  const hubSel=`<select id="mkHub" style="font-size:11px;padding:2px 4px">${HUBS.map(([nm,st])=>`<option value="${st}" ${st===mk_buyHub?'selected':''}>${nm}</option>`).join('')}</select>`;
+  const modeSel=`<select id="mkSellMode" style="font-size:11px;padding:2px 4px"><option value="buy" ${mk_sellMode==='buy'?'selected':''}>sell to buy orders</option><option value="sell" ${mk_sellMode==='sell'?'selected':''}>list on sell orders</option></select>`;
+  $('mkControls').innerHTML=`Tier ${tierSel} &nbsp; Hub ${hubSel} &nbsp; ${modeSel} &nbsp;
+    <label style="cursor:pointer;font-size:11px"><input type="checkbox" id="mkP0" ${mk_buyP0?'checked':''}> Buy P0</label>
+    <label style="cursor:pointer;font-size:11px"><input type="checkbox" id="mkP1" ${mk_buyP1?'checked':''}> Buy P1</label>
+    <span id="mkReload" style="cursor:pointer;color:var(--cyan);font-size:11px">↻ load prices</span>
+    ${mk_pricesLoading?'<span class="hint">loading…</span>':''}`;
+  // planet filter chips
+  const chips=Object.keys(UNIVERSE.planetTypes).map(c=>`<span class="ptchip ${mk_mkPTFilter.has(c)?'on':''}" data-pt="${c}" title="${UNIVERSE.planetTypes[c]}" style="cursor:pointer;padding:2px 7px;border:1px solid ${mk_mkPTFilter.has(c)?'var(--gold-dim)':'var(--line2)'};border-radius:3px;font-size:9.5px;background:${mk_mkPTFilter.has(c)?'rgba(201,168,104,.12)':'transparent'}"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${PT_COLOR[c]||'#888'};vertical-align:middle;margin-right:3px"></i>${c}</span>`).join('');
+  const clr=mk_mkPTFilter.size?`<span id="mkPTclear" style="cursor:pointer;color:var(--cyan);font-size:10px">✕ clear</span>`:'';
+  const cbToggle=`<label style="cursor:pointer;font-size:10px;margin-left:auto"><input type="checkbox" id="mkCB" ${mk_cbPalette?'checked':''}> Color-blind</label>`;
+  $('mkChipRow').innerHTML=`<span class="hint" style="font-size:10px;color:var(--muted2)">Planet filter:</span>${chips}${clr}${cbToggle}`;
+  $('mkBasisNote').innerHTML=`Cost basis: <b style="color:var(--gold-bright)">${basisLbl}</b> · revenue net of fees (<b style="color:var(--amber)">${(fees.total*100).toFixed(1)}%</b>) via ${mk_sellMode==='sell'?'sell orders':'buy orders'} at ${hubName(mk_buyHub)}. Ranked by profit per facility-hour.`;
+  // wire controls
+  $('mkTier').onchange=e=>{ mk_makeTier=+e.target.value; renderMake(); };
+  $('mkHub').onchange=e=>{ mk_buyHub=+e.target.value; localStorage.setItem('pi_hub',mk_buyHub); renderMake(); };
+  $('mkSellMode').onchange=e=>{ mk_sellMode=e.target.value; localStorage.setItem('pi_sellmode',mk_sellMode); renderMake(); };
+  $('mkP0').onchange=e=>{ mk_buyP0=e.target.checked; localStorage.setItem('pi_bp0',mk_buyP0?'1':'0'); renderMake(); };
+  $('mkP1').onchange=e=>{ mk_buyP1=e.target.checked; localStorage.setItem('pi_bp1',mk_buyP1?'1':'0'); renderMake(); };
+  $('mkReload').onclick=async()=>{ mk_pricesLoading=true; renderMake(); await mk_fetchPrices(mk_buyHub,[...idset]); mk_pricesLoading=false; renderMake(); };
+  { const el=$('mkPTclear'); if(el) el.onclick=()=>{ mk_mkPTFilter.clear(); renderMake(); }; }
+  $('mkChipRow').querySelectorAll('.ptchip[data-pt]').forEach(ch=>ch.onclick=()=>{ const c=ch.dataset.pt; mk_mkPTFilter.has(c)?mk_mkPTFilter.delete(c):mk_mkPTFilter.add(c); renderMake(); });
+  { const el=$('mkCB'); if(el) el.onchange=e=>{ mk_cbPalette=e.target.checked; localStorage.setItem('pi_cb',mk_cbPalette?'1':'0'); document.body.classList.toggle('cb',mk_cbPalette); renderMake(); }; }
+  // compute rows
+  let rows=prods.map(o=>{ const e=mk_unitEconomics(o,mk_buyHub); if(!e) return {o,na:true};
+    const rev=e.rev*feeMul;
+    const inCost=basis==='P1'?e.costP1:basis==='P0'?e.costP0:0;
+    const profitRun=(inCost!=null)?rev-inCost:null;
+    const perHrFac=profitRun!=null?profitRun*(3600/e.ct):null;
+    const margin=(inCost!=null&&rev>0)?(rev-inCost)/rev:null;
+    const outN=PI.recipe[o].out;
+    return {o,profitRun,perHrFac,margin,rev,inCost,revU:rev?rev/outN:null,inU:inCost!=null?inCost/outN:null}; }).filter(r=>!r.na);
+  if(mk_mkPTFilter.size) rows=rows.filter(r=>{ const c=mk_bom(r.o,1); return Object.keys(c).filter(t=>PI.p0pt[t]).every(t=>PI.p0pt[t].some(code=>mk_mkPTFilter.has(code))); });
+  const kf={ name:r=>PI.recipe[r.o].name,
+    rev:r=>r.revU??-1e30, inCost:r=>r.inU??1e30, perHrFac:r=>r.perHrFac??-1e30, margin:r=>r.margin??-1e30
+  }[mk_mkSort.key]||(r=>r.perHrFac??-1e30);
+  rows.sort((a,b)=>{ const va=kf(a),vb=kf(b); if(typeof va==='string') return mk_mkSort.dir*va.localeCompare(vb); return mk_mkSort.dir*((va>vb)?1:(va<vb)?-1:0); });
+  const maxHeat=Math.max(1,...rows.map(r=>Math.abs(r.perHrFac)||0));
+  const body=rows.map(r=>{
+    const pf=r.perHrFac; const col=pf==null?'var(--muted2)':(pf>=0?'var(--green)':'var(--red)');
+    const need=[...mk_prodPlanetTypes(r.o)].sort().map(c=>`<span title="${UNIVERSE.planetTypes[c]}" style="display:inline-block;width:14px;height:14px;line-height:14px;text-align:center;border-radius:2px;font-size:8.5px;font-weight:700;color:#0a0d10;background:${PT_COLOR[c]||'#888'}">${c}</span>`).join(' ');
+    const w=pf!=null?Math.round(Math.abs(pf)/maxHeat*100):0;
+    const heat=pf!=null?`<span class="heatfill" style="width:${w}%;background:${pf>=0?'var(--green)':'var(--red)'}"></span>`:'';
+    const open=mk_mkChain===r.o;
+    const exp=`<span class="expander" data-x="${r.o}" title="show recipe chain">${open?'▾':'▸'}</span> `;
+    let tr=`<tr class="row" data-o="${r.o}"><td>${exp}${PI.recipe[r.o].name}</td>
+      <td style="text-align:left">${need}</td>
+      <td class="mono" style="color:var(--cyan)">${r.rev?fmtIsk(r.revU):'—'}</td>
+      <td class="mono" style="color:var(--muted)">${r.inCost!=null?fmtIsk(r.inU):(basis==='extract'?'0':'—')}</td>
+      <td class="mono heat" style="color:${col};font-weight:600">${heat}<span style="position:relative">${pf!=null?fmtIsk(pf):'—'}</span></td>
+      <td class="mono" style="color:${r.margin!=null?(r.margin>=0?'var(--green)':'var(--red)'):'var(--muted2)'}">${r.margin!=null?(r.margin*100).toFixed(0)+'%':'—'}</td></tr>`;
+    if(open) tr+=`<tr><td colspan="6" style="padding:0"><div class="chaintree" style="padding:8px 14px">${mk_chainTreeHtml(r.o)}</div></td></tr>`;
+    return tr; }).join('');
+  const arrow=k=>mk_mkSort.key===k?(mk_mkSort.dir<0?' ▾':' ▴'):'';
+  const th=(k,lbl,left)=>`<th data-sort="${k}" style="${left?'text-align:left':'text-align:right'}">${lbl}${arrow(k)}</th>`;
+  $('mkBody').innerHTML=`<table><thead><tr class="hint">${th('name','product',1)}${th('cover','planets',1)}${th('rev','sell/u')}${th('inCost',inHdr)}${th('perHrFac','ISK/fac·hr')}${th('margin','margin')}</tr></thead><tbody>${body||`<tr><td class="hint" colspan="6" style="padding:10px 14px">Click "↻ load prices" to rank ${prods.length} P${mk_makeTier} products.</td></tr>`}</tbody></table>`;
+  $('mkBody').querySelectorAll('thead th').forEach(h=>h.onclick=()=>{ const k=h.dataset.sort; if(mk_mkSort.key===k) mk_mkSort.dir*=-1; else mk_mkSort={key:k,dir:(k==='name'?1:-1)}; renderMake(); });
+  $('mkBody').querySelectorAll('.expander').forEach(x=>x.onclick=e=>{ e.stopPropagation(); mk_mkChain=mk_mkChain===x.dataset.x?null:x.dataset.x; renderMake(); });
+  $('mkBody').querySelectorAll('.row').forEach(tr=>tr.onclick=()=>{
+    const o=tr.dataset.o;
+    // add to chains basket, switch to candidate view
+    addProduct(+o);
+  });
+  // auto-load on first open
+  const haveAll=[...idset].every(t=>mk_px(mk_buyHub,t)!=null);
+  if(!haveAll && !mk_pricesLoading){ mk_pricesLoading=true; renderMake(); await mk_fetchPrices(mk_buyHub,[...idset]); mk_pricesLoading=false; renderMake(); }
+}
+// wire the toggle button
+(function(){
+  const tog=$('makeToggle'); if(!tog) return;
+  tog.onclick=()=>{ mk_panelVisible=!mk_panelVisible; renderMake(); };
+})();
 
 /* ---- selection + logistics deck ---- */
 function selectSystem(id){
