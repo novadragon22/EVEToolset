@@ -134,6 +134,55 @@ function timeago(ts){const m=(now()-ts)/60000;if(m<1)return 'just now';if(m<60)r
 function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
   if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
 function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
+
+/* SDE-accurate fuel block rates: serviceModuleFuelAmount (attrID 2109) per typeID.
+   Base hull burn of 24 blocks/hr is a game engine constant (not in SDE).
+   Monthly = (base 24 + sum of online service rates) * 24h * 30 days.        */
+const SVC_FUEL_BLK_HR = {
+  // Source: SDE typeDogma.yaml, attributeID 2109 (serviceModuleFuelAmount, blocks/hr)
+  // Engineering Service Modules (groupID 1415)
+  35877:36, // Standup Supercapital Shipyard I
+  35878:12, // Standup Manufacturing Plant I
+  35881:24, // Standup Capital Shipyard I
+  35886:12, // Standup Invention Lab I
+  35891:12, // Standup Research Lab I
+  45550:10, // Standup Hyasyoda Research Lab
+  // Citadel Service Modules (groupID 1321)
+  35892:40, // Standup Market Hub I
+  35894:10, // Standup Cloning Center I
+  // Resource Processing Service Modules (groupID 1322)
+  35899:10, // Standup Reprocessing Facility I
+  45537:15, // Standup Composite Reactor I
+  45538:15, // Standup Hybrid Reactor I
+  45539:15, // Standup Biochemical Reactor I
+  // FLEX Service Modules (groupID 1324)
+  35912:15, // Standup Cynosural Field Generator I
+  35913:30, // Standup Conduit Generator I
+  35914:40, // Standup Cynosural System Jammer I
+  82941:5,  // Standup Metenox Moon Drill
+  // Moon Drilling Service Modules (groupID 1887)
+  45009:5,  // Standup Moon Drill I
+  // Unpublished (groupID 1717) — real in-game items with confirmed SDE values
+  35880:5,  // Standup Drug Lab I
+  35900:5,  // Structure Compression Plant
+  // Research Service Modules (groupID 1416, unpublished) — non-zero SDE values
+  35889:5,  // Structure Time Efficiency Laboratory
+  35890:10, // Structure Material Efficiency Laboratory
+  // 35888 Structure Datacore Field Research = 0 blk/hr, omitted
+  // 35895/96/97/98 admin/legacy modules = 0 blk/hr, omitted
+};
+function fuelBlocksPerMonth(s){
+  const BASE_BLK_HR=24;
+  let svcBph=0;
+  (s.services||[]).forEach(v=>{
+    if(v.state==='online'){
+      const rate=SVC_FUEL_BLK_HR[+v.type_id];
+      svcBph+=rate!=null?rate:10; // fallback 10 for unknown future modules
+    }
+  });
+  return (BASE_BLK_HR+svcBph)*24*30;
+}
+function fmtBlocks(n){return n.toLocaleString()+' blocks';}
 async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
   if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
 async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
@@ -302,7 +351,8 @@ function render(){
       '<div class="tt">'+esc(s._corp||'')+'</div>'+
       '<div class="sys">'+esc(nameOf(s.system_id,'System'))+'</div>'+
       '</div></div>'+
-      '<div class="fuelnum"><div class="fv">'+(fuelMs==null?'no fuel data':fmtDur(fuelMs))+'</div><div class="fl">fuel remaining'+(days!=null?' · expires '+s.fuel_expires.slice(0,10):'')+'</div></div>'+
+      '<div class="fuelnum"><div class="fv">'+(fuelMs==null?'no fuel data':fmtDur(fuelMs))+'</div><div class="fl">fuel remaining'+(days!=null?' · expires '+s.fuel_expires.slice(0,10):'')+'</div>'+
+      '<div class="fl" style="margin-top:4px">~'+fmtBlocks(fuelBlocksPerMonth(s))+'/month</div></div>'+
       '<span class="state st-'+(s.state==='shield_vulnerable'||s.state==='armor_vulnerable'||s.state==='hull_vulnerable'?'warn':'ok')+'">'+esc(state||'state unknown')+'</span>'+
       (svcs?'<div class="svcs">'+svcs+'</div>':'')+
       '</div></div>';
