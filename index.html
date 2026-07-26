@@ -65,7 +65,7 @@ h1 .diamond{margin:0 13px;transform:translateY(-3px)}
 .dots{display:flex;gap:9px}
 .dot{width:8px;height:8px;cursor:pointer;transition:.2s}
 .hint{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:9px}
-.roster{position:absolute;top:36px;right:32px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-width:280px;padding-bottom:4px;scrollbar-width:thin}
+.roster{position:absolute;top:36px;right:32px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;overflow:visible;max-width:min(calc(100% - 64px),660px);padding-bottom:4px}
 .roster:empty,.roster:has(> span.sub){justify-content:center}
 .roster::-webkit-scrollbar{height:5px}
 .rchip{position:relative;width:51px;height:51px;flex-shrink:0;cursor:default}
@@ -133,7 +133,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
 <style>
-.pilot-strip{position:fixed;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:5px;z-index:9999;max-width:480px}
+.pilot-strip{position:fixed;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:5px;z-index:9999;max-width:540px}
 .pilot-chip{width:22px;height:22px}
 </style>
 <style>

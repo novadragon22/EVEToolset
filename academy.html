@@ -58,6 +58,33 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .qe.now .qn{font-size:12.5px}
 .attr{display:flex;flex-wrap:wrap;gap:5px;padding:0 16px;margin-top:10px}
 .attr span{font-size:9px;padding:3px 8px}
+/* optimal queue modal */
+.qmod-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+.qmod{width:100%;max-width:780px;position:relative}
+.qmod-hd{padding:18px 20px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.qmod-hd h2{margin:0;font-size:15px}
+.qmod-close{cursor:pointer;font-size:18px;line-height:1;padding:4px 8px;opacity:.6}
+.qmod-close:hover{opacity:1}
+.qmod-tabs{display:flex;gap:0;padding:0 20px;border-bottom:1px solid var(--line)}
+.qmod-tab{font-size:10.5px;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.qmod-tab.on{border-bottom-color:var(--gold-bright);color:var(--gold-bright)}
+.qmod-body{padding:16px 20px 20px}
+.qmod-note{font-size:10.5px;padding:8px 14px;margin-bottom:12px;border-left:3px solid var(--gold-dim);opacity:.8}
+.qrow{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
+.qrow:last-child{border:none}
+.qrow .qpos{font-size:9.5px;width:22px;text-align:right;opacity:.4;flex-shrink:0}
+.qrow .qskn{font-size:12px;flex:1}
+.qrow .qskl{font-size:10px;width:20px;text-align:center;font-weight:700;color:var(--gold-bright)}
+.qrow .qtm{font-size:10px;width:68px;text-align:right;opacity:.6;font-family:var(--mono)}
+.qrow.prereq .qskn{opacity:.55}
+.qrow.prereq .qskl{color:var(--cyan)}
+.qmod-copy{margin-top:14px}
+.qmod-copy textarea{width:100%;height:90px;font-size:10px;font-family:var(--mono);resize:vertical;padding:8px}
+.qmod-spin{padding:24px;text-align:center;font-size:11px}
+.opt-btn{font-size:9.5px;padding:3px 9px;cursor:pointer;margin-top:6px;display:inline-block}
+.qdelta{font-size:9.5px;margin-left:4px}
+.qdelta.faster{color:var(--green)}
+.qdelta.slower{color:var(--red)}
 
 </style>
 <link rel="stylesheet" href="themes.css">
@@ -262,6 +289,7 @@ function render(){
       '<div class="track-hd"><span class="cn">'+esc(t.name)+'</span>'+
       '<div class="sp"><span>'+fmtInt(t.totalSp)+' SP · '+t.skillCount+' skills</span><span>'+(t.unalloc?fmtInt(t.unalloc)+' unalloc.':'')+'</span></div>'+
       (q.length?'<span class="alarm ok">queue runs '+fmtDur(runway)+'</span>':'<span class="alarm bad">QUEUE EMPTY — SP IDLE</span>')+
+      '<button class="opt-btn" data-id="'+t.id+'" onclick="openQueueModal(this.dataset.id)">⚡ Optimal Queue</button>'+
       '</div>'+
       (q.length?'<div class="rail">'+entries+more+'</div>':'<div class="empty" style="padding:22px">nothing training</div>')+
       attrs+'</div>';
@@ -270,6 +298,347 @@ function render(){
   $('loadNote').textContent='Queues read '+new Date().toUTCString().slice(17,25)+' EVE';
 }
 $('loadBtn').onclick=loadAll;
+
+/* ================================================================
+   OPTIMAL TRAINING QUEUE GENERATOR
+   ================================================================ */
+
+// ESI dogma attribute IDs we care about
+const DA_PRIMARY   = 180;   // primary training attribute (164=int,165=per,166=cha,167=wil,168=mem)
+const DA_SECONDARY = 182;   // secondary training attribute
+const DA_RANK      = 275;   // skill rank (time constant)
+const DA_REQ1=182,DA_LV1=277, DA_REQ2=183,DA_LV2=278,
+      DA_REQ3=184,DA_LV3=279, DA_REQ4=1285,DA_LV4=1286,
+      DA_REQ5=1289,DA_LV5=1290;
+// Map EVE attribute typeId -> short key
+const ATTR_CODE={164:'int',165:'per',166:'cha',167:'wil',168:'mem'};
+// Implant dogma attr IDs (bonus to each attribute)
+const IMP_ATTR={175:'int',176:'mem',177:'per',178:'wil',179:'cha'};
+// Well-known attribute implant type IDs -> {attr, bonus}
+// Slots 1-5: INT, PER, CHA, WIL, MEM  (Squire/Ocular/Social/Neural/Lancer series)
+const KNOWN_IMP_TYPES={
+  10212:['int',1],10213:['int',2],10214:['int',3],10215:['int',4],10216:['int',5],
+  10217:['per',1],10218:['per',2],10219:['per',3],10220:['per',4],10221:['per',5],
+  10222:['wil',1],10223:['wil',2],10224:['wil',3],10225:['wil',4],10226:['wil',5],
+  10228:['mem',1],10229:['mem',2],10230:['mem',3],10231:['mem',4],10232:['mem',5],
+  10233:['cha',1],10234:['cha',2],10235:['cha',3],10236:['cha',4],10237:['cha',5],
+  // +5 'magic' implants (alternate type IDs)
+  33399:['int',5],33400:['mem',5],33394:['per',5],33402:['wil',5],33396:['cha',5],
+  // Genolution implants give +att
+  3279:['int',3],3280:['mem',3],3281:['per',3],3282:['wil',3],
+};
+// SP required to reach each level (cumulative)
+const LEVEL_SP=[0,250,1414,8000,45255,256000];
+// skill rank -> SP multiplied by rank
+function spForLevel(rank,level){return LEVEL_SP[level]*rank;}
+// Training time in seconds given SP needed and effective attrs
+function trainSec(sp,pri,sec){return sp/((pri+sec/2)/60);}
+
+// Cache: typeId -> {rank, pri:'int'|'mem'|..., sec:'int'|'mem'|..., req:[[id,lv],...], name}
+const skillDogmaCache={};
+const DOGMA_CACHE_KEY='eve_suite_dogmacache_v1';
+try{Object.assign(skillDogmaCache,JSON.parse(sessionStorage.getItem(DOGMA_CACHE_KEY)||'{}'));}catch(e){}
+function saveDogmaCache(){try{sessionStorage.setItem(DOGMA_CACHE_KEY,JSON.stringify(skillDogmaCache));}catch(e){}}
+
+async function fetchSkillDogma(typeIds){
+  const need=typeIds.filter(id=>!skillDogmaCache[id]);
+  if(!need.length)return;
+  // ESI /universe/types/{id}/ in parallel (batches of 20)
+  const lim=pLimit(8);
+  await Promise.all(need.map(id=>lim(async()=>{
+    try{
+      const r=await fetch('https://esi.evetech.net/latest/universe/types/'+id+'/');
+      if(!r.ok){skillDogmaCache[id]=null;return;}
+      const d=await r.json();
+      const attrs={};
+      (d.dogma_attributes||[]).forEach(a=>{attrs[a.attribute_id]=a.value;});
+      const pri=ATTR_CODE[attrs[DA_PRIMARY]]||'int';
+      const sec=ATTR_CODE[attrs[DA_SECONDARY]]||'mem';
+      const rank=attrs[DA_RANK]||1;
+      const req=[];
+      [[DA_REQ1,DA_LV1],[DA_REQ2,DA_LV2],[DA_REQ3,DA_LV3],[DA_REQ4,DA_LV4],[DA_REQ5,DA_LV5]]
+        .forEach(([ra,la])=>{ if(attrs[ra]&&attrs[la]) req.push([+attrs[ra],+attrs[la]]); });
+      skillDogmaCache[id]={name:d.name,rank,pri,sec,req};
+    }catch(e){skillDogmaCache[id]=null;}
+  })));
+  saveDogmaCache();
+}
+
+// Resolve full prereq tree for a set of target skill+level pairs given current levels
+// Returns ordered list of {skillId, level, isPrereq} to train
+function buildQueue(targets, currentLevels, dogma, cap){
+  const queue=[];
+  const queued=new Set(); // 'skillId:level' already added
+  const trained={...currentLevels}; // sim: skill->level after queue
+
+  function needSkill(skillId, targetLevel){
+    const d=dogma[skillId]; if(!d) return;
+    const curLv=trained[skillId]||0;
+    if(curLv>=targetLevel) return;
+    // ensure prereqs first
+    (d.req||[]).forEach(([pid,plv])=>needSkill(pid,plv));
+    // add all intermediate levels we need
+    for(let lv=curLv+1;lv<=targetLevel;lv++){
+      const key=skillId+':'+lv;
+      if(!queued.has(key)){
+        queued.add(key);
+        queue.push({skillId,level:lv,name:d.name,rank:d.rank,pri:d.pri,sec:d.sec,isPrereq:false});
+        trained[skillId]=lv;
+      }
+    }
+  }
+
+  targets.forEach(([sid,lv])=>needSkill(sid,lv));
+
+  // mark prereqs (entries not in the original targets set)
+  const targetSet=new Set(targets.map(([s,l])=>s+':'+l));
+  queue.forEach(e=>{
+    if(!targetSet.has(e.skillId+':'+e.level)){
+      // check if any level of this skill is in targets
+      const inTgt=targets.some(([s])=>s===e.skillId);
+      e.isPrereq=!inTgt;
+    }
+  });
+
+  return queue.slice(0,cap||50);
+}
+
+// Compute total training time for a queue given effective attrs object {int,mem,per,wil,cha}
+function queueTime(queue, effAttrs, currentLevels){
+  let sec=0;
+  const sim={...currentLevels};
+  queue.forEach(e=>{
+    const curSP=spForLevel(e.rank, sim[e.skillId]||0);
+    const tgtSP=spForLevel(e.rank, e.level);
+    const needed=Math.max(0,tgtSP-curSP);
+    const pri=effAttrs[e.pri]||20, sec2=effAttrs[e.sec]||20;
+    sec+=trainSec(needed,pri,sec2);
+    sim[e.skillId]=e.level;
+  });
+  return sec;
+}
+
+// Determine effective attribute value with optional implant bonuses
+function effAttrs(baseAttrs, implantBonuses){
+  const keys=['int','mem','per','wil','cha'];
+  const eff={};
+  keys.forEach(k=>{eff[k]=(baseAttrs[k]||20)+(implantBonuses[k]||0);});
+  return eff;
+}
+
+// Sort queue to maximise SP/hour: group by attribute pair, put fastest-draining pair first
+function optimiseOrder(queue, effA){
+  // Each entry: rate = (pri_attr + sec_attr/2) per minute = SP/min
+  // We want to drain skills that use the best attribute pairs first
+  // Simple heuristic: sort by SP/sec DESC (higher SP/sec = trains faster relative to time)
+  return queue.slice().sort((a,b)=>{
+    const ra=(effA[a.pri]||20)+( effA[a.sec]||20)/2;
+    const rb=(effA[b.pri]||20)+(effA[b.sec]||20)/2;
+    // higher rate = trains faster per SP, prefer those
+    if(rb!==ra) return rb-ra;
+    return a.rank-b.rank; // lower rank = less SP needed, done sooner
+  });
+}
+
+/* ---- modal state ---- */
+let qModal=null;
+let qCharId=null;
+let qTabIdx=0; // 0=with implants, 1=without
+
+async function openQueueModal(charId){
+  qCharId=charId;
+  qTabIdx=0;
+  showModal('<div class="qmod-spin"><span class="spin"></span> Loading skill data…</div>');
+  try{
+    const s=tracks.find(t=>t.id===charId);
+    if(!s) throw new Error('character not loaded — click Sound the bell first');
+    const tok=await getTok(charId);
+    if(!tok) throw new Error('token expired — re-open Toolset menu');
+    const T=tok.access;
+
+    // Fetch implants (returns array of type_ids)
+    let implantIds=[];
+    try{implantIds=await esiGet('/characters/'+charId+'/implants/',T);}catch(e){}
+
+    // Detect attribute implant bonuses
+    const implantBonus={int:0,mem:0,per:0,wil:0,cha:0};
+    implantIds.forEach(tid=>{
+      const k=KNOWN_IMP_TYPES[tid];
+      if(k) implantBonus[k[0]]=Math.max(implantBonus[k[0]],k[1]);
+    });
+    // For unknown implants that might have training bonuses, check dogma
+    const unknownImpls=implantIds.filter(tid=>!KNOWN_IMP_TYPES[tid]);
+    if(unknownImpls.length){
+      await Promise.all(unknownImpls.slice(0,20).map(async tid=>{
+        try{
+          const r=await fetch('https://esi.evetech.net/latest/universe/types/'+tid+'/');
+          if(!r.ok)return; const d=await r.json();
+          (d.dogma_attributes||[]).forEach(a=>{
+            const attr=IMP_ATTR[a.attribute_id];
+            if(attr&&a.value>0) implantBonus[attr]=Math.max(implantBonus[attr],a.value);
+          });
+        }catch(e){}
+      }));
+    }
+
+    const hasImplants=Object.values(implantBonus).some(v=>v>0);
+
+    // Base attributes from ESI
+    const baseA={int:20,mem:20,per:20,wil:20,cha:19};
+    if(s.attrs){
+      baseA.int=s.attrs.intelligence||20; baseA.mem=s.attrs.memory||20;
+      baseA.per=s.attrs.perception||20; baseA.wil=s.attrs.willpower||20;
+      baseA.cha=s.attrs.charisma||19;
+    }
+
+    // Current skill levels
+    const curLevels={};
+    let charSkillsFull=[];
+    try{
+      const sk=await esiGet('/characters/'+charId+'/skills/',T);
+      charSkillsFull=sk.skills||[];
+    }catch(e){}
+    charSkillsFull.forEach(sk=>{curLevels[sk.skill_id]=sk.active_skill_level;});
+
+    // Fetch dogma for all injected skills
+    const allSkillIds=charSkillsFull.map(sk=>sk.skill_id);
+    showModal('<div class="qmod-spin"><span class="spin"></span> Fetching skill metadata ('+allSkillIds.length+' skills)…</div>');
+    await fetchSkillDogma(allSkillIds);
+
+    // Build target list: all injected skills not yet at max possible level
+    // "Trainable currently" = skill is injected (in charSkillsFull) and not at level 5
+    const targets=[];
+    charSkillsFull.forEach(sk=>{
+      const curLv=sk.active_skill_level||0;
+      if(curLv<5){
+        // check we have dogma
+        const d=skillDogmaCache[sk.skill_id];
+        if(d) targets.push([sk.skill_id,5]); // aim for 5; queue will stop at cap
+      }
+    });
+
+    // Sort targets: best SP/hr first (using with-implants attrs for now)
+    const effWith=effAttrs(baseA,implantBonus);
+    const effWithout=effAttrs(baseA,{int:0,mem:0,per:0,wil:0,cha:0});
+
+    // Sort targets by training efficiency (highest SP/min for their attr pair)
+    targets.sort((a,b)=>{
+      const da=skillDogmaCache[a[0]], db=skillDogmaCache[b[0]];
+      if(!da||!db)return 0;
+      const ra=effWith[da.pri]+effWith[da.sec]/2;
+      const rb=effWith[db.pri]+effWith[db.sec]/2;
+      return rb-ra; // higher rate first
+    });
+
+    const QCAP=50;
+    const qWith=buildQueue(targets,curLevels,skillDogmaCache,QCAP);
+    const qWithout=buildQueue(targets,curLevels,skillDogmaCache,QCAP);
+
+    // Optimise each queue for its own attr set
+    const qWithOpt=optimiseOrder(qWith,effWith);
+    const qWithoutOpt=optimiseOrder(qWithout,effWithout);
+
+    const tWith=queueTime(qWithOpt,effWith,curLevels);
+    const tWithout=queueTime(qWithoutOpt,effWithout,curLevels);
+
+    renderQueueModal(s.name,qWithOpt,qWithoutOpt,effWith,effWithout,
+                     implantBonus,hasImplants,tWith,tWithout,curLevels,baseA);
+  }catch(err){
+    showModal('<div style="padding:20px;font-size:12px;color:var(--red)">⚠ '+esc(err.message||String(err))+'</div>');
+  }
+}
+
+function showModal(innerHtml){
+  closeModal();
+  const bd=document.createElement('div');
+  bd.className='qmod-backdrop'; bd.id='qmod-backdrop';
+  bd.innerHTML='<div class="qmod panel">'+innerHtml+'</div>';
+  bd.onclick=e=>{if(e.target===bd)closeModal();};
+  document.body.appendChild(bd);
+  qModal=bd;
+}
+
+function closeModal(){
+  if(qModal){qModal.remove();qModal=null;}
+}
+
+function renderQueueModal(charName,qWith,qWithout,effWith,effWithout,
+                           implantBonus,hasImplants,tWith,tWithout,curLevels,baseA){
+  const tabs=['With implants','Without implants'];
+  const tabHtml=tabs.map((t,i)=>'<div class="qmod-tab'+(i===qTabIdx?' on':'')+'" data-ti="'+i+'">'+esc(t)+'</div>').join('');
+
+  function impLine(bonus){
+    const parts=Object.entries(bonus).filter(([,v])=>v>0).map(([k,v])=>k.toUpperCase()+'+'+v);
+    return parts.length?parts.join(' · '):'none detected';
+  }
+
+  function queueRows(queue, effA, curL){
+    if(!queue.length) return '<div class="hint" style="padding:10px">No trainable skills found.</div>';
+    let cumSec=0;
+    const sim={...curL};
+    return queue.map((e,i)=>{
+      const curSP=spForLevel(e.rank, sim[e.skillId]||0);
+      const tgtSP=spForLevel(e.rank, e.level);
+      const needed=Math.max(0,tgtSP-curSP);
+      const pri=effA[e.pri]||20, sec2=effA[e.sec]||20;
+      const sec=trainSec(needed,pri,sec2);
+      cumSec+=sec; sim[e.skillId]=e.level;
+      return '<div class="qrow'+(e.isPrereq?' prereq':'')+'">'+
+        '<span class="qpos">'+(i+1)+'</span>'+
+        '<span class="qskn">'+esc(e.name)+(e.isPrereq?' <span class="hint" style="font-size:9px">(prereq)</span>':'')+'</span>'+
+        '<span class="qskl">'+['','I','II','III','IV','V'][e.level]+'</span>'+
+        '<span class="qtm">+'+fmtDur(sec*1000)+'</span>'+
+        '</div>';
+    }).join('');
+  }
+
+  function copyText(queue){
+    return queue.map((e,i)=>(i+1)+'. '+e.name+' '+['','I','II','III','IV','V'][e.level]).join('\n');
+  }
+
+  const deltaMs=(tWithout-tWith)*1000;
+  const deltaStr=hasImplants?'<span class="qdelta faster">↓ '+fmtDur(Math.abs(deltaMs))+' faster with implants</span>':'';
+
+  const body0=`
+    <div class="qmod-note">
+      Implant bonuses: <b>${impLine(implantBonus)}</b> &nbsp;·&nbsp; Effective attrs:
+      INT ${effWith.int} MEM ${effWith.mem} PER ${effWith.per} WIL ${effWith.wil} CHA ${effWith.cha}
+    </div>
+    <div style="font-size:10.5px;margin-bottom:10px;opacity:.7">Total queue time: <b>${fmtDur(tWith*1000)}</b> ${deltaStr}</div>
+    <div id="qrows-0">${queueRows(qWith,effWith,curLevels)}</div>
+    <div class="qmod-copy"><textarea id="qcopy-0" readonly>${copyText(qWith)}</textarea></div>`;
+
+  const body1=`
+    <div class="qmod-note">
+      Base attributes only (no training implants) &nbsp;·&nbsp;
+      INT ${effWithout.int} MEM ${effWithout.mem} PER ${effWithout.per} WIL ${effWithout.wil} CHA ${effWithout.cha}
+    </div>
+    <div style="font-size:10.5px;margin-bottom:10px;opacity:.7">Total queue time: <b>${fmtDur(tWithout*1000)}</b></div>
+    <div id="qrows-1">${queueRows(qWithout,effWithout,curLevels)}</div>
+    <div class="qmod-copy"><textarea id="qcopy-1" readonly>${copyText(qWithout)}</textarea></div>`;
+
+  const bodies=[body0,body1];
+
+  showModal(`
+    <div class="qmod-hd">
+      <h2>⚡ Optimal Queue · ${esc(charName)}</h2>
+      <span class="qmod-close" onclick="closeModal()">✕</span>
+    </div>
+    <div class="qmod-tabs">${tabHtml}</div>
+    <div class="qmod-body">${bodies[qTabIdx]}</div>`);
+
+  qModal.querySelectorAll('.qmod-tab').forEach(tab=>{
+    tab.onclick=()=>{
+      qTabIdx=+tab.dataset.ti;
+      renderQueueModal(charName,qWith,qWithout,effWith,effWithout,
+                       implantBonus,hasImplants,tWith,tWithout,curLevels,baseA);
+    };
+  });
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+
 window.onRosterChange=()=>{ if(tracks.length)loadAll(); };
 
 </script>
