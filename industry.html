@@ -132,7 +132,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 <script src="themes.js" defer></script>
 <style>
 *{box-sizing: border-box}
-html,body{margin:0;min-height:100vh;overflow-x:hidden;overflow-y:auto}
+html,body{margin:0;min-height:100vh}
 canvas#embers{position:fixed;inset:0;z-index:0;pointer-events:none}
 body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .metaltex{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.05}
@@ -155,9 +155,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .hero-strip .sub{font-size:12.5px}
 .hero-rivets{display:flex;gap:8px}
 .hero-rivets span{width:8px;height:8px}
-.view{display:none;padding:0 40px 40px;position:relative}
-.view.on{display:block;animation:viewIn .3s ease}
-@keyframes viewIn{ from{opacity:0} to{opacity:1} }
+.view{display:none;padding:0 40px 40px;position:relative;z-index:2}
+.view.on{display:block;animation:viewIn .4s cubic-bezier(.2,.9,.3,1)}
+@keyframes viewIn{ from{opacity:0; transform:translateY(14px) scale(.99)} to{opacity:1; transform:translateY(0) scale(1)} }
 .panel-body{padding:30px}
 .foundry-line{display:flex;flex-direction:column;gap:20px}
 .forge-row{display:flex;align-items:center;gap:26px;padding:24px 30px;position:relative;transition:.25s}
@@ -253,20 +253,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .ri-sub{font-size:11px;margin-top:5px}
 .research-time{font-size:14px;min-width:80px;text-align:right}
 .research-note{margin-top:10px;padding:14px 18px;font-size:11.5px}
-.structreg-add-section{margin-bottom:28px}
-.structreg-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-.structreg-toolbar .sr-count{font-size:11px;margin-left:auto}
-.structreg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:start}
-.structreg-card{padding:18px 20px;position:relative;cursor:default;background:var(--panel,#0a0d10);border:1px solid var(--line,#1a2028);border-radius:var(--radius-card,0)}
-.structreg-card.dragging{opacity:.4}
-.sr-drag-handle{position:absolute;top:10px;right:10px;cursor:grab;font-size:14px;line-height:1;user-select:none;opacity:.4}
-.sr-drag-handle:active{cursor:grabbing}
-.sr-hull-badge{font-size:9px;padding:2px 7px;margin-bottom:8px;display:inline-block}
-.sr-name{font-size:13px;font-weight:600;margin-bottom:4px}
-.sr-sub{font-size:10.5px;margin-top:3px;opacity:.7}
-.sr-caps{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px}
-.sr-actions{display:flex;gap:6px;margin-top:12px}
-.sr-action-btn{font-size:9.5px;padding:5px 12px;cursor:pointer}
+.structreg-wrap{display:grid;grid-template-columns:1fr 320px;gap:28px}
 .add-mode-tabs{display:flex;gap:8px;margin:16px 0}
 .add-mode-btn{font-size:11px;padding:8px 16px;cursor:pointer}
 .add-mode-panel{display:none}
@@ -277,11 +264,19 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .manual-grid label{display:flex;flex-direction:column;gap:6px;font-size:10.5px}
 .manual-grid input, .manual-grid select{font-size:12px;padding:9px 12px}
 .parse-btn{font-size:11.5px;padding:11px 22px;cursor:pointer}
+.structreg-row{padding:12px 4px;cursor:default}
+.structreg-row.dragging{opacity:.4}
+.sr-drag-handle{cursor:grab;font-size:14px;line-height:1;padding-top:2px;user-select:none}
+.sr-drag-handle:active{cursor:grabbing}
+.sr-name{font-size:12.5px}
+.sr-sub{font-size:10.5px;margin-top:4px}
+.sr-actions{display:flex;gap:6px;margin-top:8px}
+.sr-action-btn{font-size:9.5px;padding:4px 10px;cursor:pointer}
 .service-check{display:flex;align-items:center;gap:5px;font-size:10.5px}
 .service-check input{padding:0;width:auto}
 .rig-preview{font-size:11px;margin:4px 0 0;min-height:14px}
-.structreg-io{display:flex;gap:8px;flex-wrap:wrap}
-.io-btn{font-size:10px;padding:7px 14px;cursor:pointer;white-space:nowrap}
+.structreg-io{display:flex;gap:8px;margin-top:16px}
+.io-btn{flex:1;text-align:center;font-size:10px;padding:9px 0;cursor:pointer;display:block}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Saira:wght@400;500;600&family=Quicksand:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=Teko:wght@500;600&family=Michroma&family=Cinzel:wght@500;600&family=Comfortaa:wght@400;600&family=Saira+Stencil+One&display=swap" rel="stylesheet">
 </head>
@@ -299,7 +294,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
     <div class="tab on" data-view="plan">Build Planner</div>
     <div class="tab" data-view="research">Blueprint Research</div>
   </div>
-  <div class="pilots" id="pilots"></div>
   <div class="themes">
                       </div>
   <button class="jobs-fab" id="jobsFab" title="Job queue">⚒<span class="badge" id="jobsFabBadge" style="display:none">0</span></button>
@@ -369,8 +363,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 <div class="view" data-view="bp">
   <div class="panel-body">
   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:12px;margin-bottom:14px">
-    <label>Check ownership for <select id="libraryCharSelect" style="min-width:160px"></select></label>
-    <label>Also include corp hangar <select id="libraryCorpSelect" style="min-width:160px"><option value="">— none selected —</option></select></label>
+    <label>Check ownership for <select id="libraryCharSelect"></select></label>
+    <label>Also include corp hangar <select id="libraryCorpSelect"><option value="">— none selected —</option></select></label>
     <button class="parse-btn btn" id="libraryLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
     <span id="libraryLoadStatus" class="sub"></span>
   </div>
@@ -442,7 +436,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
       <div class="research-subhead">Blueprint research target <span class="sub">reads blueprints from your personal and corporation hangars via ESI</span></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;margin-bottom:16px">
         <label>Read from <select id="researchAssetSource"><option value="personal">Personal hangar</option><option value="corp">Corporation hangar</option></select></label>
-        <label>Character <select id="researchCharSelect" style="min-width:160px"></select></label>
+        <label>Character <select id="researchCharSelect"></select></label>
         <button class="parse-btn btn" id="researchLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
       </div>
       <div id="researchBpList" class="sub" style="padding:8px 4px 16px;max-height:60vh;overflow-y:auto">No blueprints loaded yet — pick a character and load.</div>
@@ -472,9 +466,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 
 <div class="view" data-view="structreg">
   <div class="panel-body">
-
-    <!-- Add a structure ─────────────────────────────────────────────── -->
-    <div class="structreg-add-section">
+  <div class="structreg-wrap panel">
+    <div>
       <div class="research-subhead">Add a structure <span class="sub">paste a structure fit in EFT format, or enter it manually</span></div>
       <div class="add-mode-tabs">
         <button class="add-mode-btn on btn" data-mode="eft">Paste EFT fit</button>
@@ -520,19 +513,23 @@ Standup Manufacturing Material Efficiency I</textarea>
       </div>
     </div>
 
-    <!-- Registered structures grid ─────────────────────────────────── -->
-    <div class="structreg-toolbar">
-      <span class="sr-count"><b id="structregTotal">0</b> registered</span>
+    <div class="side-panel panel">
+      <h3>Registered structures</h3>
+      <div id="structregList"></div>
+      <div class="side-stat" style="margin-top:14px"><span>Total registered</span><b id="structregTotal">0</b></div>
       <div class="structreg-io">
         <button class="io-btn btn" id="exportJsonBtn">⭳ Export JSON</button>
         <label class="io-btn btn" for="importJsonFile">⭱ Import JSON</label>
+        <input type="file" id="importJsonFile" accept="application/json" style="display:none">
         <label class="io-btn btn" for="importRavworksFile" title="Import structures from a RavWorks configuration export">⭱ Import RavWorks</label>
-        <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh cost indices</button>
+        <input type="file" id="importRavworksFile" accept="application/json" style="display:none">
       </div>
-      <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px"></div>
+      <div class="structreg-io">
+        <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh all system cost indices (ESI)</button>
+      </div>
+      <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px;margin-top:8px"></div>
     </div>
-    <div id="structregList" class="structreg-grid"></div>
-
+  </div>
   </div>
 </div>
 
@@ -604,36 +601,8 @@ document.querySelectorAll('.crucible .item-icon').forEach(el => {
 const SHARED_KEY='eve_suite_chars';
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5';
 let chars={};
-function syncChars(){
-  try{
-    const fresh=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');
-    const prevKeys=Object.keys(chars).sort().join(',');
-    const newKeys=Object.keys(fresh).sort().join(',');
-    chars=fresh;
-    console.log('[Industry] syncChars: found',Object.keys(fresh).length,'chars in localStorage:',Object.keys(fresh).map(id=>fresh[id].charName||id).join(', ')||'(none)');
-    if(newKeys!==prevKeys){
-      if(typeof renderPilotStrip==='function') renderPilotStrip();
-      if(typeof populateCharSelect==='function') populateCharSelect();
-      if(typeof populateLibraryCharSelect==='function') populateLibraryCharSelect();
-      if(typeof populateLibraryCorpSelect==='function') populateLibraryCorpSelect();
-    }
-  }catch(e){}
-}
-// Initial load — just read chars, UI functions not defined yet
 try{ chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); }catch(e){}
-// Re-sync whenever user returns to this tab or window gains focus
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncChars(); });
-window.addEventListener('focus', syncChars);
-const saveChars=()=>{
-  // Read the full stored object, update only chars we know about, write back.
-  // This prevents industry.html from wiping characters it didn't load
-  // (e.g. if only 2 of 11 chars were in memory when the page opened).
-  try{
-    const stored=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');
-    Object.keys(chars).forEach(id=>{ stored[id]=chars[id]; });
-    localStorage.setItem(SHARED_KEY,JSON.stringify(stored));
-  }catch(e){}
-};
+const saveChars=()=>localStorage.setItem(SHARED_KEY,JSON.stringify(chars));
 async function tok(body){ const r=await fetch('https://login.eveonline.com/v2/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body).toString()});
   if(!r.ok) throw new Error('token '+r.status); return r.json(); }
 async function freshTok(id){ const s=chars[id]; if(!s || !s.refresh) throw new Error('No stored credentials for this character — sign in via the pilot roster first.');
@@ -642,26 +611,7 @@ async function freshTok(id){ const s=chars[id]; if(!s || !s.refresh) throw new E
   s.access=t.access_token; s.refresh=t.refresh_token||s.refresh; s.expires=Date.now()+(t.expires_in||1200)*1000; saveChars(); return s.access; }
 async function eGet(id,path){ const tk=await freshTok(id); const r=await fetch('https://esi.evetech.net/latest'+path,{headers:{Authorization:'Bearer '+tk}});
   if(!r.ok) throw new Error(path+' '+r.status); return r.json(); }
-function reloadChars(){
-  try{ chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); }catch(e){ chars={}; }
-  renderPilotStrip();
-  populateCharSelect();
-  populateLibraryCharSelect();
-  populateLibraryCorpSelect();
-}
-function renderPilotStrip(){
-  const el=document.getElementById('pilots');
-  if(!el) return;
-  const ids=Object.keys(chars);
-  const reloadBtn='<button onclick="reloadChars()" style="font-size:10px;opacity:.4;background:none;border:none;cursor:pointer;padding:4px 6px" title="Reload characters from shared storage">↺</button>';
-  if(!ids.length){
-    el.innerHTML='<a href="index.html" style="font-size:10px;opacity:.6;text-decoration:none;border:1px solid currentColor;padding:3px 10px;border-radius:2px">⟶ Sign in via Toolset</a> '+reloadBtn;
-    return;
-  }
-  function esc2(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  el.innerHTML=ids.map(id=>'<span class="ptag btn" style="font-size:10px;padding:4px 10px">'+esc2(chars[id].charName||('Char '+id))+'</span>').join('')+' '+reloadBtn;
-}
-renderPilotStrip();
+function renderPilotStrip(){ /* pilot-strip removed from UI; no-op */ }
 const heroData = { browse:['Browse','Search the item &amp; blueprint database'], bp:['Blueprint Library','No blueprints loaded yet'], plan:['Build Planner','Material shopping list for the selected build'], research:['Blueprint Research','Fastest path to fully researched blueprints'], structreg:['Structure Registry','Track the structures you build with'] };
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
@@ -1076,39 +1026,20 @@ let currentBuildGroup = null; // SDE "group" of the blueprint currently loaded i
 
 function renderStructRegList(){
   const list=document.getElementById('structregList');
-  if(!registeredStructures.length){
-    list.innerHTML='<div class="sub" style="font-size:12px;padding:12px 0">No registered structures yet — add one above.</div>';
-    document.getElementById('structregTotal').textContent=0;
-    renderPlanStructTabs();
-    return;
-  }
-  const HULL_ICON={'Raitaru':'🏭','Azbel':'🏗','Sotiyo':'⚙','Athanor':'⛏','Tatara':'🔩'};
   list.innerHTML=registeredStructures.map((s,i)=>{
     const services = s.services||[];
     const svcLine = services.length ? '<div class="sr-sub">Services: '+services.map(sv=>sv.replace('Standup ','').replace(' Service Module','')).join(', ')+'</div>' : '';
     const capitalHull = (s.hull==='Azbel'||s.hull==='Sotiyo');
     const hasCapitalService = services.some(sv=>sv.includes('Capital Shipyard')||sv.includes('Supercapital Shipyard'));
-    const capWarning = (capitalHull && !hasCapitalService) ? '<div class="sr-sub" style="color:var(--amber,#e0a05a);margin-top:5px">⚠ No Capital Shipyard service</div>' : '';
-    const costLine = (s.costIndex!=null && s.costIndex!=='') ? '<div class="sr-sub">Index: '+s.costIndex+'%'+(s.taxPct!=null?' · tax '+s.taxPct+'%':'')+'</div>' : (s.taxPct!=null?'<div class="sr-sub">Tax: '+s.taxPct+'%</div>':'');
-    const icon = HULL_ICON[s.hull]||'🏛';
-    const rigLines = (s.rigs||[]).map(r=>{
-      const t = typeof r==='string'?r:(r.text||'');
-      return t ? '<div class="sr-sub" style="margin-top:2px;font-size:10px">'+esc(t.replace('Standup ','').replace('M-Set ','').replace('L-Set ','').replace('XL-Set ',''))+'</div>' : '';
-    }).filter(Boolean).join('');
-    return '<div class="structreg-card" draggable="true" data-order-idx="'+i+'">'+
-      '<span class="sr-drag-handle" title="Drag to reorder">⠿</span>'+
-      '<div class="sr-hull-badge pill">'+icon+' '+esc(s.hull||'')+'</div>'+
-      '<div class="sr-name">'+esc(s.name)+'</div>'+
-      (s.system && s.system!=='parsed from EFT' ? '<div class="sr-sub">'+esc(s.system)+'</div>' : '')+
-      (s.owner ? '<div class="sr-sub" style="opacity:.55;font-size:9.5px">'+esc(s.owner)+'</div>' : '')+
-      costLine+svcLine+capWarning+
-      (rigLines ? '<div style="margin-top:8px;border-top:1px solid var(--line2,rgba(255,255,255,.08));padding-top:7px">'+rigLines+'</div>' : '')+
-      '<div class="sr-caps">'+capBadges(s.capabilities||[], s.rigs)+'</div>'+
-      '<div class="sr-actions">'+
-        '<button class="sr-action-btn btn" data-edit-idx="'+i+'">Edit</button>'+
-        '<button class="sr-action-btn danger btn" data-delete-idx="'+i+'">Delete</button>'+
-      '</div>'+
-    '</div>';
+    const capWarning = (capitalHull && !hasCapitalService) ? '<div class="sr-sub" style="color:#e0a05a">⚠ No Capital Shipyard service module — can\'t build capitals here yet</div>' : '';
+    const costLine = (s.costIndex!=null && s.costIndex!=='') ? '<div class="sr-sub">System cost index: '+s.costIndex+'%'+(s.taxPct!=null?' · facility tax '+s.taxPct+'%':'')+'</div>' : (s.taxPct!=null?'<div class="sr-sub">Facility tax: '+s.taxPct+'%</div>':'');
+    return '<div class="structreg-row card" draggable="true" data-order-idx="'+i+'"><div style="display:flex;align-items:flex-start;gap:8px">'+
+      '<span class="sr-drag-handle" title="Drag to reorder">⠿</span><div style="flex:1">'+
+      '<div class="sr-name">'+s.name+'</div><div class="sr-sub">'+[s.hull, s.system, s.owner].filter(Boolean).join(' · ')+'</div>'+
+      svcLine+costLine+capWarning+
+      '<div style="margin-top:4px">'+capBadges(s.capabilities||[], s.rigs)+'</div>'+
+      '<div class="sr-actions"><button class="sr-action-btn btn" data-edit-idx="'+i+'">Edit</button><button class="sr-action-btn danger btn" data-delete-idx="'+i+'">Delete</button></div>'+
+      '</div></div></div>';
   }).join('');
   document.getElementById('structregTotal').textContent=registeredStructures.length;
   renderPlanStructTabs();
@@ -1140,7 +1071,7 @@ function reorderStructures(fromIdx, toIdx){
 
 function wireStructRegDragAndDrop(list){
   let dragFromIdx = null;
-  list.querySelectorAll('.structreg-card').forEach(row=>{
+  list.querySelectorAll('.structreg-row').forEach(row=>{
     row.addEventListener('dragstart', (e)=>{
       dragFromIdx = parseInt(row.dataset.orderIdx,10);
       row.classList.add('dragging');
@@ -1486,9 +1417,8 @@ document.getElementById('importRavworksFile').addEventListener('change', (e)=>{
       renderStructRegList();
       const skipped = structs.length - imported;
       alert('Imported '+imported+' structure'+(imported===1?'':'s')+' from '+file.name+(skipped?' ('+skipped+' skipped as duplicates)':'')+'.');
-    } catch(err){ console.error('RavWorks import error:', err); alert('Could not import this file — '+err.message+'\n\nCheck the browser console (F12) for details.'); }
+    } catch(err){ alert('Could not import this file — '+err.message); }
   };
-  reader.onerror = ()=>{ alert('Could not read file — FileReader error.'); };
   reader.readAsText(file);
   e.target.value='';
 });
@@ -2303,16 +2233,6 @@ async function loadAllJobs(force){
   }catch(e){ jobsSlotLineText=''; }
   renderJobs();
   updateResearchSlots();
-  // Report current state to the index.html dashboard tile
-  try{
-    const nChars=Object.keys(chars).length;
-    const nJobs=jobsData?jobsData.length:0;
-    const ready=jobsData?jobsData.filter(j=>new Date(j.end_date)-Date.now()<=0).length:0;
-    const text=nChars+' character'+(nChars===1?'':'s')+' · '+nJobs+' job'+(nJobs===1?'':'s')+(ready?' · '+ready+' ready':'');
-    const all=JSON.parse(localStorage.getItem('eve_suite_dashboard')||'{}');
-    all['industry']={text,level:ready?'ok':'muted',ts:Date.now()};
-    localStorage.setItem('eve_suite_dashboard',JSON.stringify(all));
-  }catch(e){}
 }
 let jobsSlotLineText='';
 function jobName(j){
@@ -2851,18 +2771,6 @@ function renderBrowse(q){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
   });
 })();
-
-// Refresh chars and all character-dependent dropdowns when index.html updates sign-in
-window.addEventListener('storage', function(e){
-  if(e.key!=='eve_suite_chars') return;
-  try{ chars=JSON.parse(e.newValue||'{}'); }catch(err){ chars={}; }
-  renderPilotStrip();
-  populateCharSelect();
-  populateLibraryCharSelect();
-  populateLibraryCorpSelect();
-});
 </script>
-<input type="file" id="importJsonFile" accept="application/json" style="display:none">
-<input type="file" id="importRavworksFile" accept="application/json" style="display:none">
 </body>
 </html>
