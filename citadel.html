@@ -135,14 +135,11 @@ function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math
   if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
 function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
 
-/* SDE-accurate fuel block rates: serviceModuleFuelAmount (attrID 2109).
-   ESI /corporations/{id}/structures/ returns services as {name, state} objects —
-   there is NO type_id on individual services, so we key by the canonical name
-   string that ESI provides (matches the item name in-game).
-   Base hull burn of 24 blocks/hr is a game engine constant (not in SDE).
-   Monthly = (base 24 + sum of online service rates) * 24h * 30 days.        */
+/* SDE service module fuel cycle rates (blocks per hour, attrID 2109).
+   The hull itself consumes no fuel — only online service modules do.
+   Each module runs on a 1-hour cycle; its rate is blocks consumed per cycle.
+   ESI returns services as {name, state} — keyed by canonical in-game name.   */
 const SVC_FUEL_BLK_HR_BY_NAME = {
-  // Source: SDE typeDogma.yaml, attributeID 2109 (serviceModuleFuelAmount, blocks/hr)
   // Engineering Service Modules (groupID 1415)
   'Standup Supercapital Shipyard I':36,
   'Standup Manufacturing Plant I':12,
@@ -163,29 +160,31 @@ const SVC_FUEL_BLK_HR_BY_NAME = {
   'Standup Conduit Generator I':30,
   'Standup Cynosural System Jammer I':40,
   'Standup Metenox Moon Drill':5,
-  // Moon Drilling Service Modules (groupID 1887)
+  // Moon Drilling (groupID 1887)
   'Standup Moon Drill I':5,
-  // Unpublished — real in-game items with confirmed SDE values
+  // Unpublished — confirmed SDE values
   'Standup Drug Lab I':5,
   'Structure Compression Plant':5,
-  // Research Service Modules (groupID 1416, unpublished)
   'Structure Time Efficiency Laboratory':5,
   'Structure Material Efficiency Laboratory':10,
 };
-function fuelBlocksPerMonth(s){
-  const BASE_BLK_HR=24;
-  let svcBph=0;
+
+/* Returns blocks/hr for this structure based solely on its online service modules.
+   Each module's SDE cycle rate (blocks/hr) is summed; unknown modules fall back
+   to 10 blk/hr. Returns 0 if no services are online.                           */
+function fuelBph(s){
+  let bph=0;
   (s.services||[]).forEach(v=>{
     if(v.state==='online'){
-      // ESI returns service name e.g. "Standup Manufacturing Plant I"
-      // normalise underscores (ESI sometimes uses them) and look up by name
       const key=(v.name||'').replace(/_/g,' ');
       const rate=SVC_FUEL_BLK_HR_BY_NAME[key];
-      svcBph+=rate!=null?rate:10; // fallback 10 for unknown future modules
+      bph+=rate!=null?rate:10;
     }
   });
-  return (BASE_BLK_HR+svcBph)*24*30;
+  return bph;
 }
+/* Convenience: blocks per 30-day month at this structure's burn rate */
+function fuelBpMonth(s){ return fuelBph(s)*24*30; }
 function fmtBlocks(n){return n.toLocaleString()+' blocks';}
 async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
   if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
@@ -355,9 +354,28 @@ function render(){
       '<div class="tt">'+esc(s._corp||'')+'</div>'+
       '<div class="sys">'+esc(nameOf(s.system_id,'System'))+'</div>'+
       '</div></div>'+
-      '<div class="fuelnum"><div class="fv">'+(fuelMs==null?'no fuel data':fmtDur(fuelMs))+'</div><div class="fl">fuel remaining'+(days!=null?' · expires '+s.fuel_expires.slice(0,10):'')+'</div>'+
-      '<div class="fl" style="margin-top:4px">~'+fmtBlocks(fuelBlocksPerMonth(s))+'/month</div>'+
-      (()=>{const bph=fuelBlocksPerMonth(s)/24/30;const needed=days!=null&&days<30?Math.ceil((30-days)*24*bph):0;return needed>0?'<div class="fl" style="margin-top:4px;color:var(--c-warn)">⬆ '+needed.toLocaleString()+' blocks to reach 30 days</div>':''})()+'</div>'+
+      (()=>{
+      const bph=fuelBph(s);                          // blocks/hr from online services
+      const bpMonth=fuelBpMonth(s);                  // bph * 24 * 30
+      const inBay=s.fuel_quantity!=null?s.fuel_quantity:null; // ESI fuel_quantity
+      const target30=Math.ceil(30*24*bph);           // blocks needed for 30 days
+      // top-up: prefer inBay (exact) else derive from expiry timestamp
+      const needed=bph===0?0:inBay!=null
+        ?Math.max(0,target30-inBay)
+        :(days!=null&&days<30?Math.ceil((30-days)*24*bph):0);
+      const noSvcs=bph===0;
+      return '<div class="fuelnum">'+
+        '<div class="fv">'+(fuelMs==null?'no fuel data':fmtDur(fuelMs))+'</div>'+
+        '<div class="fl">fuel remaining'+(days!=null?' · expires '+s.fuel_expires.slice(0,10):'')+'</div>'+
+        (noSvcs
+          ?'<div class="fl" style="margin-top:4px">no online services · no fuel consumption</div>'
+          :'<div class="fl" style="margin-top:4px">'+(inBay!=null?fmtBlocks(inBay)+' in bay · ':'')
+            +fmtBlocks(bph)+'/hr · ~'+fmtBlocks(bpMonth)+'/month</div>'+
+            (needed>0?'<div class="fl" style="margin-top:4px;color:var(--c-warn)">⬆ '+needed.toLocaleString()+' blocks to reach 30 days</div>':'')
+        )+
+        '</div>';
+      })()+
+      
       '<span class="state st-'+(s.state==='shield_vulnerable'||s.state==='armor_vulnerable'||s.state==='hull_vulnerable'?'warn':'ok')+'">'+esc(state||'state unknown')+'</span>'+
       (svcs?'<div class="svcs">'+svcs+'</div>':'')+
       '</div></div>';
