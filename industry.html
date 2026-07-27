@@ -604,8 +604,36 @@ document.querySelectorAll('.crucible .item-icon').forEach(el => {
 const SHARED_KEY='eve_suite_chars';
 const SUITE_CLIENT_ID='6818f29c041649c7b31327bdfd35c0f5';
 let chars={};
+function syncChars(){
+  try{
+    const fresh=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');
+    const prevKeys=Object.keys(chars).sort().join(',');
+    const newKeys=Object.keys(fresh).sort().join(',');
+    chars=fresh;
+    console.log('[Industry] syncChars: found',Object.keys(fresh).length,'chars in localStorage:',Object.keys(fresh).map(id=>fresh[id].charName||id).join(', ')||'(none)');
+    if(newKeys!==prevKeys){
+      if(typeof renderPilotStrip==='function') renderPilotStrip();
+      if(typeof populateCharSelect==='function') populateCharSelect();
+      if(typeof populateLibraryCharSelect==='function') populateLibraryCharSelect();
+      if(typeof populateLibraryCorpSelect==='function') populateLibraryCorpSelect();
+    }
+  }catch(e){}
+}
+// Initial load — just read chars, UI functions not defined yet
 try{ chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); }catch(e){}
-const saveChars=()=>localStorage.setItem(SHARED_KEY,JSON.stringify(chars));
+// Re-sync whenever user returns to this tab or window gains focus
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncChars(); });
+window.addEventListener('focus', syncChars);
+const saveChars=()=>{
+  // Read the full stored object, update only chars we know about, write back.
+  // This prevents industry.html from wiping characters it didn't load
+  // (e.g. if only 2 of 11 chars were in memory when the page opened).
+  try{
+    const stored=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');
+    Object.keys(chars).forEach(id=>{ stored[id]=chars[id]; });
+    localStorage.setItem(SHARED_KEY,JSON.stringify(stored));
+  }catch(e){}
+};
 async function tok(body){ const r=await fetch('https://login.eveonline.com/v2/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body).toString()});
   if(!r.ok) throw new Error('token '+r.status); return r.json(); }
 async function freshTok(id){ const s=chars[id]; if(!s || !s.refresh) throw new Error('No stored credentials for this character — sign in via the pilot roster first.');
@@ -2275,6 +2303,16 @@ async function loadAllJobs(force){
   }catch(e){ jobsSlotLineText=''; }
   renderJobs();
   updateResearchSlots();
+  // Report current state to the index.html dashboard tile
+  try{
+    const nChars=Object.keys(chars).length;
+    const nJobs=jobsData?jobsData.length:0;
+    const ready=jobsData?jobsData.filter(j=>new Date(j.end_date)-Date.now()<=0).length:0;
+    const text=nChars+' character'+(nChars===1?'':'s')+' · '+nJobs+' job'+(nJobs===1?'':'s')+(ready?' · '+ready+' ready':'');
+    const all=JSON.parse(localStorage.getItem('eve_suite_dashboard')||'{}');
+    all['industry']={text,level:ready?'ok':'muted',ts:Date.now()};
+    localStorage.setItem('eve_suite_dashboard',JSON.stringify(all));
+  }catch(e){}
 }
 let jobsSlotLineText='';
 function jobName(j){

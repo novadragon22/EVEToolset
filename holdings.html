@@ -106,7 +106,15 @@ function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
 let chars=loadChars();
-function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function saveChars(){
+  // Read full stored object, merge our chars in, write back.
+  // Prevents overwriting characters loaded in other tools.
+  try{
+    const stored=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}')
+    Object.keys(chars).forEach(id=>{stored[id]=chars[id];});
+    localStorage.setItem(SHARED_KEY,JSON.stringify(stored));
+  }catch(e){}
+}
 function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
 function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
 function visibleIds(){return Object.keys(chars).filter(sectionOn);}
