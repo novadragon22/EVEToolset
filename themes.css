@@ -2155,6 +2155,9 @@ html:not([data-theme]) .thm-rail,html:not([data-theme]) .thm-overlay,html:not([d
 html[data-theme="default"] .thm-rail,html[data-theme="default"] .thm-overlay,html[data-theme="default"] .thm-halo,html[data-theme="default"] .thm-creed,html[data-theme="default"] .thm-dec,html[data-theme="default"] .thm-lamps,html[data-theme="default"] header > .em-trig{display:none!important}
 html[data-theme] header{position:relative}
 html[data-theme] header > .em-trig{display:none}
+/* Tool topbars are compact flex bars — thm-halo/thm-creed are hero-only;
+   suppress them inside any header.topbar so they do not break the row layout */
+header.topbar .thm-halo,header.topbar .thm-creed{display:none!important}
 html[data-theme] .thm-overlay{display:block;position:fixed;top:0;left:0;width:0;height:0;pointer-events:none}
 html .theme-swatch[data-theme="default"] i{background:var(--sw,#8a94a0);border-radius:6px;opacity:.9}
 
@@ -2832,30 +2835,30 @@ html[data-theme="minmatar"] .kcard:nth-child(1){transform:rotate(.5deg)}
 html[data-theme="minmatar"] .kcard:nth-child(2){border-style:solid;border-left:4px solid #5a4430}
 html[data-theme="minmatar"] .kcard:nth-child(3){transform:rotate(-.6deg)}
 html[data-theme="minmatar"] .kcard:nth-child(4){transform:rotate(.3deg);border-bottom:2px dashed #6a4a2e}
-html[data-theme="minmatar"] .kcard::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;
+html[data-theme="minmatar"] .kcard::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;z-index:0;
   background:radial-gradient(76px 48px at 100% 0%,rgba(160,80,30,.38),rgba(90,40,15,.16) 55%,transparent 75%)}
-html[data-theme="minmatar"] .kcard::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;
+html[data-theme="minmatar"] .kcard::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;z-index:0;
   background:linear-gradient(160deg,#2e2418,#221a10);border:1px solid #4a3a28;
   box-shadow:inset 6px 5px 0 -4px #8a7058,inset 26px 15px 0 -4px #8a7058}
-html[data-theme="minmatar"] .kcard .thm-d1{display:block;inset:0;opacity:.35;
+html[data-theme="minmatar"] .kcard .thm-d1{display:block;inset:0;opacity:.35;z-index:0;
   background:radial-gradient(3px 3px at 10px 10px,#8a7058 55%,transparent 56%),radial-gradient(3px 3px at calc(100% - 10px) 10px,#8a7058 55%,transparent 56%)}
-html[data-theme="minmatar"] .kcard:nth-child(3) .thm-d2{display:block;left:20%;right:30%;top:-1px;height:3px;
+html[data-theme="minmatar"] .kcard:nth-child(3) .thm-d2{display:block;left:20%;right:30%;top:-1px;height:3px;z-index:0;
   background:repeating-linear-gradient(90deg,#6a4a2e 0 5px,transparent 5px 9px)}
-html[data-theme="minmatar"] .kcard .l{font-family:'Teko',sans-serif;color:#a87a52;font-size:14px;letter-spacing:.26em}
-html[data-theme="minmatar"] .kcard .n{color:#f0b088;font-family:'Teko',sans-serif;font-size:40px;font-weight:600}
+html[data-theme="minmatar"] .kcard .l{font-family:'Teko',sans-serif;color:#a87a52;font-size:14px;letter-spacing:.26em;position:relative;z-index:1}
+html[data-theme="minmatar"] .kcard .n{color:#f0b088;font-family:'Teko',sans-serif;font-size:40px;font-weight:600;position:relative;z-index:1}
 html[data-theme="minmatar"] .kcard:nth-child(4) .n{animation:mn-flicker 5s steps(1,end) infinite}
 @keyframes mn-flicker{0%,100%{opacity:1}7%{opacity:.55}9%{opacity:1}54%{opacity:1}56%{opacity:.4}57%{opacity:1}58%{opacity:.75}60%{opacity:1}}
-html[data-theme="minmatar"] .kcard .s{color:#7a5f46;font-size:10.5px}
+html[data-theme="minmatar"] .kcard .s{color:#7a5f46;font-size:10.5px;position:relative;z-index:1}
 /* skeletal girder panels */
 html[data-theme="minmatar"] .panel{border:3px solid #3a2c1e;transform:rotate(-.35deg);
   background:repeating-linear-gradient(45deg,transparent 0 9px,rgba(138,120,100,.05) 9px 10px),
     repeating-linear-gradient(-45deg,transparent 0 9px,rgba(138,120,100,.05) 9px 10px),#120c07;
   clip-path:polygon(.8% 7px,99.4% 0,100% calc(100% - 11px),1.6% 100%)}
 html[data-theme="minmatar"] .panel:nth-of-type(even){transform:rotate(.3deg)}
-html[data-theme="minmatar"] .panel > .thm-d1{display:block;top:-4px;left:9%;right:32%;height:11px;border-radius:7px;
+html[data-theme="minmatar"] .panel > .thm-d1{display:block;top:-4px;left:9%;right:32%;height:11px;border-radius:7px;z-index:0;
   background:linear-gradient(180deg,#5c4a3a,#2e241a);
   box-shadow:16px 24px 0 -2px #4a3a2a,-8px 46px 0 -3px #4a3a2a,0 2px 3px rgba(0,0,0,.6)}
-html[data-theme="minmatar"] .panel > .thm-d2{display:block;inset:0;pointer-events:none;
+html[data-theme="minmatar"] .panel > .thm-d2{display:block;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(4px 4px at 4px 14%,#8a7058 55%,transparent 56%),radial-gradient(4px 4px at 4px 44%,#8a7058 55%,transparent 56%),
     radial-gradient(4px 4px at 4px 74%,#8a7058 55%,transparent 56%),radial-gradient(4px 4px at calc(100% - 4px) 24%,#8a7058 55%,transparent 56%),
     radial-gradient(4px 4px at calc(100% - 4px) 58%,#8a7058 55%,transparent 56%),radial-gradient(4px 4px at calc(100% - 4px) 88%,#8a7058 55%,transparent 56%),
@@ -2931,32 +2934,32 @@ html[data-theme="minmatar"] .card:not(.bp-card):nth-child(3){transform:rotate(-.
 html[data-theme="minmatar"] .tile:nth-child(3){transform:rotate(-.6deg)}
 html[data-theme="minmatar"] .card:not(.bp-card):nth-child(4){transform:rotate(.3deg);border-bottom:2px dashed #6a4a2e}
 html[data-theme="minmatar"] .tile:nth-child(4){transform:rotate(.3deg);border-bottom:2px dashed #6a4a2e}
-html[data-theme="minmatar"] .card:not(.bp-card)::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;
+html[data-theme="minmatar"] .card:not(.bp-card)::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;z-index:0;
   background:radial-gradient(76px 48px at 100% 0%,rgba(160,80,30,.38),rgba(90,40,15,.16) 55%,transparent 75%)}
-html[data-theme="minmatar"] .tile::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;
+html[data-theme="minmatar"] .tile::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;z-index:0;
   background:radial-gradient(76px 48px at 100% 0%,rgba(160,80,30,.38),rgba(90,40,15,.16) 55%,transparent 75%)}
-html[data-theme="minmatar"] .card:not(.bp-card)::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;
+html[data-theme="minmatar"] .card:not(.bp-card)::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;z-index:0;
   background:linear-gradient(160deg,#2e2418,#221a10);border:1px solid #4a3a28;
   box-shadow:inset 6px 5px 0 -4px #8a7058,inset 26px 15px 0 -4px #8a7058}
-html[data-theme="minmatar"] .tile::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;
+html[data-theme="minmatar"] .tile::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;z-index:0;
   background:linear-gradient(160deg,#2e2418,#221a10);border:1px solid #4a3a28;
   box-shadow:inset 6px 5px 0 -4px #8a7058,inset 26px 15px 0 -4px #8a7058}
-html[data-theme="minmatar"] .card:not(.bp-card) .thm-d1{display:block;inset:0;opacity:.35;
+html[data-theme="minmatar"] .card:not(.bp-card) .thm-d1{display:block;inset:0;opacity:.35;z-index:0;
   background:radial-gradient(3px 3px at 10px 10px,#8a7058 55%,transparent 56%),radial-gradient(3px 3px at calc(100% - 10px) 10px,#8a7058 55%,transparent 56%)}
-html[data-theme="minmatar"] .tile .thm-d1{display:block;inset:0;opacity:.35;
+html[data-theme="minmatar"] .tile .thm-d1{display:block;inset:0;opacity:.35;z-index:0;
   background:radial-gradient(3px 3px at 10px 10px,#8a7058 55%,transparent 56%),radial-gradient(3px 3px at calc(100% - 10px) 10px,#8a7058 55%,transparent 56%)}
-html[data-theme="minmatar"] .card:not(.bp-card):nth-child(3) .thm-d2{display:block;left:20%;right:30%;top:-1px;height:3px;
+html[data-theme="minmatar"] .card:not(.bp-card):nth-child(3) .thm-d2{display:block;left:20%;right:30%;top:-1px;height:3px;z-index:0;
   background:repeating-linear-gradient(90deg,#6a4a2e 0 5px,transparent 5px 9px)}
-html[data-theme="minmatar"] .tile:nth-child(3) .thm-d2{display:block;left:20%;right:30%;top:-1px;height:3px;
+html[data-theme="minmatar"] .tile:nth-child(3) .thm-d2{display:block;left:20%;right:30%;top:-1px;height:3px;z-index:0;
   background:repeating-linear-gradient(90deg,#6a4a2e 0 5px,transparent 5px 9px)}
-html[data-theme="minmatar"] .card:not(.bp-card) .l{font-family:'Teko',sans-serif;color:#a87a52;font-size:14px;letter-spacing:.26em}
-html[data-theme="minmatar"] .tile .l{font-family:'Teko',sans-serif;color:#a87a52;font-size:14px;letter-spacing:.26em}
-html[data-theme="minmatar"] .card:not(.bp-card) .n{color:#f0b088;font-family:'Teko',sans-serif;font-size:40px;font-weight:600}
-html[data-theme="minmatar"] .tile .n{color:#f0b088;font-family:'Teko',sans-serif;font-size:40px;font-weight:600}
+html[data-theme="minmatar"] .card:not(.bp-card) .l{font-family:'Teko',sans-serif;color:#a87a52;font-size:14px;letter-spacing:.26em;position:relative;z-index:1}
+html[data-theme="minmatar"] .tile .l{font-family:'Teko',sans-serif;color:#a87a52;font-size:14px;letter-spacing:.26em;position:relative;z-index:1}
+html[data-theme="minmatar"] .card:not(.bp-card) .n{color:#f0b088;font-family:'Teko',sans-serif;font-size:40px;font-weight:600;position:relative;z-index:1}
+html[data-theme="minmatar"] .tile .n{color:#f0b088;font-family:'Teko',sans-serif;font-size:40px;font-weight:600;position:relative;z-index:1}
 html[data-theme="minmatar"] .card:not(.bp-card):nth-child(4) .n{animation:mn-flicker 5s steps(1,end) infinite}
 html[data-theme="minmatar"] .tile:nth-child(4) .n{animation:mn-flicker 5s steps(1,end) infinite}
-html[data-theme="minmatar"] .card:not(.bp-card) .s{color:#7a5f46;font-size:10.5px}
-html[data-theme="minmatar"] .tile .s{color:#7a5f46;font-size:10.5px}
+html[data-theme="minmatar"] .card:not(.bp-card) .s{color:#7a5f46;font-size:10.5px;position:relative;z-index:1}
+html[data-theme="minmatar"] .tile .s{color:#7a5f46;font-size:10.5px;position:relative;z-index:1}
 html[data-theme="minmatar"] .panel-head{border-bottom:2px dashed #4a3624}
 html[data-theme="minmatar"] .panel-head h2{font-family:'Teko',sans-serif;font-size:22px;font-weight:600;letter-spacing:.16em;color:#e8946a;
   text-shadow:2px 2px 0 #3a1c0e;text-transform:uppercase}
