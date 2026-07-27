@@ -135,48 +135,52 @@ function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math
   if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
 function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
 
-/* SDE-accurate fuel block rates: serviceModuleFuelAmount (attrID 2109) per typeID.
+/* SDE-accurate fuel block rates: serviceModuleFuelAmount (attrID 2109).
+   ESI /corporations/{id}/structures/ returns services as {name, state} objects —
+   there is NO type_id on individual services, so we key by the canonical name
+   string that ESI provides (matches the item name in-game).
    Base hull burn of 24 blocks/hr is a game engine constant (not in SDE).
    Monthly = (base 24 + sum of online service rates) * 24h * 30 days.        */
-const SVC_FUEL_BLK_HR = {
+const SVC_FUEL_BLK_HR_BY_NAME = {
   // Source: SDE typeDogma.yaml, attributeID 2109 (serviceModuleFuelAmount, blocks/hr)
   // Engineering Service Modules (groupID 1415)
-  35877:36, // Standup Supercapital Shipyard I
-  35878:12, // Standup Manufacturing Plant I
-  35881:24, // Standup Capital Shipyard I
-  35886:12, // Standup Invention Lab I
-  35891:12, // Standup Research Lab I
-  45550:10, // Standup Hyasyoda Research Lab
+  'Standup Supercapital Shipyard I':36,
+  'Standup Manufacturing Plant I':12,
+  'Standup Capital Shipyard I':24,
+  'Standup Invention Lab I':12,
+  'Standup Research Lab I':12,
+  'Standup Hyasyoda Research Lab':10,
   // Citadel Service Modules (groupID 1321)
-  35892:40, // Standup Market Hub I
-  35894:10, // Standup Cloning Center I
+  'Standup Market Hub I':40,
+  'Standup Cloning Center I':10,
   // Resource Processing Service Modules (groupID 1322)
-  35899:10, // Standup Reprocessing Facility I
-  45537:15, // Standup Composite Reactor I
-  45538:15, // Standup Hybrid Reactor I
-  45539:15, // Standup Biochemical Reactor I
+  'Standup Reprocessing Facility I':10,
+  'Standup Composite Reactor I':15,
+  'Standup Hybrid Reactor I':15,
+  'Standup Biochemical Reactor I':15,
   // FLEX Service Modules (groupID 1324)
-  35912:15, // Standup Cynosural Field Generator I
-  35913:30, // Standup Conduit Generator I
-  35914:40, // Standup Cynosural System Jammer I
-  82941:5,  // Standup Metenox Moon Drill
+  'Standup Cynosural Field Generator I':15,
+  'Standup Conduit Generator I':30,
+  'Standup Cynosural System Jammer I':40,
+  'Standup Metenox Moon Drill':5,
   // Moon Drilling Service Modules (groupID 1887)
-  45009:5,  // Standup Moon Drill I
-  // Unpublished (groupID 1717) — real in-game items with confirmed SDE values
-  35880:5,  // Standup Drug Lab I
-  35900:5,  // Structure Compression Plant
-  // Research Service Modules (groupID 1416, unpublished) — non-zero SDE values
-  35889:5,  // Structure Time Efficiency Laboratory
-  35890:10, // Structure Material Efficiency Laboratory
-  // 35888 Structure Datacore Field Research = 0 blk/hr, omitted
-  // 35895/96/97/98 admin/legacy modules = 0 blk/hr, omitted
+  'Standup Moon Drill I':5,
+  // Unpublished — real in-game items with confirmed SDE values
+  'Standup Drug Lab I':5,
+  'Structure Compression Plant':5,
+  // Research Service Modules (groupID 1416, unpublished)
+  'Structure Time Efficiency Laboratory':5,
+  'Structure Material Efficiency Laboratory':10,
 };
 function fuelBlocksPerMonth(s){
   const BASE_BLK_HR=24;
   let svcBph=0;
   (s.services||[]).forEach(v=>{
     if(v.state==='online'){
-      const rate=SVC_FUEL_BLK_HR[+v.type_id];
+      // ESI returns service name e.g. "Standup Manufacturing Plant I"
+      // normalise underscores (ESI sometimes uses them) and look up by name
+      const key=(v.name||'').replace(/_/g,' ');
+      const rate=SVC_FUEL_BLK_HR_BY_NAME[key];
       svcBph+=rate!=null?rate:10; // fallback 10 for unknown future modules
     }
   });
@@ -352,7 +356,8 @@ function render(){
       '<div class="sys">'+esc(nameOf(s.system_id,'System'))+'</div>'+
       '</div></div>'+
       '<div class="fuelnum"><div class="fv">'+(fuelMs==null?'no fuel data':fmtDur(fuelMs))+'</div><div class="fl">fuel remaining'+(days!=null?' · expires '+s.fuel_expires.slice(0,10):'')+'</div>'+
-      '<div class="fl" style="margin-top:4px">~'+fmtBlocks(fuelBlocksPerMonth(s))+'/month</div></div>'+
+      '<div class="fl" style="margin-top:4px">~'+fmtBlocks(fuelBlocksPerMonth(s))+'/month</div>'+
+      (()=>{const bph=fuelBlocksPerMonth(s)/24/30;const needed=days!=null&&days<30?Math.ceil((30-days)*24*bph):0;return needed>0?'<div class="fl" style="margin-top:4px;color:var(--c-warn)">⬆ '+needed.toLocaleString()+' blocks to reach 30 days</div>':''})()+'</div>'+
       '<span class="state st-'+(s.state==='shield_vulnerable'||s.state==='armor_vulnerable'||s.state==='hull_vulnerable'?'warn':'ok')+'">'+esc(state||'state unknown')+'</span>'+
       (svcs?'<div class="svcs">'+svcs+'</div>':'')+
       '</div></div>';
