@@ -155,9 +155,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .hero-strip .sub{font-size:12.5px}
 .hero-rivets{display:flex;gap:8px}
 .hero-rivets span{width:8px;height:8px}
-.view{display:none;padding:0 40px 40px;position:relative;z-index:2}
+.view{display:none;padding:0 40px 40px;position:relative}
 .view.on{display:block;animation:viewIn .4s cubic-bezier(.2,.9,.3,1)}
-@keyframes viewIn{ from{opacity:0; transform:translateY(14px) scale(.99)} to{opacity:1; transform:translateY(0) scale(1)} }
+@keyframes viewIn{ from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:translateY(0)} }
 .panel-body{padding:30px}
 .foundry-line{display:flex;flex-direction:column;gap:20px}
 .forge-row{display:flex;align-items:center;gap:26px;padding:24px 30px;position:relative;transition:.25s}
@@ -473,7 +473,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
   <div class="panel-body">
 
     <!-- Add a structure ─────────────────────────────────────────────── -->
-    <div class="structreg-add-section panel">
+    <div class="structreg-add-section">
       <div class="research-subhead">Add a structure <span class="sub">paste a structure fit in EFT format, or enter it manually</span></div>
       <div class="add-mode-tabs">
         <button class="add-mode-btn on btn" data-mode="eft">Paste EFT fit</button>

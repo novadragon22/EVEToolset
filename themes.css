@@ -606,11 +606,17 @@ html[data-app="industry"] .manual-grid input,html[data-app="industry"] .manual-g
 html[data-app="industry"] .manual-grid input:focus,html[data-app="industry"] .manual-grid select:focus{outline:none;border-color:var(--gold-dim)}
 html[data-app="industry"] .parse-btn{font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;color:#1a1006;background:linear-gradient(160deg,var(--gold-bright),var(--gold));border:1px solid var(--gold-bright);box-shadow:0 0 20px rgba(var(--gold-rgb),.3)}
 html[data-app="industry"] .parse-btn:hover{filter:brightness(1.1)}
+html[data-app="industry"] .structreg-add-section{border:1px solid var(--gold-dim);background:linear-gradient(180deg,rgba(var(--gold-rgb),.04),rgba(0,0,0,.2));padding:24px 28px;margin-bottom:24px}
+html[data-app="industry"] .structreg-toolbar{padding:0 0 12px}
 html[data-app="industry"] .structreg-row{border-bottom:1px solid var(--line)}
 html[data-app="industry"] .structreg-row.drag-over{border-top:2px solid var(--gold-bright)}
+html[data-app="industry"] .structreg-card{background:linear-gradient(160deg,#0b1015,#070a0d);border:1px solid var(--gold-dim);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}
+html[data-app="industry"] .structreg-card.drag-over{border-color:var(--gold-bright);box-shadow:0 0 12px rgba(var(--gold-rgb),.3)}
+html[data-app="industry"] .sr-hull-badge{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-dim);border:1px solid var(--line2);padding:2px 7px;display:inline-block;margin-bottom:8px}
 html[data-app="industry"] .sr-drag-handle{color:var(--muted)}
 html[data-app="industry"] .sr-name{font-family:var(--mono);color:var(--gold-bright)}
 html[data-app="industry"] .sr-sub{color:var(--muted)}
+html[data-app="industry"] .sr-caps{margin-top:8px}
 html[data-app="industry"] .sr-action-btn{font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--gold-bright);background:rgba(var(--gold-rgb),.08);border:1px solid var(--gold-dim)}
 html[data-app="industry"] .sr-action-btn:hover{background:rgba(var(--gold-rgb),.18)}
 html[data-app="industry"] .sr-action-btn.danger{color:#e06a5a;border-color:#6b342c}
