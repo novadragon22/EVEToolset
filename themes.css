@@ -1470,6 +1470,17 @@ html[data-theme="triglavian"][data-app="citadel"] .ctl .btn:hover{
 /* structure image */
 html[data-theme="triglavian"][data-app="citadel"] .timg{
   background:rgba(0,0,0,.6);border:1px solid #2e1a12;border-radius:0}
+/* snooze / temp button */
+html[data-theme="triglavian"][data-app="citadel"] .snooze-btn{
+  font-family:'Michroma',sans-serif;font-size:8px;letter-spacing:.2em;
+  border:1px solid #c8283a;color:#c8283a;background:transparent;
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+html[data-theme="triglavian"][data-app="citadel"] .snooze-btn:hover{
+  background:rgba(200,40,58,.12);box-shadow:0 0 8px rgba(200,40,58,.35)}
+html[data-theme="triglavian"][data-app="citadel"] .snooze-btn.snoozed{
+  color:#9ac878;border-color:#9ac878;background:rgba(154,200,120,.1)}
+html[data-theme="triglavian"][data-app="citadel"] .snooze-btn.snoozed:hover{
+  background:rgba(154,200,120,.18);box-shadow:0 0 8px rgba(154,200,120,.3)}
 
 /* -------- EXTRACTION LEDGER (mining.html) — belt-line industrial baseline --------
    Identity: hazard chevron divider, stencil display type, gauges separated by

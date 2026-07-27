@@ -66,6 +66,12 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .svc{display:flex;align-items:center;gap:7px;font-size:10.5px;padding:3px 0}
 .svc .dot{width:6px;height:6px;flex:none;border-radius:50%}
 .corpband{grid-column:1/-1;padding:9px 16px;margin:4px 0 6px;font-size:10.5px;display:flex;justify-content:space-between;gap:10px}
+/* temp / snooze button — only visible on low-fuel towers */
+.snooze-btn{display:none;margin-top:10px;font-size:9px;padding:4px 10px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;border:1px solid currentColor;background:transparent;transition:color .2s,background .2s,border-color .2s}
+.snooze-btn.visible{display:inline-block}
+.snooze-btn.snoozed{color:var(--green,#9ac878);border-color:var(--green,#9ac878);background:rgba(154,200,120,.1)}
+/* snoozed tower sits at the bottom, slightly dimmed */
+.tower.snoozed-tower{opacity:.72}
 
 </style>
 <link rel="stylesheet" href="themes.css">
@@ -268,6 +274,21 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
 /* ================= Citadel Watch ================= */
 let towersByCorp=null;
 
+/* ---- snooze store: structure_id → true, persisted in localStorage ---- */
+const SNOOZE_KEY='eve_suite_citadel_snooze';
+function loadSnooze(){try{return JSON.parse(localStorage.getItem(SNOOZE_KEY)||'{}');}catch(e){return{};}}
+function saveSnooze(s){try{localStorage.setItem(SNOOZE_KEY,JSON.stringify(s));}catch(e){}}
+let snoozed=loadSnooze();
+
+/* Called by the snooze button on each tower card — toggles snooze and re-renders in place */
+window._towerSnooze=function(id){
+  id=String(id);
+  if(snoozed[id]){delete snoozed[id];}
+  else{snoozed[id]=true;}
+  saveSnooze(snoozed);
+  if(towersByCorp)render();
+};
+
 async function loadAll(){
   if(noPilotsGuard('out'))return;
   const btn=$('loadBtn');btn.disabled=true;
@@ -330,6 +351,7 @@ function render(){
     return;
   }
   const fuelMsOf=s=>s.fuel_expires?Date.parse(s.fuel_expires)-now():Infinity;
+  const days_lt10=s=>{const ms=fuelMsOf(s);return ms!==Infinity&&ms/86400000<10;};
   const groups={};
   all.forEach(s=>{const tn=nameOf(s.type_id,'Type '+s.type_id);(groups[tn]=groups[tn]||[]).push(s);});
   const lanes=Object.keys(groups).map(tn=>{
@@ -342,10 +364,12 @@ function render(){
     const days=fuelMs==null?null:fuelMs/86400000;
     const pct=days==null?0:Math.max(2,Math.min(100,100*days/MAX_FUEL_DAYS));
     const lowFuel=days!=null&&days<7;
+    const tempAlert=days!=null&&days<10;  /* snooze button threshold: <10 days */
+    const isSnoozed=tempAlert&&!!snoozed[String(s.structure_id)];
     if(lowFuel)low++;
     const state=(s.state||'').replace(/_/g,' ');
     const svcs=(s.services||[]).map(v=>'<div class="svc"><span class="dot '+(v.state==='online'?'on':'off')+'"></span>'+esc((v.name||'').replace(/_/g,' '))+'</div>').join('');
-    return '<div class="tower panel'+(lowFuel?' lowfuel':'')+'">'+
+    return '<div class="tower panel'+(lowFuel?' lowfuel':'')+(isSnoozed?' snoozed-tower':'')+'">'+
       '<div class="tube"><span class="cap"></span><span class="fill '+(lowFuel?'low':'ok')+'" style="height:'+pct.toFixed(0)+'%"></span></div>'+
       '<div class="tbody">'+
       '<div class="thead"><img class="timg" src="https://images.evetech.net/types/'+(+s.type_id||0)+'/render?size=64" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'+
@@ -378,15 +402,35 @@ function render(){
       
       '<span class="state st-'+(s.state==='shield_vulnerable'||s.state==='armor_vulnerable'||s.state==='hull_vulnerable'?'warn':'ok')+'">'+esc(state||'state unknown')+'</span>'+
       (svcs?'<div class="svcs">'+svcs+'</div>':'')+
+      (tempAlert?'<button class="snooze-btn visible'+(isSnoozed?' snoozed':'')+'" onclick="window._towerSnooze('+s.structure_id+')" title="'+(isSnoozed?'Refuelled — will re-sort on next ESI refresh':'Mark as refuelled — moves to bottom until next ESI refresh')+'">'+(isSnoozed?'✓ Refuelled':'Refuelled')+'</button>':'')+
       '</div></div>';
   };
+  /* auto-clear snooze for any structure now at ≥10 days fuel */
+  let snoozeChanged=false;
+  all.forEach(s=>{
+    const sid=String(s.structure_id);
+    if(snoozed[sid]){
+      const fms=s.fuel_expires?Date.parse(s.fuel_expires)-now():null;
+      const d=fms==null?null:fms/86400000;
+      if(d==null||d>=10){delete snoozed[sid];snoozeChanged=true;}
+    }
+  });
+  if(snoozeChanged)saveSnooze(snoozed);
+
   const html=lanes.map(L=>{
     const hot=L.min!==Infinity&&L.min/86400000<7;
     const cls=HULL_CLASS[L.tn];
-    const desc=(cls?cls+' · ':'')+'lowest fuel '+(L.min===Infinity?'no fuel data':fmtDur(L.min));
-    return '<div class="tlane panel'+(hot?' hot':'')+'">'+
+    /* partition: snoozed towers go to the bottom of their lane */
+    const active=L.list.filter(s=>!(days_lt10(s)&&snoozed[String(s.structure_id)]));
+    const pinned=L.list.filter(s=>days_lt10(s)&&snoozed[String(s.structure_id)]);
+    const ordered=[...active,...pinned];
+    /* hotness based on non-snoozed minimum */
+    const activeMin=active.length?fuelMsOf(active[0]):Infinity;
+    const isHot=activeMin!==Infinity&&activeMin/86400000<7;
+    const desc=(cls?cls+' · ':'')+'lowest fuel '+(activeMin===Infinity?'no fuel data':fmtDur(activeMin));
+    return '<div class="tlane panel'+(isHot?' hot':'')+'">'+
       '<div class="tlane-hd"><h2>'+esc(L.tn)+'</h2><span class="cnt">'+L.list.length+'</span><span class="desc">'+esc(desc)+'</span></div>'+
-      '<div class="towers">'+L.list.map(tower).join('')+'</div></div>';
+      '<div class="towers">'+ordered.map(tower).join('')+'</div></div>';
   }).join('');
   $('out').innerHTML=strip+'<div class="typelanes">'+html+'</div>';
   reportDashboard(total+' structures'+(low?' · '+low+' low fuel!':''), low?'bad':'ok');
