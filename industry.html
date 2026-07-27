@@ -1031,7 +1031,7 @@ function renderStructRegList(){
     const hasCapitalService = services.some(sv=>sv.includes('Capital Shipyard')||sv.includes('Supercapital Shipyard'));
     const capWarning = (capitalHull && !hasCapitalService) ? '<div class="sr-sub" style="color:#e0a05a">⚠ No Capital Shipyard service module — can\'t build capitals here yet</div>' : '';
     const costLine = (s.costIndex!=null && s.costIndex!=='') ? '<div class="sr-sub">System cost index: '+s.costIndex+'%'+(s.taxPct!=null?' · facility tax '+s.taxPct+'%':'')+'</div>' : (s.taxPct!=null?'<div class="sr-sub">Facility tax: '+s.taxPct+'%</div>':'');
-    return '<div class="structreg-row card" draggable="true" data-order-idx="'+i+'"><div style="display:flex;align-items:flex-start;gap:8px">'+
+    return '<div class="structreg-row" draggable="true" data-order-idx="'+i+'"><div style="display:flex;align-items:flex-start;gap:8px">'+
       '<span class="sr-drag-handle" title="Drag to reorder">⠿</span><div style="flex:1">'+
       '<div class="sr-name">'+s.name+'</div><div class="sr-sub">'+[s.hull, s.system, s.owner].filter(Boolean).join(' · ')+'</div>'+
       svcLine+costLine+capWarning+
