@@ -525,9 +525,7 @@ Standup Manufacturing Material Efficiency I</textarea>
       <div class="structreg-io">
         <button class="io-btn btn" id="exportJsonBtn">⭳ Export JSON</button>
         <label class="io-btn btn" for="importJsonFile">⭱ Import JSON</label>
-        <input type="file" id="importJsonFile" accept="application/json" style="display:none">
         <label class="io-btn btn" for="importRavworksFile" title="Import structures from a RavWorks configuration export">⭱ Import RavWorks</label>
-        <input type="file" id="importRavworksFile" accept="application/json" style="display:none">
         <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh cost indices</button>
       </div>
       <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px"></div>
@@ -1440,8 +1438,9 @@ document.getElementById('importRavworksFile').addEventListener('change', (e)=>{
       renderStructRegList();
       const skipped = structs.length - imported;
       alert('Imported '+imported+' structure'+(imported===1?'':'s')+' from '+file.name+(skipped?' ('+skipped+' skipped as duplicates)':'')+'.');
-    } catch(err){ alert('Could not import this file — '+err.message); }
+    } catch(err){ console.error('RavWorks import error:', err); alert('Could not import this file — '+err.message+'\n\nCheck the browser console (F12) for details.'); }
   };
+  reader.onerror = ()=>{ alert('Could not read file — FileReader error.'); };
   reader.readAsText(file);
   e.target.value='';
 });
@@ -2795,5 +2794,7 @@ function renderBrowse(q){
   });
 })();
 </script>
+<input type="file" id="importJsonFile" accept="application/json" style="display:none">
+<input type="file" id="importRavworksFile" accept="application/json" style="display:none">
 </body>
 </html>
