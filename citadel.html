@@ -68,7 +68,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .corpband{grid-column:1/-1;padding:9px 16px;margin:4px 0 6px;font-size:10.5px;display:flex;justify-content:space-between;gap:10px}
 /* temp / snooze button — only visible on low-fuel towers */
 .snooze-btn{display:none;margin-top:10px;font-size:9px;padding:4px 10px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;border:1px solid currentColor;background:transparent;transition:color .2s,background .2s,border-color .2s}
-.snooze-btn.visible{display:inline-block;color:var(--red,#d66a5a);border-color:var(--red,#d66a5a);background:rgba(214,106,90,.08)}
+.snooze-btn.visible{display:inline-block}
 .snooze-btn.snoozed{color:var(--green,#9ac878);border-color:var(--green,#9ac878);background:rgba(154,200,120,.1)}
 /* snoozed tower sits at the bottom, slightly dimmed */
 .tower.snoozed-tower{opacity:.72}
@@ -125,15 +125,7 @@ function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
 let chars=loadChars();
-function saveChars(){
-  // Read full stored object, merge our chars in, write back.
-  // Prevents overwriting characters loaded in other tools.
-  try{
-    const stored=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}')
-    Object.keys(chars).forEach(id=>{stored[id]=chars[id];});
-    localStorage.setItem(SHARED_KEY,JSON.stringify(stored));
-  }catch(e){}
-}
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
 function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
 function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
 function visibleIds(){return Object.keys(chars).filter(sectionOn);}

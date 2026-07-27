@@ -521,8 +521,6 @@ Standup Manufacturing Material Efficiency I</textarea>
         <button class="io-btn btn" id="exportJsonBtn">⭳ Export JSON</button>
         <label class="io-btn btn" for="importJsonFile">⭱ Import JSON</label>
         <input type="file" id="importJsonFile" accept="application/json" style="display:none">
-        <label class="io-btn btn" for="importRavworksFile" title="Import structures from a RavWorks configuration export">⭱ Import RavWorks</label>
-        <input type="file" id="importRavworksFile" accept="application/json" style="display:none">
       </div>
       <div class="structreg-io">
         <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh all system cost indices (ESI)</button>
@@ -1360,64 +1358,6 @@ document.getElementById('importJsonFile').addEventListener('change', (e)=>{
       renderStructRegList();
       alert('Imported '+valid.length+' structure(s) from '+file.name+'.');
     }catch(err){ alert('Could not import this file — expected a JSON array of structures. ('+err.message+')'); }
-  };
-  reader.readAsText(file);
-  e.target.value='';
-});
-
-// ---- RavWorks JSON import ------------------------------------------------
-// RavWorks exports a single flat object. Structures live in hidden_my_structures[].
-// Each entry: { id, name, structure (hull), security, Rig1, Rig2, Rig3 }
-// The system used for manufacturing is stored in the top-level manu_system field.
-// Rig names are exact in-game Standup names and feed straight into classifyStructure.
-const RAVWORKS_HULL_MAP = {
-  // Engineering Complexes
-  'Raitaru':'Raitaru', 'Azbel':'Azbel', 'Sotiyo':'Sotiyo',
-  // Refineries
-  'Athanor':'Athanor', 'Tatara':'Tatara',
-  // Citadels (no manufacturing rigs, but still register them)
-  'Astrahus':'Astrahus', 'Fortizar':'Fortizar', 'Keepstar':'Keepstar',
-  // Flex structures
-  'Rancor':'Rancor', 'Moreau':'Moreau', 'Prometheus':'Prometheus'
-};
-document.getElementById('importRavworksFile').addEventListener('change', (e)=>{
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    try{
-      const raw = JSON.parse(reader.result);
-      // Detect format: must have hidden_my_structures array
-      const structs = raw.hidden_my_structures;
-      if(!Array.isArray(structs) || !structs.length) throw new Error('No hidden_my_structures array found — is this a RavWorks export?');
-      // Top-level system fields: use manu_system as the default system label
-      const defaultSystem = (raw.manu_system || '').trim() || 'Unknown system';
-      let imported = 0;
-      structs.forEach(s=>{
-        if(!s || typeof s.name !== 'string') return;
-        const hullRaw = (s.structure || '').trim();
-        const hull = RAVWORKS_HULL_MAP[hullRaw] || hullRaw || 'Raitaru';
-        const name = s.name.trim() || 'Unnamed Structure';
-        // Collect rig lines, filtering "No Rig" placeholders
-        const rigLines = [s.Rig1, s.Rig2, s.Rig3]
-          .map(r => (r || '').trim())
-          .filter(r => r && r.toLowerCase() !== 'no rig');
-        const {rigs, capabilities} = classifyStructure(rigLines);
-        // security field: "Null / Wormhole", "Low Sec", "High Sec", etc. — keep as a note
-        const secNote = (s.security || '').trim();
-        // system: use the RavWorks structure id to pick the right system from
-        // the hidden_allocation_dict if available, otherwise fall back to manu_system
-        // (RavWorks doesn't store per-structure system names, only which category uses which structure)
-        const system = defaultSystem;
-        const record = { name, hull, system, owner: secNote ? 'RavWorks · '+secNote : 'RavWorks import', locationId: null, rigs, capabilities };
-        // Avoid exact-name duplicates already in the registry
-        const isDupe = registeredStructures.some(existing => existing.name === name && existing.hull === hull);
-        if(!isDupe){ registeredStructures.push(record); imported++; }
-      });
-      saveStructuresToStorage();
-      renderStructRegList();
-      const skipped = structs.length - imported;
-      alert('Imported '+imported+' structure'+(imported===1?'':'s')+' from '+file.name+(skipped?' ('+skipped+' skipped as duplicates)':'')+'.');
-    } catch(err){ alert('Could not import this file — '+err.message); }
   };
   reader.readAsText(file);
   e.target.value='';
