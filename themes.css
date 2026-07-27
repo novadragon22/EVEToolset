@@ -1365,6 +1365,112 @@ html[data-app="contracts"] #toast{background:var(--panel);border:1px solid var(-
 html[data-app="contracts"] #toast.bad{border-color:var(--red);color:var(--red)}
 html[data-app="contracts"] .spin{border:2px solid var(--line2);border-top-color:var(--gold);border-radius:50%}
 
+/* ================================================================
+   TRIGLAVIAN/SVAROG overrides for citadel.html app
+   Applied when both data-theme="triglavian" AND data-app="citadel"
+   — forge-brand .tower cards, Svarog colour mapping for fuel states
+   ================================================================ */
+html[data-theme="triglavian"][data-app="citadel"]{
+  --green:#9ac878;--red:#c8283a;--amber:#ffb060;
+  --panel:#130d0d;--panel2:#1e1208;--line:#2e1a12;--line2:#3a2418;
+  --text:#d8c8b0;--muted:#8a7458;--muted2:#6a5240;
+  --gold:#b08a5a;--gold-bright:#d8b888;--gold-dim:#6a4e2e;
+  --bg:#0a0707;--cyan:#9ac878;--cyan-bright:#c0e8a0;--cyan-edge:#2a3a18}
+html[data-theme="triglavian"][data-app="citadel"],
+html[data-theme="triglavian"][data-app="citadel"] body{
+  color:var(--text);background:
+    radial-gradient(ellipse 90% 55% at 50% 115%,rgba(180,90,20,.14),transparent 58%),
+    repeating-linear-gradient(58deg,transparent 0 50px,rgba(176,138,90,.038) 50px 51.5px),
+    repeating-linear-gradient(-58deg,transparent 0 50px,rgba(176,138,90,.038) 50px 51.5px),
+    #0a0707}
+/* tower cards — proving-plate clip + forge-brand notch */
+html[data-theme="triglavian"][data-app="citadel"] .tower{
+  border-top:none;
+  background:linear-gradient(138deg,#1e1308 0%,#130d0d 35%,#1a1008 55%,#0f0a06 82%,#130d0d 100%);
+  border:1px solid #3a2418;
+  clip-path:polygon(20px 0,100% 0,100% calc(100% - 20px),calc(100% - 20px) 100%,0 100%,0 20px);
+  position:relative}
+/* forge-brand corner notch on tower */
+html[data-theme="triglavian"][data-app="citadel"] .tower::before{
+  content:'';position:absolute;top:0;left:0;width:0;height:0;
+  border-style:solid;border-width:20px 20px 0 0;
+  border-color:#c8283a transparent transparent transparent;
+  filter:drop-shadow(0 0 8px rgba(200,40,58,.85));
+  animation:tg-vein 4.5s ease-in-out infinite;z-index:3;pointer-events:none}
+/* inner metamateria plate */
+html[data-theme="triglavian"][data-app="citadel"] .tower::after{
+  content:'';position:absolute;
+  top:7px;left:5px;right:6px;bottom:5px;
+  border:1px solid rgba(176,138,90,.22);
+  clip-path:polygon(15px 0,100% 0,100% calc(100% - 13px),calc(100% - 17px) 100%,0 100%,0 15px);
+  pointer-events:none;z-index:0}
+/* low-fuel tower: red forge-brand */
+html[data-theme="triglavian"][data-app="citadel"] .tower.lowfuel{border-color:#6a1a24}
+html[data-theme="triglavian"][data-app="citadel"] .tower.lowfuel::before{
+  border-color:#ff3040 transparent transparent transparent;
+  filter:drop-shadow(0 0 10px rgba(200,40,58,.95))}
+/* tube: forge heat colours */
+html[data-theme="triglavian"][data-app="citadel"] .tube{
+  background:rgba(0,0,0,.6);border:1px solid #2e1a12;box-shadow:inset 0 0 10px rgba(0,0,0,.8)}
+html[data-theme="triglavian"][data-app="citadel"] .tube .cap{background:#2e1a12}
+html[data-theme="triglavian"][data-app="citadel"] .tube .fill.ok{
+  background:linear-gradient(180deg,#9ac878,rgba(154,200,120,.3))}
+html[data-theme="triglavian"][data-app="citadel"] .tube .fill.low{
+  background:linear-gradient(180deg,#c8283a,rgba(200,40,58,.3))}
+/* tower name font */
+html[data-theme="triglavian"][data-app="citadel"] .tbody .tn{
+  font-family:'Michroma',sans-serif;font-size:11px;color:#d8b888}
+html[data-theme="triglavian"][data-app="citadel"] .tbody .tt{color:#8a7458}
+html[data-theme="triglavian"][data-app="citadel"] .tbody .sys{color:#6a5240}
+/* fuel numbers */
+html[data-theme="triglavian"][data-app="citadel"] .fuelnum .fv{
+  font-family:'Michroma',sans-serif;color:#c8283a}
+html[data-theme="triglavian"][data-app="citadel"] .tower.lowfuel .fuelnum .fv{color:#ff3040}
+html[data-theme="triglavian"][data-app="citadel"] .fuelnum .fl{color:#6a5240;font-family:'IBM Plex Mono',monospace}
+/* state badge */
+html[data-theme="triglavian"][data-app="citadel"] .state{
+  font-family:'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid currentColor;border-radius:0;
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+html[data-theme="triglavian"][data-app="citadel"] .state.st-ok{color:#9ac878}
+html[data-theme="triglavian"][data-app="citadel"] .state.st-warn{color:#ffb060}
+html[data-theme="triglavian"][data-app="citadel"] .state.st-bad{color:#c8283a}
+/* service dots */
+html[data-theme="triglavian"][data-app="citadel"] .svc{color:#8a7458}
+html[data-theme="triglavian"][data-app="citadel"] .svc .dot.on{
+  background:#9ac878;box-shadow:0 0 6px rgba(154,200,120,.8);clip-path:polygon(50% 0,100% 100%,0 100%)}
+html[data-theme="triglavian"][data-app="citadel"] .svc .dot.off{
+  background:#c8283a;opacity:.7;clip-path:polygon(50% 0,100% 100%,0 100%)}
+/* type lanes */
+html[data-theme="triglavian"][data-app="citadel"] .tlane{
+  border-left:4px solid #c8283a;background:#0d0908;border:1px solid #2e1a12;
+  border-left:4px solid #c8283a}
+html[data-theme="triglavian"][data-app="citadel"] .tlane.hot{border-left-color:#ff3040}
+html[data-theme="triglavian"][data-app="citadel"] .tlane-hd{border-bottom:1px solid #2e1a12;background:linear-gradient(90deg,rgba(200,40,58,.06),transparent 60%)}
+html[data-theme="triglavian"][data-app="citadel"] .tlane-hd h2{
+  font-family:'Michroma',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#d8b888}
+html[data-theme="triglavian"][data-app="citadel"] .tlane.hot .tlane-hd h2{color:#ff8070}
+html[data-theme="triglavian"][data-app="citadel"] .tlane-hd .cnt{
+  font-family:'IBM Plex Mono',monospace;color:#d8c8b0;border:1px solid #3a2418;border-radius:0}
+html[data-theme="triglavian"][data-app="citadel"] .tlane-hd .desc{color:#6a5240;font-family:'IBM Plex Mono',monospace}
+/* corp band */
+html[data-theme="triglavian"][data-app="citadel"] .corpband{
+  border-left:4px solid #ffb060;font-family:'Michroma',sans-serif;
+  letter-spacing:.1em;color:#d8b888;background:#130d0d;border-top:1px solid #2e1a12;border-bottom:1px solid #2e1a12}
+/* header h1 */
+html[data-theme="triglavian"][data-app="citadel"] h1{
+  font-family:'Michroma',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#d8b888}
+/* buttons */
+html[data-theme="triglavian"][data-app="citadel"] .ctl .btn{
+  font-family:'Michroma',sans-serif;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:#9ac878;background:#130d0d;border:1px solid #2a3a18;border-radius:0;
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)}
+html[data-theme="triglavian"][data-app="citadel"] .ctl .btn:hover{
+  box-shadow:0 0 12px rgba(154,200,120,.25);color:#c0e8a0}
+/* structure image */
+html[data-theme="triglavian"][data-app="citadel"] .timg{
+  background:rgba(0,0,0,.6);border:1px solid #2e1a12;border-radius:0}
+
 /* -------- EXTRACTION LEDGER (mining.html) — belt-line industrial baseline --------
    Identity: hazard chevron divider, stencil display type, gauges separated by
    welded vertical rules, squared chunky bars on inset tracks. Full-width
