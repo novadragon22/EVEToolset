@@ -369,8 +369,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 <div class="view" data-view="bp">
   <div class="panel-body">
   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:12px;margin-bottom:14px">
-    <label>Check ownership for <select id="libraryCharSelect"></select></label>
-    <label>Also include corp hangar <select id="libraryCorpSelect"><option value="">— none selected —</option></select></label>
+    <label>Check ownership for <select id="libraryCharSelect" style="min-width:160px"></select></label>
+    <label>Also include corp hangar <select id="libraryCorpSelect" style="min-width:160px"><option value="">— none selected —</option></select></label>
     <button class="parse-btn btn" id="libraryLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
     <span id="libraryLoadStatus" class="sub"></span>
   </div>
@@ -442,7 +442,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
       <div class="research-subhead">Blueprint research target <span class="sub">reads blueprints from your personal and corporation hangars via ESI</span></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;margin-bottom:16px">
         <label>Read from <select id="researchAssetSource"><option value="personal">Personal hangar</option><option value="corp">Corporation hangar</option></select></label>
-        <label>Character <select id="researchCharSelect"></select></label>
+        <label>Character <select id="researchCharSelect" style="min-width:160px"></select></label>
         <button class="parse-btn btn" id="researchLoadBtn" type="button" style="padding:6px 16px">Load blueprints ▸</button>
       </div>
       <div id="researchBpList" class="sub" style="padding:8px 4px 16px;max-height:60vh;overflow-y:auto">No blueprints loaded yet — pick a character and load.</div>
