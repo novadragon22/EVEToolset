@@ -253,7 +253,20 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .ri-sub{font-size:11px;margin-top:5px}
 .research-time{font-size:14px;min-width:80px;text-align:right}
 .research-note{margin-top:10px;padding:14px 18px;font-size:11.5px}
-.structreg-wrap{display:grid;grid-template-columns:1fr 320px;gap:28px}
+.structreg-add-section{margin-bottom:28px}
+.structreg-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.structreg-toolbar .sr-count{font-size:11px;margin-left:auto}
+.structreg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:start}
+.structreg-card{padding:18px 20px;position:relative;cursor:default}
+.structreg-card.dragging{opacity:.4}
+.sr-drag-handle{position:absolute;top:10px;right:10px;cursor:grab;font-size:14px;line-height:1;user-select:none;opacity:.4}
+.sr-drag-handle:active{cursor:grabbing}
+.sr-hull-badge{font-size:9px;padding:2px 7px;margin-bottom:8px;display:inline-block}
+.sr-name{font-size:13px;font-weight:600;margin-bottom:4px}
+.sr-sub{font-size:10.5px;margin-top:3px;opacity:.7}
+.sr-caps{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px}
+.sr-actions{display:flex;gap:6px;margin-top:12px}
+.sr-action-btn{font-size:9.5px;padding:5px 12px;cursor:pointer}
 .add-mode-tabs{display:flex;gap:8px;margin:16px 0}
 .add-mode-btn{font-size:11px;padding:8px 16px;cursor:pointer}
 .add-mode-panel{display:none}
@@ -264,19 +277,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .manual-grid label{display:flex;flex-direction:column;gap:6px;font-size:10.5px}
 .manual-grid input, .manual-grid select{font-size:12px;padding:9px 12px}
 .parse-btn{font-size:11.5px;padding:11px 22px;cursor:pointer}
-.structreg-row{padding:12px 4px;cursor:default}
-.structreg-row.dragging{opacity:.4}
-.sr-drag-handle{cursor:grab;font-size:14px;line-height:1;padding-top:2px;user-select:none}
-.sr-drag-handle:active{cursor:grabbing}
-.sr-name{font-size:12.5px}
-.sr-sub{font-size:10.5px;margin-top:4px}
-.sr-actions{display:flex;gap:6px;margin-top:8px}
-.sr-action-btn{font-size:9.5px;padding:4px 10px;cursor:pointer}
 .service-check{display:flex;align-items:center;gap:5px;font-size:10.5px}
 .service-check input{padding:0;width:auto}
 .rig-preview{font-size:11px;margin:4px 0 0;min-height:14px}
-.structreg-io{display:flex;gap:8px;margin-top:16px}
-.io-btn{flex:1;text-align:center;font-size:10px;padding:9px 0;cursor:pointer;display:block}
+.structreg-io{display:flex;gap:8px;flex-wrap:wrap}
+.io-btn{font-size:10px;padding:7px 14px;cursor:pointer;white-space:nowrap}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Saira:wght@400;500;600&family=Quicksand:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=Teko:wght@500;600&family=Michroma&family=Cinzel:wght@500;600&family=Comfortaa:wght@400;600&family=Saira+Stencil+One&display=swap" rel="stylesheet">
 </head>
@@ -466,8 +471,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 
 <div class="view" data-view="structreg">
   <div class="panel-body">
-  <div class="structreg-wrap panel">
-    <div>
+
+    <!-- Add a structure ─────────────────────────────────────────────── -->
+    <div class="structreg-add-section panel">
       <div class="research-subhead">Add a structure <span class="sub">paste a structure fit in EFT format, or enter it manually</span></div>
       <div class="add-mode-tabs">
         <button class="add-mode-btn on btn" data-mode="eft">Paste EFT fit</button>
@@ -513,23 +519,21 @@ Standup Manufacturing Material Efficiency I</textarea>
       </div>
     </div>
 
-    <div class="side-panel panel">
-      <h3>Registered structures</h3>
-      <div id="structregList"></div>
-      <div class="side-stat" style="margin-top:14px"><span>Total registered</span><b id="structregTotal">0</b></div>
+    <!-- Registered structures grid ─────────────────────────────────── -->
+    <div class="structreg-toolbar">
+      <span class="sr-count"><b id="structregTotal">0</b> registered</span>
       <div class="structreg-io">
         <button class="io-btn btn" id="exportJsonBtn">⭳ Export JSON</button>
         <label class="io-btn btn" for="importJsonFile">⭱ Import JSON</label>
         <input type="file" id="importJsonFile" accept="application/json" style="display:none">
         <label class="io-btn btn" for="importRavworksFile" title="Import structures from a RavWorks configuration export">⭱ Import RavWorks</label>
         <input type="file" id="importRavworksFile" accept="application/json" style="display:none">
+        <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh cost indices</button>
       </div>
-      <div class="structreg-io">
-        <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh all system cost indices (ESI)</button>
-      </div>
-      <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px;margin-top:8px"></div>
+      <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px"></div>
     </div>
-  </div>
+    <div id="structregList" class="structreg-grid"></div>
+
   </div>
 </div>
 
@@ -1026,20 +1030,39 @@ let currentBuildGroup = null; // SDE "group" of the blueprint currently loaded i
 
 function renderStructRegList(){
   const list=document.getElementById('structregList');
+  if(!registeredStructures.length){
+    list.innerHTML='<div class="sub" style="font-size:12px;padding:12px 0">No registered structures yet — add one above.</div>';
+    document.getElementById('structregTotal').textContent=0;
+    renderPlanStructTabs();
+    return;
+  }
+  const HULL_ICON={'Raitaru':'🏭','Azbel':'🏗','Sotiyo':'⚙','Athanor':'⛏','Tatara':'🔩'};
   list.innerHTML=registeredStructures.map((s,i)=>{
     const services = s.services||[];
     const svcLine = services.length ? '<div class="sr-sub">Services: '+services.map(sv=>sv.replace('Standup ','').replace(' Service Module','')).join(', ')+'</div>' : '';
     const capitalHull = (s.hull==='Azbel'||s.hull==='Sotiyo');
     const hasCapitalService = services.some(sv=>sv.includes('Capital Shipyard')||sv.includes('Supercapital Shipyard'));
-    const capWarning = (capitalHull && !hasCapitalService) ? '<div class="sr-sub" style="color:#e0a05a">⚠ No Capital Shipyard service module — can\'t build capitals here yet</div>' : '';
-    const costLine = (s.costIndex!=null && s.costIndex!=='') ? '<div class="sr-sub">System cost index: '+s.costIndex+'%'+(s.taxPct!=null?' · facility tax '+s.taxPct+'%':'')+'</div>' : (s.taxPct!=null?'<div class="sr-sub">Facility tax: '+s.taxPct+'%</div>':'');
-    return '<div class="structreg-row card" draggable="true" data-order-idx="'+i+'"><div style="display:flex;align-items:flex-start;gap:8px">'+
-      '<span class="sr-drag-handle" title="Drag to reorder">⠿</span><div style="flex:1">'+
-      '<div class="sr-name">'+s.name+'</div><div class="sr-sub">'+[s.hull, s.system, s.owner].filter(Boolean).join(' · ')+'</div>'+
-      svcLine+costLine+capWarning+
-      '<div style="margin-top:4px">'+capBadges(s.capabilities||[], s.rigs)+'</div>'+
-      '<div class="sr-actions"><button class="sr-action-btn btn" data-edit-idx="'+i+'">Edit</button><button class="sr-action-btn danger btn" data-delete-idx="'+i+'">Delete</button></div>'+
-      '</div></div></div>';
+    const capWarning = (capitalHull && !hasCapitalService) ? '<div class="sr-sub" style="color:var(--amber,#e0a05a);margin-top:5px">⚠ No Capital Shipyard service</div>' : '';
+    const costLine = (s.costIndex!=null && s.costIndex!=='') ? '<div class="sr-sub">Index: '+s.costIndex+'%'+(s.taxPct!=null?' · tax '+s.taxPct+'%':'')+'</div>' : (s.taxPct!=null?'<div class="sr-sub">Tax: '+s.taxPct+'%</div>':'');
+    const icon = HULL_ICON[s.hull]||'🏛';
+    const rigLines = (s.rigs||[]).map(r=>{
+      const t = typeof r==='string'?r:(r.text||'');
+      return t ? '<div class="sr-sub" style="margin-top:2px;font-size:10px">'+esc(t.replace('Standup ','').replace('M-Set ','').replace('L-Set ','').replace('XL-Set ',''))+'</div>' : '';
+    }).filter(Boolean).join('');
+    return '<div class="structreg-card card" draggable="true" data-order-idx="'+i+'">'+
+      '<span class="sr-drag-handle" title="Drag to reorder">⠿</span>'+
+      '<div class="sr-hull-badge pill">'+icon+' '+esc(s.hull||'')+'</div>'+
+      '<div class="sr-name">'+esc(s.name)+'</div>'+
+      (s.system && s.system!=='parsed from EFT' ? '<div class="sr-sub">'+esc(s.system)+'</div>' : '')+
+      (s.owner ? '<div class="sr-sub" style="opacity:.55;font-size:9.5px">'+esc(s.owner)+'</div>' : '')+
+      costLine+svcLine+capWarning+
+      (rigLines ? '<div style="margin-top:8px;border-top:1px solid var(--line2,rgba(255,255,255,.08));padding-top:7px">'+rigLines+'</div>' : '')+
+      '<div class="sr-caps">'+capBadges(s.capabilities||[], s.rigs)+'</div>'+
+      '<div class="sr-actions">'+
+        '<button class="sr-action-btn btn" data-edit-idx="'+i+'">Edit</button>'+
+        '<button class="sr-action-btn danger btn" data-delete-idx="'+i+'">Delete</button>'+
+      '</div>'+
+    '</div>';
   }).join('');
   document.getElementById('structregTotal').textContent=registeredStructures.length;
   renderPlanStructTabs();
@@ -1071,7 +1094,7 @@ function reorderStructures(fromIdx, toIdx){
 
 function wireStructRegDragAndDrop(list){
   let dragFromIdx = null;
-  list.querySelectorAll('.structreg-row').forEach(row=>{
+  list.querySelectorAll('.structreg-card').forEach(row=>{
     row.addEventListener('dragstart', (e)=>{
       dragFromIdx = parseInt(row.dataset.orderIdx,10);
       row.classList.add('dragging');
