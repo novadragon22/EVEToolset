@@ -253,7 +253,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .ri-sub{font-size:11px;margin-top:5px}
 .research-time{font-size:14px;min-width:80px;text-align:right}
 .research-note{margin-top:10px;padding:14px 18px;font-size:11.5px}
-.structreg-wrap{display:grid;grid-template-columns:1fr 320px;gap:28px}
+.structreg-wrap{display:flex;flex-direction:column;gap:24px}
+.structreg-list-panel{display:flex;flex-direction:column;gap:0}
 .add-mode-tabs{display:flex;gap:8px;margin:16px 0}
 .add-mode-btn{font-size:11px;padding:8px 16px;cursor:pointer}
 .add-mode-panel{display:none}
@@ -264,7 +265,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .manual-grid label{display:flex;flex-direction:column;gap:6px;font-size:10.5px}
 .manual-grid input, .manual-grid select{font-size:12px;padding:9px 12px}
 .parse-btn{font-size:11.5px;padding:11px 22px;cursor:pointer}
-.structreg-row{padding:12px 4px;cursor:default}
+.structreg-row{padding:14px 16px;cursor:default;border-bottom:1px solid var(--border,rgba(255,255,255,.08));border-right:1px solid var(--border,rgba(255,255,255,.08))}
 .structreg-row.dragging{opacity:.4}
 .sr-drag-handle{cursor:grab;font-size:14px;line-height:1;padding-top:2px;user-select:none}
 .sr-drag-handle:active{cursor:grabbing}
@@ -513,19 +514,21 @@ Standup Manufacturing Material Efficiency I</textarea>
       </div>
     </div>
 
-    <div class="side-panel panel">
-      <h3>Registered structures</h3>
-      <div id="structregList"></div>
-      <div class="side-stat" style="margin-top:14px"><span>Total registered</span><b id="structregTotal">0</b></div>
-      <div class="structreg-io">
-        <button class="io-btn btn" id="exportJsonBtn">⭳ Export JSON</button>
-        <label class="io-btn btn" for="importJsonFile">⭱ Import JSON</label>
-        <input type="file" id="importJsonFile" accept="application/json" style="display:none">
+    <div class="structreg-list-panel panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 16px 10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <h3 style="margin:0">Registered structures</h3>
+          <b id="structregTotal" style="font-size:11px;padding:2px 9px;background:var(--panel-bg,rgba(255,255,255,.05));border-radius:3px">0</b>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="io-btn btn" id="exportJsonBtn" style="padding:6px 12px;font-size:10px">⭳ Export JSON</button>
+          <label class="io-btn btn" for="importJsonFile" style="padding:6px 12px;font-size:10px;cursor:pointer">⭱ Import JSON</label>
+          <input type="file" id="importJsonFile" accept="application/json" style="display:none">
+          <button class="io-btn btn" id="refreshAllCostIndexBtn" style="padding:6px 12px;font-size:10px">⭯ Refresh cost indices</button>
+        </div>
       </div>
-      <div class="structreg-io">
-        <button class="io-btn btn" id="refreshAllCostIndexBtn">⭯ Refresh all system cost indices (ESI)</button>
-      </div>
-      <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px;margin-top:8px"></div>
+      <div class="sub" id="refreshAllCostIndexStatus" style="font-size:10.5px;padding:0 16px 8px"></div>
+      <div id="structregList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0;border-top:1px solid var(--border,rgba(255,255,255,.08))"></div>
     </div>
   </div>
   </div>
