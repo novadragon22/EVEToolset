@@ -66,11 +66,14 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .svc{display:flex;align-items:center;gap:7px;font-size:10.5px;padding:3px 0}
 .svc .dot{width:6px;height:6px;flex:none;border-radius:50%}
 .corpband{grid-column:1/-1;padding:9px 16px;margin:4px 0 6px;font-size:10.5px;display:flex;justify-content:space-between;gap:10px}
-/* temp / snooze button — only visible on low-fuel towers */
-.snooze-btn{display:none;margin-top:10px;font-size:9px;padding:4px 10px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;border:1px solid currentColor;background:transparent;transition:color .2s,background .2s,border-color .2s}
-.snooze-btn.visible{display:inline-block}
-.snooze-btn.snoozed{color:var(--green,#9ac878);border-color:var(--green,#9ac878);background:rgba(154,200,120,.1)}
-/* snoozed tower sits at the bottom, slightly dimmed */
+/* refuel button — red on low-fuel towers, green after marking refuelled */
+.refuel-btn{display:none;margin-top:10px;font-size:9px;padding:5px 11px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;border:none;border-radius:3px;font-family:inherit;font-weight:600;transition:background .2s,color .2s,box-shadow .2s;
+  background:rgba(200,60,60,.18);color:var(--c-warn,#e06060);box-shadow:inset 0 0 0 1px rgba(200,60,60,.55)}
+.refuel-btn:hover{background:rgba(200,60,60,.32);box-shadow:inset 0 0 0 1px rgba(200,60,60,.85)}
+.refuel-btn.visible{display:inline-block}
+.refuel-btn.refuelled{background:rgba(80,180,80,.14);color:var(--green,#9ac878);box-shadow:inset 0 0 0 1px rgba(80,180,80,.5)}
+.refuel-btn.refuelled:hover{background:rgba(80,180,80,.28);box-shadow:inset 0 0 0 1px rgba(80,180,80,.85)}
+/* refuelled tower sits at the bottom of its lane, slightly dimmed */
 .tower.snoozed-tower{opacity:.72}
 
 </style>
@@ -402,7 +405,7 @@ function render(){
       
       '<span class="state st-'+(s.state==='shield_vulnerable'||s.state==='armor_vulnerable'||s.state==='hull_vulnerable'?'warn':'ok')+'">'+esc(state||'state unknown')+'</span>'+
       (svcs?'<div class="svcs">'+svcs+'</div>':'')+
-      (tempAlert?'<button class="snooze-btn visible'+(isSnoozed?' snoozed':'')+'" onclick="window._towerSnooze('+s.structure_id+')" title="'+(isSnoozed?'Refuelled — will re-sort on next ESI refresh':'Mark as refuelled — moves to bottom until next ESI refresh')+'">'+(isSnoozed?'✓ Refuelled':'Refuelled')+'</button>':'')+
+      (tempAlert?'<button class="refuel-btn visible'+(isSnoozed?' refuelled':'')+'" onclick="window._towerSnooze('+s.structure_id+')" title="'+(isSnoozed?'Marked as refuelled — will return to correct position after next ESI check':'Mark as refuelled — card moves to end of section until ESI confirms new fuel level')+'">'+(isSnoozed?'✓ Refuelled':'Refuelled')+'</button>':'')+
       '</div></div>';
   };
   /* auto-clear snooze for any structure now at ≥10 days fuel */

@@ -1565,7 +1565,7 @@ function renderResearchBpList(){
     const statusBadge = needsResearch
       ? '<span style="color:var(--amber)">#'+priorityRank+' priority</span>'
       : '<span style="color:var(--green,#8cc86a)">fully researched</span>';
-    return '<div class="structreg-row card" data-bpidx="'+i+'" style="cursor:pointer"><div class="sr-name">'+name+'</div>'+
+    return '<div class="structreg-row" data-bpidx="'+i+'" style="cursor:pointer"><div class="sr-name">'+name+'</div>'+
       '<div class="sr-sub">ME '+bp.material_efficiency+'% · TE '+bp.time_efficiency+'% · runs '+(bp.runs<0?'BPO':bp.runs)+
       (struct ? ' · in <b>'+struct.name+'</b>' : ' · location unregistered')+' · '+statusBadge+'</div></div>';
   }).join('');
