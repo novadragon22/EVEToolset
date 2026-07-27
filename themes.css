@@ -3038,8 +3038,7 @@ html[data-theme="triglavian"] .kcard{
   border:1px solid #3a2418;
   background:linear-gradient(138deg,#1e1308 0%,#130d0d 35%,#1a1008 55%,#0f0a06 82%,#130d0d 100%);
   clip-path:polygon(20px 0,100% 0,100% calc(100% - 20px),calc(100% - 20px) 100%,0 100%,0 20px);
-  transition:clip-path var(--dur-slow),box-shadow var(--dur-slow);
-  isolation:isolate}
+  transition:clip-path var(--dur-slow),box-shadow var(--dur-slow);position:relative}
 html[data-theme="triglavian"] .kcard:hover{
   clip-path:polygon(26px 0,100% 0,100% calc(100% - 26px),calc(100% - 26px) 100%,0 100%,0 26px);
   box-shadow:0 0 28px rgba(200,40,58,.3)}
@@ -3066,8 +3065,7 @@ html[data-theme="triglavian"] .kcard .s{color:#6a9850;font-size:10.5px;position:
 /* THREE-FOLD PANEL — apex clip + singularity pip + uneven inner plate + dual-speed vein lattice */
 html[data-theme="triglavian"] .panel{background:#0d0908;border:1px solid #2e1a12;
   clip-path:polygon(3% 0,47% 0,50% 11px,53% 0,97% 0,100% 17px,100% 100%,53% 100%,50% calc(100% - 11px),47% 100%,0 100%,0 17px);
-  box-shadow:inset 4px 0 16px rgba(200,40,58,.04),inset 0 0 55px rgba(0,0,0,.6);
-  isolation:isolate}
+  box-shadow:inset 4px 0 16px rgba(200,40,58,.04),inset 0 0 55px rgba(0,0,0,.6);position:relative}
 /* apex singularity pip */
 html[data-theme="triglavian"] .panel > .thm-d2{display:block;left:50%;top:-1px;width:11px;height:11px;margin-left:-5.5px;
   clip-path:polygon(50% 0,100% 100%,0 100%);
@@ -3116,7 +3114,7 @@ html[data-theme="triglavian"] .thm-lamp:nth-child(3){
   animation:tg-vein 6.5s ease-in-out infinite;animation-delay:1.9s}
 html[data-theme="triglavian"] .panel-hd h2{font-family:'Michroma',sans-serif;font-size:11px;letter-spacing:.3em;color:#d8b888;text-transform:uppercase;position:relative;z-index:2}
 html[data-theme="triglavian"] .panel-hd h2::before{content:'⟁ ';color:#c8283a;text-shadow:0 0 8px rgba(200,40,58,.8)}
-html[data-theme="triglavian"] .panel-hd,.panel-head{position:relative;z-index:2}
+html[data-theme="triglavian"] .panel-hd,html[data-theme="triglavian"] .panel-head{position:relative;z-index:2}
 html[data-theme="triglavian"] .panel-body{position:relative;z-index:2}
 /* proving-record table */
 html[data-theme="triglavian"] th{font-family:'Michroma',sans-serif;font-size:8.5px;color:#8a6a44;letter-spacing:.3em;text-transform:uppercase;
@@ -3180,7 +3178,7 @@ html[data-theme="triglavian"] :focus-visible{outline:1px solid #ffb060;outline-o
 html[data-theme="triglavian"] .card:not(.bp-card){border:1px solid #3a2418;
   background:linear-gradient(138deg,#1e1308 0%,#130d0d 35%,#1a1008 55%,#0f0a06 82%,#130d0d 100%);
   clip-path:polygon(20px 0,100% 0,100% calc(100% - 20px),calc(100% - 20px) 100%,0 100%,0 20px);
-  transition:clip-path var(--dur-slow),box-shadow var(--dur-slow);isolation:isolate}
+  transition:clip-path var(--dur-slow),box-shadow var(--dur-slow);position:relative}
 html[data-theme="triglavian"] .card:not(.bp-card):hover{
   clip-path:polygon(26px 0,100% 0,100% calc(100% - 26px),calc(100% - 26px) 100%,0 100%,0 26px);
   box-shadow:0 0 28px rgba(200,40,58,.3)}
