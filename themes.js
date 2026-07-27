@@ -51,7 +51,8 @@
     '<span class="cr-caldari">// brutalist corporate-functionalism — slab armor, rivets, stencils, sensor light</span>' +
     '<span class="cr-gallente">techno-progressive organic-futurism — sinuous hulls, copper filaments, amber windows</span>' +
     '<span class="cr-minmatar">// makeshift tribal-industrialism — salvage, welds, rust, white-hot flare //</span>' +
-    '<span class="cr-triglavian">BIO-MECHANICAL ORGANIC-SURREALISM ∴ TRINARY GEOMETRY ∴ BLOOD-RED FLOW</span>';
+    '<span class="cr-triglavian">BIO-MECHANICAL ORGANIC-SURREALISM ∴ TRINARY GEOMETRY ∴ BLOOD-RED FLOW</span>' +
+    '<span class="cr-triglavian">∵ VELES CLADE BIOADAPTATION ∵ MUTATION SEQUENCE ACTIVE ∵ SERPENT BELOW THE WORLD-TREE ∵</span>';
 
   function make(tag, cls, html) {
     var e = document.createElement(tag);
