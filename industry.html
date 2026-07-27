@@ -156,8 +156,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .hero-rivets{display:flex;gap:8px}
 .hero-rivets span{width:8px;height:8px}
 .view{display:none;padding:0 40px 40px;position:relative}
-.view.on{display:block;animation:viewIn .4s cubic-bezier(.2,.9,.3,1)}
-@keyframes viewIn{ from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:translateY(0)} }
+.view.on{display:block;animation:viewIn .3s ease}
+@keyframes viewIn{ from{opacity:0} to{opacity:1} }
 .panel-body{padding:30px}
 .foundry-line{display:flex;flex-direction:column;gap:20px}
 .forge-row{display:flex;align-items:center;gap:26px;padding:24px 30px;position:relative;transition:.25s}
@@ -2791,6 +2791,12 @@ function renderBrowse(q){
   }
   window.addEventListener('storage',function(e){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+    if(e.key==='eve_suite_chars'){
+      try{ chars=JSON.parse(e.newValue||'{}'); }catch(err){ chars={}; }
+      if(typeof populateCharSelect==='function') populateCharSelect();
+      if(typeof populateLibraryCharSelect==='function') populateLibraryCharSelect();
+      if(typeof populateLibraryCorpSelect==='function') populateLibraryCorpSelect();
+    }
   });
 })();
 </script>

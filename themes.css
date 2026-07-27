@@ -2861,6 +2861,14 @@ html[data-theme="minmatar"] .panel{border:3px solid #3a2c1e;transform:rotate(-.3
     repeating-linear-gradient(-45deg,transparent 0 9px,rgba(138,120,100,.05) 9px 10px),#120c07;
   clip-path:polygon(.8% 7px,99.4% 0,100% calc(100% - 11px),1.6% 100%)}
 html[data-theme="minmatar"] .panel:nth-of-type(even){transform:rotate(.3deg)}
+/* panels containing form controls must not rotate — transform creates a stacking context
+   that traps native <select> dropdowns inside the element bounds */
+html[data-theme="minmatar"] .add-mode-panel,
+html[data-theme="minmatar"] .structreg-add-section,
+html[data-theme="minmatar"] .panel-body,
+html[data-theme="minmatar"] .side-panel,
+html[data-theme="minmatar"] .research-side,
+html[data-theme="minmatar"] .scopeBox{transform:none!important}
 html[data-theme="minmatar"] .panel > .thm-d1{display:block;top:-4px;left:9%;right:32%;height:11px;border-radius:7px;z-index:0;
   background:linear-gradient(180deg,#5c4a3a,#2e241a);
   box-shadow:16px 24px 0 -2px #4a3a2a,-8px 46px 0 -3px #4a3a2a,0 2px 3px rgba(0,0,0,.6)}
