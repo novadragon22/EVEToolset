@@ -257,7 +257,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .structreg-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
 .structreg-toolbar .sr-count{font-size:11px;margin-left:auto}
 .structreg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:start}
-.structreg-card{padding:18px 20px;position:relative;cursor:default}
+.structreg-card{padding:18px 20px;position:relative;cursor:default;background:var(--panel,#0a0d10);border:1px solid var(--line,#1a2028);border-radius:var(--radius-card,0)}
 .structreg-card.dragging{opacity:.4}
 .sr-drag-handle{position:absolute;top:10px;right:10px;cursor:grab;font-size:14px;line-height:1;user-select:none;opacity:.4}
 .sr-drag-handle:active{cursor:grabbing}
@@ -1047,7 +1047,7 @@ function renderStructRegList(){
       const t = typeof r==='string'?r:(r.text||'');
       return t ? '<div class="sr-sub" style="margin-top:2px;font-size:10px">'+esc(t.replace('Standup ','').replace('M-Set ','').replace('L-Set ','').replace('XL-Set ',''))+'</div>' : '';
     }).filter(Boolean).join('');
-    return '<div class="structreg-card card" draggable="true" data-order-idx="'+i+'">'+
+    return '<div class="structreg-card" draggable="true" data-order-idx="'+i+'">'+
       '<span class="sr-drag-handle" title="Drag to reorder">⠿</span>'+
       '<div class="sr-hull-badge pill">'+icon+' '+esc(s.hull||'')+'</div>'+
       '<div class="sr-name">'+esc(s.name)+'</div>'+
