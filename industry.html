@@ -614,16 +614,24 @@ async function freshTok(id){ const s=chars[id]; if(!s || !s.refresh) throw new E
   s.access=t.access_token; s.refresh=t.refresh_token||s.refresh; s.expires=Date.now()+(t.expires_in||1200)*1000; saveChars(); return s.access; }
 async function eGet(id,path){ const tk=await freshTok(id); const r=await fetch('https://esi.evetech.net/latest'+path,{headers:{Authorization:'Bearer '+tk}});
   if(!r.ok) throw new Error(path+' '+r.status); return r.json(); }
+function reloadChars(){
+  try{ chars=JSON.parse(localStorage.getItem(SHARED_KEY)||'{}'); }catch(e){ chars={}; }
+  renderPilotStrip();
+  populateCharSelect();
+  populateLibraryCharSelect();
+  populateLibraryCorpSelect();
+}
 function renderPilotStrip(){
   const el=document.getElementById('pilots');
   if(!el) return;
   const ids=Object.keys(chars);
+  const reloadBtn='<button onclick="reloadChars()" style="font-size:10px;opacity:.4;background:none;border:none;cursor:pointer;padding:4px 6px" title="Reload characters from shared storage">↺</button>';
   if(!ids.length){
-    el.innerHTML='<a href="index.html" style="font-size:10px;opacity:.6;text-decoration:none;border:1px solid currentColor;padding:3px 10px;border-radius:2px">⟶ Sign in via Toolset</a>';
+    el.innerHTML='<a href="index.html" style="font-size:10px;opacity:.6;text-decoration:none;border:1px solid currentColor;padding:3px 10px;border-radius:2px">⟶ Sign in via Toolset</a> '+reloadBtn;
     return;
   }
   function esc2(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  el.innerHTML=ids.map(id=>'<span class="ptag btn" style="font-size:10px;padding:4px 10px">'+esc2(chars[id].charName||('Char '+id))+'</span>').join('');
+  el.innerHTML=ids.map(id=>'<span class="ptag btn" style="font-size:10px;padding:4px 10px">'+esc2(chars[id].charName||('Char '+id))+'</span>').join('')+' '+reloadBtn;
 }
 renderPilotStrip();
 const heroData = { browse:['Browse','Search the item &amp; blueprint database'], bp:['Blueprint Library','No blueprints loaded yet'], plan:['Build Planner','Material shopping list for the selected build'], research:['Blueprint Research','Fastest path to fully researched blueprints'], structreg:['Structure Registry','Track the structures you build with'] };
@@ -2803,15 +2811,18 @@ function renderBrowse(q){
   }
   window.addEventListener('storage',function(e){
     if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
-    if(e.key==='eve_suite_chars'){
-      try{ chars=JSON.parse(e.newValue||'{}'); }catch(err){ chars={}; }
-      if(typeof renderPilotStrip==='function') renderPilotStrip();
-      if(typeof populateCharSelect==='function') populateCharSelect();
-      if(typeof populateLibraryCharSelect==='function') populateLibraryCharSelect();
-      if(typeof populateLibraryCorpSelect==='function') populateLibraryCorpSelect();
-    }
   });
 })();
+
+// Refresh chars and all character-dependent dropdowns when index.html updates sign-in
+window.addEventListener('storage', function(e){
+  if(e.key!=='eve_suite_chars') return;
+  try{ chars=JSON.parse(e.newValue||'{}'); }catch(err){ chars={}; }
+  renderPilotStrip();
+  populateCharSelect();
+  populateLibraryCharSelect();
+  populateLibraryCorpSelect();
+});
 </script>
 <input type="file" id="importJsonFile" accept="application/json" style="display:none">
 <input type="file" id="importRavworksFile" accept="application/json" style="display:none">

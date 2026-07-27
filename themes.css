@@ -602,6 +602,7 @@ html[data-app="industry"] .eft-paste{background:#0a0806;border:1px solid var(--l
 html[data-app="industry"] .eft-paste:focus{outline:none;border-color:var(--gold-dim)}
 html[data-app="industry"] .eft-hint{color:var(--muted)}
 html[data-app="industry"] .manual-grid label{font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+html[data-app="industry"] input,html[data-app="industry"] select,html[data-app="industry"] textarea{background:#0a0d10;border:1px solid var(--line2);color:var(--text);font-family:var(--mono);padding:5px 8px}
 html[data-app="industry"] .manual-grid input,html[data-app="industry"] .manual-grid select{background:#0a0806;border:1px solid var(--line2);color:var(--text);font-family:var(--mono)}
 html[data-app="industry"] .manual-grid input:focus,html[data-app="industry"] .manual-grid select:focus{outline:none;border-color:var(--gold-dim)}
 html[data-app="industry"] .parse-btn{font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;color:#1a1006;background:linear-gradient(160deg,var(--gold-bright),var(--gold));border:1px solid var(--gold-bright);box-shadow:0 0 20px rgba(var(--gold-rgb),.3)}
