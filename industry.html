@@ -643,12 +643,8 @@ document.querySelectorAll('.add-mode-btn').forEach(b=>b.onclick=()=>{
 // of these keyword groups (not just the first match), so a structure that has
 // e.g. both a manufacturing rig AND a research lab gets credit for both.
 const RIG_KEYWORDS = {
-  manufacture: ['manufacturing material efficiency', 'manufacturing time efficiency',
-                'manufacturing efficiency',   // catches XL-Set "Ship Manufacturing Efficiency", L-Set efficiency rigs
-                'capital shipyard service', 'basic shipyard', 'advanced shipyard'],
-  research:    ['laboratory', 'blueprint research', 'research material efficiency', 'research time efficiency',
-                'research optimization', 'research accelerator',  // L/XL-Set research rigs
-                'blueprint copy', 'invention optimization', 'invention accelerator', 'copying'],
+  manufacture: ['manufacturing material efficiency', 'manufacturing time efficiency', 'capital shipyard service', 'basic shipyard', 'advanced shipyard'],
+  research:    ['laboratory', 'blueprint research', 'research material efficiency', 'research time efficiency', 'copying'],
   reaction:    ['reactor', 'reaction', 'refinery efficiency', 'reprocessing']
 };
 
@@ -657,19 +653,12 @@ const RIG_KEYWORDS = {
 // nothing for a component build, etc. This covers every category rigs
 // actually apply to, not just ship-hull sizes.
 const CATEGORY_KEYWORDS = {
-  // L-Set rigs use explicit size words; XL-Set "Ship Manufacturing Efficiency" has NO
-  // size qualifier — it intentionally covers all ship sizes, so we match it with a
-  // special keyword that appears in both L and XL ship rig names but NOT in non-ship rigs.
   ship_small:   ['small ship'],
   ship_medium:  ['medium ship'],
   ship_large:   ['large ship'],
   ship_capital: ['capital ship'],
-  // XL-Set "Ship Manufacturing Efficiency" contains "ship" but no size word.
-  // We detect it via the absence of explicit sizes and fall through in structureRigBonus;
-  // to handle it we rely on the 'xl_ship_all' pseudo-category matched below.
-  xl_ship_all:  ['xl-set ship manufacturing'],  // XL-Set unscoped ship rig — matches all ship builds
   component:    ['component'],
-  equipment:    ['equipment', 'consumable'],     // "Equipment and Consumable" XL-Set rig
+  equipment:    ['equipment'],
   ammunition:   ['ammunition', 'charge'],
   drone:        ['drone', 'fighter'],
   subsystem:    ['subsystem'],
@@ -704,7 +693,6 @@ const GROUP_CATEGORY_MAP = {
   'Biochemical Material':'reaction_biochem'
 };
 function blueprintCategory(group){ return GROUP_CATEGORY_MAP[group] || null; }
-const SHIP_CATEGORIES = new Set(['ship_small','ship_medium','ship_large','ship_capital']);
 
 // Rig tier (Basic/"I" vs Advanced/"II") determines the actual bonus size.
 // These are the standard Engineering-Complex / Refinery rig bonuses:
@@ -730,20 +718,7 @@ function rigEffectBonus(line){
   const tier = rigTier(line);
   if(l.includes('material efficiency')) return { effect:'material', bonus: RIG_TIER_BONUS.materialEfficiency[tier] };
   if(l.includes('time efficiency'))     return { effect:'time',     bonus: RIG_TIER_BONUS.timeEfficiency[tier] };
-  // XL-Set "Ship Manufacturing Efficiency" and similar unscoped rigs grant ME (primary bonus)
-  // L-Set / XL-Set research optimisation rigs are time-based
-  if(l.includes('laboratory optimization') || l.includes('me research optimization') || l.includes('me research accelerator') ||
-     l.includes('te research optimization') || l.includes('te research accelerator') ||
-     l.includes('blueprint copy') || l.includes('invention'))
-    return { effect:'time', bonus: RIG_TIER_BONUS.timeEfficiency[tier] };
-  // XL-Set and L-Set manufacturing efficiency rigs (e.g. "Ship Manufacturing Efficiency",
-  // "Equipment and Consumable Manufacturing Efficiency") — treat as material (ME) rigs;
-  // they grant both ME and TE bonuses in-game but ME is the primary differentiator.
-  // Refinery rigs: "Reactor Efficiency" and "Reprocessing Efficiency" are time-based.
-  if(l.includes('reactor efficiency') || l.includes('reprocessing efficiency'))
-    return { effect:'time', bonus: RIG_TIER_BONUS.timeEfficiency[tier] };
-  if(l.includes('manufacturing efficiency') || l.includes('metallurgic') || l.includes('laboratory'))
-    return { effect:'material', bonus: RIG_TIER_BONUS.materialEfficiency[tier] };
+  if(l.includes('laboratory'))          return { effect:'material', bonus: RIG_TIER_BONUS.materialEfficiency[tier] }; // Metallurgic-style labs primarily cut ME research time
   return { effect:null, bonus:0 };
 }
 
@@ -782,10 +757,7 @@ function structureRigBonus(structure, effect, group, capability){
   let best = 0;
   (structure.rigs||[]).forEach(r=>{
     if(!r.capabilities.includes(capability) || r.effect!==effect) return;
-    // xl_ship_all is a wildcard that matches any ship category
-    const hasXlShipAll = r.categories.includes('xl_ship_all');
-    const xlShipMatch = hasXlShipAll && targetCat && SHIP_CATEGORIES.has(targetCat);
-    const categoryOk = !r.categories.length || xlShipMatch || (targetCat && r.categories.includes(targetCat));
+    const categoryOk = !r.categories.length || (targetCat && r.categories.includes(targetCat));
     if(categoryOk) best = Math.max(best, r.bonus);
   });
   return best;
@@ -800,7 +772,6 @@ function structureAppliesTo(structure, capability, group){
     if(!r.capabilities.includes(capability)) return false;
     if(!r.categories.length) return true; // ungated rig — assume it applies
     if(!targetCat) return false; // rig is category-scoped but we don't know the blueprint's category
-    if(r.categories.includes('xl_ship_all') && SHIP_CATEGORIES.has(targetCat)) return true;
     return r.categories.includes(targetCat);
   });
 }
@@ -828,109 +799,34 @@ const HULL_TYPE = { Raitaru:'ec', Azbel:'ec', Sotiyo:'ec', Athanor:'refinery', T
 const EC_SHIP_COVERAGE = { M:['Small Ship','Medium Ship'], L:['Small Ship','Medium Ship','Large Ship'], XL:['Small Ship','Medium Ship','Large Ship','Capital Ship'] };
 const EC_OTHER_CATEGORIES = ['Equipment','Ammunition','Drone/Fighter','Component','Subsystem'];
 
-// Real in-game Standup rig names per hull size.
-// M-Set (Raitaru): scoped to Small/Medium ships + Equipment/Ammo/Drones/Components
-// L-Set (Azbel):   scoped to Small/Medium/Large ships + broader categories  
-// XL-Set (Sotiyo): covers ALL ship sizes in a single unscoped rig name
-const EC_RIG_CATALOG = {
-  M: [
-    // Ship manufacturing — M-Set has separate rigs per ship size and effect
-    {value:'Standup M-Set Basic Small Ship Manufacturing Material Efficiency I',   label:'Standup M-Set Basic Small Ship Manufacturing Material Efficiency I'},
-    {value:'Standup M-Set Advanced Small Ship Manufacturing Material Efficiency II', label:'Standup M-Set Advanced Small Ship Manufacturing Material Efficiency II'},
-    {value:'Standup M-Set Basic Small Ship Manufacturing Time Efficiency I',       label:'Standup M-Set Basic Small Ship Manufacturing Time Efficiency I'},
-    {value:'Standup M-Set Advanced Small Ship Manufacturing Time Efficiency II',   label:'Standup M-Set Advanced Small Ship Manufacturing Time Efficiency II'},
-    {value:'Standup M-Set Basic Medium Ship Manufacturing Material Efficiency I',  label:'Standup M-Set Basic Medium Ship Manufacturing Material Efficiency I'},
-    {value:'Standup M-Set Advanced Medium Ship Manufacturing Material Efficiency II', label:'Standup M-Set Advanced Medium Ship Manufacturing Material Efficiency II'},
-    {value:'Standup M-Set Basic Medium Ship Manufacturing Time Efficiency I',      label:'Standup M-Set Basic Medium Ship Manufacturing Time Efficiency I'},
-    {value:'Standup M-Set Advanced Medium Ship Manufacturing Time Efficiency II',  label:'Standup M-Set Advanced Medium Ship Manufacturing Time Efficiency II'},
-    // Equipment / Ammunition / Drone / Component
-    {value:'Standup M-Set Equipment Manufacturing Material Efficiency I',          label:'Standup M-Set Equipment Manufacturing Material Efficiency I'},
-    {value:'Standup M-Set Equipment Manufacturing Material Efficiency II',         label:'Standup M-Set Equipment Manufacturing Material Efficiency II'},
-    {value:'Standup M-Set Equipment Manufacturing Time Efficiency I',              label:'Standup M-Set Equipment Manufacturing Time Efficiency I'},
-    {value:'Standup M-Set Equipment Manufacturing Time Efficiency II',             label:'Standup M-Set Equipment Manufacturing Time Efficiency II'},
-    {value:'Standup M-Set Ammunition Manufacturing Material Efficiency I',         label:'Standup M-Set Ammunition Manufacturing Material Efficiency I'},
-    {value:'Standup M-Set Ammunition Manufacturing Material Efficiency II',        label:'Standup M-Set Ammunition Manufacturing Material Efficiency II'},
-    {value:'Standup M-Set Ammunition Manufacturing Time Efficiency I',             label:'Standup M-Set Ammunition Manufacturing Time Efficiency I'},
-    {value:'Standup M-Set Ammunition Manufacturing Time Efficiency II',            label:'Standup M-Set Ammunition Manufacturing Time Efficiency II'},
-    {value:'Standup M-Set Drone and Fighter Manufacturing Material Efficiency I',  label:'Standup M-Set Drone and Fighter Manufacturing Material Efficiency I'},
-    {value:'Standup M-Set Drone and Fighter Manufacturing Material Efficiency II', label:'Standup M-Set Drone and Fighter Manufacturing Material Efficiency II'},
-    {value:'Standup M-Set Drone and Fighter Manufacturing Time Efficiency I',      label:'Standup M-Set Drone and Fighter Manufacturing Time Efficiency I'},
-    {value:'Standup M-Set Drone and Fighter Manufacturing Time Efficiency II',     label:'Standup M-Set Drone and Fighter Manufacturing Time Efficiency II'},
-    {value:'Standup M-Set Advanced Component Manufacturing Material Efficiency I', label:'Standup M-Set Advanced Component Manufacturing Material Efficiency I'},
-    {value:'Standup M-Set Advanced Component Manufacturing Material Efficiency II',label:'Standup M-Set Advanced Component Manufacturing Material Efficiency II'},
-    {value:'Standup M-Set Advanced Component Manufacturing Time Efficiency I',     label:'Standup M-Set Advanced Component Manufacturing Time Efficiency I'},
-    {value:'Standup M-Set Advanced Component Manufacturing Time Efficiency II',    label:'Standup M-Set Advanced Component Manufacturing Time Efficiency II'},
-    {value:'Standup M-Set Basic Capital Component Manufacturing Material Efficiency I',  label:'Standup M-Set Basic Capital Component Manufacturing Material Efficiency I'},
-    {value:'Standup M-Set Basic Capital Component Manufacturing Material Efficiency II', label:'Standup M-Set Basic Capital Component Manufacturing Material Efficiency II'},
-    {value:'Standup M-Set Basic Capital Component Manufacturing Time Efficiency I',      label:'Standup M-Set Basic Capital Component Manufacturing Time Efficiency I'},
-    {value:'Standup M-Set Basic Capital Component Manufacturing Time Efficiency II',     label:'Standup M-Set Basic Capital Component Manufacturing Time Efficiency II'},
-    // Research
-    {value:'Standup M-Set ME Research Accelerator I',    label:'Standup M-Set ME Research Accelerator I (research TE)'},
-    {value:'Standup M-Set ME Research Accelerator II',   label:'Standup M-Set ME Research Accelerator II (research TE)'},
-    {value:'Standup M-Set TE Research Accelerator I',    label:'Standup M-Set TE Research Accelerator I (research TE)'},
-    {value:'Standup M-Set TE Research Accelerator II',   label:'Standup M-Set TE Research Accelerator II (research TE)'},
-    {value:'Standup M-Set Blueprint Copy Accelerator I', label:'Standup M-Set Blueprint Copy Accelerator I (copy TE)'},
-    {value:'Standup M-Set Blueprint Copy Accelerator II',label:'Standup M-Set Blueprint Copy Accelerator II (copy TE)'},
-    {value:'Standup M-Set Invention Accelerator I',      label:'Standup M-Set Invention Accelerator I (invention TE)'},
-    {value:'Standup M-Set Invention Accelerator II',     label:'Standup M-Set Invention Accelerator II (invention TE)'},
-  ],
-  L: [
-    // Ship manufacturing — L-Set covers Small/Medium/Large ships
-    {value:'Standup L-Set Basic Small Ship Manufacturing Efficiency I',    label:'Standup L-Set Basic Small Ship Manufacturing Efficiency I'},
-    {value:'Standup L-Set Basic Small Ship Manufacturing Efficiency II',   label:'Standup L-Set Basic Small Ship Manufacturing Efficiency II'},
-    {value:'Standup L-Set Advanced Small Ship Manufacturing Efficiency I', label:'Standup L-Set Advanced Small Ship Manufacturing Efficiency I'},
-    {value:'Standup L-Set Advanced Small Ship Manufacturing Efficiency II',label:'Standup L-Set Advanced Small Ship Manufacturing Efficiency II'},
-    {value:'Standup L-Set Basic Medium Ship Manufacturing Efficiency I',    label:'Standup L-Set Basic Medium Ship Manufacturing Efficiency I'},
-    {value:'Standup L-Set Basic Medium Ship Manufacturing Efficiency II',   label:'Standup L-Set Basic Medium Ship Manufacturing Efficiency II'},
-    {value:'Standup L-Set Advanced Medium Ship Manufacturing Efficiency I', label:'Standup L-Set Advanced Medium Ship Manufacturing Efficiency I'},
-    {value:'Standup L-Set Advanced Medium Ship Manufacturing Efficiency II',label:'Standup L-Set Advanced Medium Ship Manufacturing Efficiency II'},
-    {value:'Standup L-Set Basic Large Ship Manufacturing Efficiency I',     label:'Standup L-Set Basic Large Ship Manufacturing Efficiency I'},
-    {value:'Standup L-Set Basic Large Ship Manufacturing Efficiency II',    label:'Standup L-Set Basic Large Ship Manufacturing Efficiency II'},
-    {value:'Standup L-Set Advanced Large Ship Manufacturing Efficiency I',  label:'Standup L-Set Advanced Large Ship Manufacturing Efficiency I'},
-    {value:'Standup L-Set Advanced Large Ship Manufacturing Efficiency II', label:'Standup L-Set Advanced Large Ship Manufacturing Efficiency II'},
-    {value:'Standup L-Set Capital Ship Manufacturing Efficiency I',         label:'Standup L-Set Capital Ship Manufacturing Efficiency I'},
-    {value:'Standup L-Set Capital Ship Manufacturing Efficiency II',        label:'Standup L-Set Capital Ship Manufacturing Efficiency II'},
-    {value:'Standup L-Set Ammunition Manufacturing Efficiency I',           label:'Standup L-Set Ammunition Manufacturing Efficiency I'},
-    {value:'Standup L-Set Ammunition Manufacturing Efficiency II',          label:'Standup L-Set Ammunition Manufacturing Efficiency II'},
-    {value:'Standup L-Set Drone and Fighter Manufacturing Efficiency I',    label:'Standup L-Set Drone and Fighter Manufacturing Efficiency I'},
-    {value:'Standup L-Set Drone and Fighter Manufacturing Efficiency II',   label:'Standup L-Set Drone and Fighter Manufacturing Efficiency II'},
-    {value:'Standup L-Set Advanced Component Manufacturing Efficiency I',   label:'Standup L-Set Advanced Component Manufacturing Efficiency I'},
-    {value:'Standup L-Set Advanced Component Manufacturing Efficiency II',  label:'Standup L-Set Advanced Component Manufacturing Efficiency II'},
-    {value:'Standup L-Set Basic Capital Component Manufacturing Efficiency I',  label:'Standup L-Set Basic Capital Component Manufacturing Efficiency I'},
-    {value:'Standup L-Set Basic Capital Component Manufacturing Efficiency II', label:'Standup L-Set Basic Capital Component Manufacturing Efficiency II'},
-    {value:'Standup L-Set Structure Manufacturing Efficiency I',            label:'Standup L-Set Structure Manufacturing Efficiency I'},
-    {value:'Standup L-Set Structure Manufacturing Efficiency II',           label:'Standup L-Set Structure Manufacturing Efficiency II'},
-    // Research
-    {value:'Standup L-Set ME Research Optimization I',    label:'Standup L-Set ME Research Optimization I (research ME)'},
-    {value:'Standup L-Set ME Research Optimization II',   label:'Standup L-Set ME Research Optimization II (research ME)'},
-    {value:'Standup L-Set TE Research Optimization I',    label:'Standup L-Set TE Research Optimization I (research TE)'},
-    {value:'Standup L-Set TE Research Optimization II',   label:'Standup L-Set TE Research Optimization II (research TE)'},
-    {value:'Standup L-Set Blueprint Copy Optimization I', label:'Standup L-Set Blueprint Copy Optimization I (copy TE)'},
-    {value:'Standup L-Set Blueprint Copy Optimization II',label:'Standup L-Set Blueprint Copy Optimization II (copy TE)'},
-    {value:'Standup L-Set Invention Optimization I',      label:'Standup L-Set Invention Optimization I (invention TE)'},
-    {value:'Standup L-Set Invention Optimization II',     label:'Standup L-Set Invention Optimization II (invention TE)'},
-    {value:'Standup L-Set Laboratory Optimization I',     label:'Standup L-Set Laboratory Optimization I (all research TE)'},
-    {value:'Standup L-Set Laboratory Optimization II',    label:'Standup L-Set Laboratory Optimization II (all research TE)'},
-  ],
-  XL: [
-    // XL-Set rigs are unscoped — each covers ALL ship sizes simultaneously
-    {value:'Standup XL-Set Ship Manufacturing Efficiency I',                         label:'Standup XL-Set Ship Manufacturing Efficiency I (all ships, ME+TE)'},
-    {value:'Standup XL-Set Ship Manufacturing Efficiency II',                        label:'Standup XL-Set Ship Manufacturing Efficiency II (all ships, ME+TE)'},
-    {value:'Standup XL-Set Equipment and Consumable Manufacturing Efficiency I',     label:'Standup XL-Set Equipment and Consumable Manufacturing Efficiency I'},
-    {value:'Standup XL-Set Equipment and Consumable Manufacturing Efficiency II',    label:'Standup XL-Set Equipment and Consumable Manufacturing Efficiency II'},
-    {value:'Standup XL-Set Structure and Component Manufacturing Efficiency I',      label:'Standup XL-Set Structure and Component Manufacturing Efficiency I'},
-    {value:'Standup XL-Set Structure and Component Manufacturing Efficiency II',     label:'Standup XL-Set Structure and Component Manufacturing Efficiency II'},
-    {value:'Standup XL-Set Laboratory Optimization I',                               label:'Standup XL-Set Laboratory Optimization I (all research TE)'},
-    {value:'Standup XL-Set Laboratory Optimization II',                              label:'Standup XL-Set Laboratory Optimization II (all research TE)'},
-  ]
-};
-
 function buildRigOptionsForHull(hull){
   const size = HULL_SIZE[hull] || 'M';
   const type = HULL_TYPE[hull] || 'ec';
   const opts = [{value:'', label:'— none —'}];
   if(type==='ec'){
-    (EC_RIG_CATALOG[size]||EC_RIG_CATALOG.M).forEach(o=>opts.push(o));
+    const setLabel = size+'-Set';
+    EC_SHIP_COVERAGE[size].forEach(cat=>{
+      ['Material Efficiency','Time Efficiency'].forEach(effect=>{
+        ['I','II'].forEach(tier=>{
+          const tierWord = tier==='I' ? 'Basic' : 'Advanced';
+          const text = 'Standup '+setLabel+' '+tierWord+' '+cat+' Manufacturing '+effect+' '+tier;
+          opts.push({value:text, label:text});
+        });
+      });
+    });
+    EC_OTHER_CATEGORIES.forEach(cat=>{
+      ['Material Efficiency','Time Efficiency'].forEach(effect=>{
+        ['I','II'].forEach(tier=>{
+          const tierWord = tier==='I' ? 'Basic' : 'Advanced';
+          const text = 'Standup '+setLabel+' '+tierWord+' '+cat+' Manufacturing '+effect+' '+tier;
+          opts.push({value:text, label:text});
+        });
+      });
+    });
+    ['I','II'].forEach(tier=>{
+      const text = 'Standup Metallurgic Laboratory '+tier;
+      opts.push({value:text, label:text+' (research ME)'});
+    });
   } else {
     ['I','II'].forEach(tier=>{
       opts.push({value:'Standup '+size+'-Set Reactor Efficiency '+tier, label:'Standup '+size+'-Set Reactor Efficiency '+tier+' (reactions)'});
