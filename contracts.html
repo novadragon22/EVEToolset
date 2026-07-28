@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html data-app="contracts">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Contract Docket</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; all colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.page{max-width:1420px;margin:0 auto;padding:26px 34px 70px;position:relative;z-index:1}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:22px;flex-wrap:wrap;padding-bottom:18px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.backlink{font-size:10px;padding:7px 12px;margin-top:6px;display:none;align-items:center;white-space:nowrap}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:27px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px;max-width:460px;justify-content:flex-end}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+/* two-column docket: filing spine on the left, ledger on the right */
+.docket{display:grid;grid-template-columns:198px 1fr;gap:20px;align-items:start}
+.spine{position:sticky;top:14px;display:flex;flex-direction:column;gap:16px;padding:14px 12px 18px}
+.spine .sp-title{font-size:9.5px;margin-bottom:8px}
+.spine .sp-grp{display:flex;flex-direction:column;gap:5px}
+.filt{font-size:11px;padding:6px 10px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.filt .ct{font-size:10px}
+.spine .refresh{margin-top:4px;font-size:10.5px;padding:8px 10px;cursor:pointer}
+.spine .lnote{font-size:9.5px;line-height:1.5}
+.mainc{min-width:0}
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px}
+.kcard{padding:13px 15px 11px;position:relative}
+.kcard .l{font-size:9.5px}
+.kcard .n{font-size:24px;margin-top:6px}
+.kcard .s{font-size:10.5px;margin-top:4px}
+.panel{position:relative;margin-bottom:16px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.panel-hd h2{font-size:12px;margin:0}
+.panel-hd .hint{font-size:11px}
+.panel-bd{padding:0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:9.5px;text-align:left;padding:9px 12px;white-space:nowrap}
+td{padding:9px 12px;vertical-align:top}
+td.num,th.num{text-align:right;white-space:nowrap}
+.ctitle{max-width:250px}
+.ctitle .t{display:block}
+.ctitle .who{display:block;font-size:10.5px;margin-top:2px}
+.route{font-size:11px;max-width:260px}
+.route .arr{margin:0 5px}
+.route .vol{display:block;font-size:10px;margin-top:2px}
+.stamp{display:inline-block;font-size:9.5px;padding:3px 9px;transform:rotate(-2.5deg);white-space:nowrap}
+.expiry{font-size:10.5px;display:block;margin-top:2px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 16px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-width:900px){.docket{grid-template-columns:1fr}.spine{position:static;flex-direction:row;flex-wrap:wrap}}
+</style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
+</head>
+<body>
+<div class="page">
+
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Registry of Agreements · All Pilots</div>
+      <h1>Contract<span class="diamond"></span>Docket</h1>
+      <div class="subline">Every personal contract across the roster — couriers in transit, exchanges awaiting a buyer, collateral at risk and rewards still on the table.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+
+<div class="docket">
+  <aside class="spine panel">
+    <div>
+      <div class="sp-title">Status</div>
+      <div class="sp-grp" id="statusFilts"></div>
+    </div>
+    <div>
+      <div class="sp-title">Type</div>
+      <div class="sp-grp" id="typeFilts"></div>
+    </div>
+    <button class="refresh" id="loadBtn">Pull the docket</button>
+    <div class="lnote" id="loadNote">Contracts are fetched fresh from ESI for every included pilot.</div>
+  </aside>
+  <div class="mainc">
+    <div class="kv-grid" id="kv"></div>
+    <div class="panel">
+      <div class="panel-hd"><h2>Ledger of contracts</h2><span class="hint" id="countHint"></span></div>
+      <div class="panel-bd" id="out"><div class="empty">Press <b>Pull the docket</b> to fetch contracts from ESI.<br>Sign-in lives in the Toolset menu — this page only reads what's already authorised.</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="toast"></div>
+<script>
+const MY_SECTION='contracts';
+
+'use strict';
+/* ================================================================== */
+/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
+/* Sign-in happens exclusively in index.html. The SSO client id is    */
+/* NOT embedded here: index.html publishes it to localStorage         */
+/* (eve_suite_client_id) and this tool reads it for token refreshes.  */
+/* ================================================================== */
+function suiteClientId(){try{return localStorage.getItem('eve_suite_client_id')||'';}catch(e){return '';}}
+const SHARED_KEY='eve_suite_chars';
+const SECTION_KEY='eve_suite_char_sections';
+const DASHBOARD_KEY='eve_suite_dashboard';
+const ESI='https://esi.evetech.net/latest';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const now=()=>Date.now();
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
+let chars=loadChars();
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
+function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
+function visibleIds(){return Object.keys(chars).filter(sectionOn);}
+function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
+function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
+function fmtISK(n){if(n==null||isNaN(n))return '—';const a=Math.abs(n),s=n<0?'−':'';
+  if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+a.toFixed(a>0&&a<10?2:0);}
+function fmtInt(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'expired';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
+  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
+async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
+async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
+  const cid=suiteClientId();
+  if(!cid)throw new Error('sign-in config not shared yet — open the Toolset menu (index.html) once');
+  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:cid}).toString());
+  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[id]=ns;saveChars();return ns;}
+async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
+  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
+async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
+  if(o.body!==undefined)h['Content-Type']='application/json';
+  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
+  return {json:await r.json(),res:r};}
+async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
+async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
+async function esiGetPaged(path,token,cap){const sep=path.includes('?')?'&':'?';
+  const first=await esiFetch(path+sep+'page=1',{token});let out=first.json;
+  const pages=Math.min(parseInt(first.res.headers.get('X-Pages')||'1',10),cap||10);
+  for(let p=2;p<=pages;p++){try{out=out.concat((await esiFetch(path+sep+'page='+p,{token})).json);}catch(e){}}
+  return out;}
+/* ---- persistent id→name cache (shared with the rest of the suite) ---- */
+const NAME_CACHE_KEY='eve_suite_namecache_v1';
+let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
+function saveNameCache(){try{const ks=Object.keys(nameCache);
+  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
+  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
+async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
+    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
+  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
+      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
+    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
+async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
+  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
+  if(need.length)saveNameCache();
+  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
+function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
+async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
+  try{const s=await esiGet('/universe/structures/'+id+'/',token);
+    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
+  catch(e){return 'Structure '+id;}}
+async function locationName(id,token){if(id==null)return '—';
+  if(id>=1e12)return structureName(id,token);
+  await resolveNames([id]);return nameOf(id,'Location '+id);}
+/* ---- pilot toggles: TEXT tags only — portraits/icons live in index.html ---- */
+function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
+  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
+  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
+    const t='click to '+(on?'exclude from':'include in')+' this tool';
+    return '<button class="ptag'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'">'+esc(c.charName||('Char '+id))+'</button>';}).join('');
+  el.querySelectorAll('.ptag').forEach(b=>{b.onclick=()=>{const id=b.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
+window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
+function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
+  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
+setInterval(tickClock,15000);tickClock();
+try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
+renderPilots();
+function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
+  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
+  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a pilot name above to include one.</div>';return true;}
+  return false;}
+
+/* ================= Contract Docket ================= */
+const STATUS_GROUPS=[
+  {key:'all', label:'All'},
+  {key:'outstanding', label:'Outstanding', match:s=>s==='outstanding'},
+  {key:'in_progress', label:'In progress', match:s=>s==='in_progress'},
+  {key:'finished', label:'Finished', match:s=>/^finished/.test(s)},
+  {key:'failed', label:'Failed / rejected', match:s=>['failed','rejected','cancelled','deleted','reversed'].includes(s)},
+];
+const TYPE_GROUPS=[
+  {key:'all', label:'All types'},
+  {key:'courier', label:'Courier'},
+  {key:'item_exchange', label:'Item exchange'},
+  {key:'auction', label:'Auction'},
+];
+let filtStatus='all', filtType='all';
+let rows=[];           // merged contracts, tagged with charId
+let charErrs={};       // charId -> error string
+function stampClass(s){
+  if(s==='outstanding')return 'st-out';
+  if(s==='in_progress')return 'st-prog';
+  if(/^finished/.test(s))return 'st-done';
+  return 'st-bad';}
+function statusLabel(s){return (s||'').replace(/_/g,' ');}
+
+function renderFilters(){
+  const counts=k=>{const g=STATUS_GROUPS.find(x=>x.key===k);
+    return k==='all'?rows.length:rows.filter(r=>g.match(r.status)).length;};
+  $('statusFilts').innerHTML=STATUS_GROUPS.map(g=>
+    '<button class="filt'+(filtStatus===g.key?' on':'')+'" data-k="'+g.key+'"><span>'+g.label+'</span><span class="ct">'+counts(g.key)+'</span></button>').join('');
+  $('statusFilts').querySelectorAll('.filt').forEach(b=>{b.onclick=()=>{filtStatus=b.dataset.k;renderFilters();renderTable();};});
+  const tcount=k=>k==='all'?rows.length:rows.filter(r=>r.type===k).length;
+  $('typeFilts').innerHTML=TYPE_GROUPS.map(g=>
+    '<button class="filt'+(filtType===g.key?' on':'')+'" data-k="'+g.key+'"><span>'+g.label+'</span><span class="ct">'+tcount(g.key)+'</span></button>').join('');
+  $('typeFilts').querySelectorAll('.filt').forEach(b=>{b.onclick=()=>{filtType=b.dataset.k;renderFilters();renderTable();};});
+}
+
+function renderKv(){
+  const out=rows.filter(r=>r.status==='outstanding');
+  const prog=rows.filter(r=>r.status==='in_progress');
+  const collAtRisk=prog.concat(out).filter(r=>r.type==='courier').reduce((a,r)=>a+(r.collateral||0),0);
+  const rewardsPending=out.concat(prog).reduce((a,r)=>a+(r.reward||0),0);
+  const cutoff=now()-30*86400000;
+  const done30=rows.filter(r=>/^finished/.test(r.status)&&r.date_completed&&Date.parse(r.date_completed)>cutoff);
+  $('kv').innerHTML=
+    '<div class="kcard"><div class="l">Outstanding</div><div class="n">'+out.length+'</div><div class="s">awaiting a taker</div></div>'+
+    '<div class="kcard"><div class="l">Couriers in transit</div><div class="n">'+prog.filter(r=>r.type==='courier').length+'</div><div class="s">accepted, not delivered</div></div>'+
+    '<div class="kcard"><div class="l">Collateral in play</div><div class="n">'+fmtISK(collAtRisk)+'</div><div class="s">on open + running couriers</div></div>'+
+    '<div class="kcard"><div class="l">Rewards on the table</div><div class="n">'+fmtISK(rewardsPending)+'</div><div class="s">open + in-progress</div></div>'+
+    '<div class="kcard"><div class="l">Finished · 30d</div><div class="n">'+done30.length+'</div><div class="s">completed this month</div></div>';
+}
+
+function renderTable(){
+  const errHtml=Object.keys(charErrs).map(id=>'<div class="charerr">⚠ '+esc(chars[id]?chars[id].charName:('Char '+id))+': '+esc(charErrs[id])+'</div>').join('');
+  const g=STATUS_GROUPS.find(x=>x.key===filtStatus);
+  let list=rows.filter(r=>(filtStatus==='all'||g.match(r.status))&&(filtType==='all'||r.type===filtType));
+  list=list.slice().sort((a,b)=>Date.parse(b.date_issued)-Date.parse(a.date_issued));
+  $('countHint').textContent=list.length+' of '+rows.length+' contracts';
+  if(!list.length){$('out').innerHTML=errHtml+'<div class="empty">No contracts match the current filing.</div>';return;}
+  $('out').innerHTML=errHtml+'<table><thead><tr>'+
+    '<th>Issued</th><th>Type</th><th>Contract</th><th>Route / scope</th>'+
+    '<th class="num">Price / reward</th><th class="num">Collateral</th><th>Status</th></tr></thead><tbody>'+
+    list.map(r=>{
+      const issued=new Date(r.date_issued);
+      const iso=issued.toISOString().slice(0,10);
+      const who=esc(nameOf(r.issuer_id,'…'))+(r.acceptor_id?' → '+esc(nameOf(r.acceptor_id,'…')):'');
+      const route=r.type==='courier'
+        ? '<span>'+esc(r._startName||'…')+'</span><span class="arr">⇒</span><span>'+esc(r._endName||'…')+'</span>'+
+          '<span class="vol">'+fmtInt(Math.round(r.volume||0))+' m³ · '+(r.days_to_complete||0)+'d to deliver</span>'
+        : '<span>'+esc(r._startName||'—')+'</span>'+(r.availability&&r.availability!=='public'?'<span class="vol">'+esc(r.availability)+'</span>':'');
+      const priceCol=r.type==='courier'?fmtISK(r.reward):fmtISK(r.price||r.reward||0);
+      const exp=r.status==='outstanding'&&r.date_expired?'<span class="expiry">expires in '+fmtDur(Date.parse(r.date_expired)-now())+'</span>':'';
+      return '<tr>'+
+        '<td>'+iso+'<span class="expiry">'+esc(r._charName)+'</span></td>'+
+        '<td>'+esc((r.type||'').replace(/_/g,' '))+'</td>'+
+        '<td class="ctitle"><span class="t">'+esc(r.title||'(no title)')+'</span><span class="who">'+who+'</span></td>'+
+        '<td class="route">'+route+'</td>'+
+        '<td class="num">'+priceCol+'</td>'+
+        '<td class="num">'+(r.type==='courier'?fmtISK(r.collateral):'—')+'</td>'+
+        '<td><span class="stamp '+stampClass(r.status)+'">'+esc(statusLabel(r.status))+'</span>'+exp+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+async function loadAll(){
+  if(noPilotsGuard('out'))return;
+  const btn=$('loadBtn');btn.disabled=true;
+  $('out').innerHTML='<div class="empty"><span class="spin"></span>Pulling contracts from ESI…</div>';
+  rows=[];charErrs={};
+  for(const id of visibleIds()){
+    try{
+      const s=await getTok(id);
+      if(!s)throw new Error('token expired — re-open the Toolset menu');
+      const list=await esiGetPaged('/characters/'+id+'/contracts/',s.access,20);
+      list.forEach(c=>{rows.push({...c,_charId:id,_charName:s.charName||('Char '+id)});});
+    }catch(e){
+      charErrs[id]=e.status===403
+        ? 'this token lacks the contracts scope — remove & re-add the character in the Toolset menu'
+        : e.message;
+    }
+  }
+  /* resolve people + locations */
+  try{await resolveNames(rows.flatMap(r=>[r.issuer_id,r.acceptor_id]));}catch(e){}
+  const locJobs=[];
+  rows.forEach(r=>{
+    const tok=(chars[r._charId]||{}).access;
+    if(r.start_location_id)locJobs.push(locationName(r.start_location_id,tok).then(n=>{r._startName=n;}));
+    if(r.type==='courier'&&r.end_location_id)locJobs.push(locationName(r.end_location_id,tok).then(n=>{r._endName=n;}));
+  });
+  try{await Promise.all(locJobs);}catch(e){}
+  renderKv();renderFilters();renderTable();
+  const out=rows.filter(r=>r.status==='outstanding').length;
+  const prog=rows.filter(r=>r.status==='in_progress').length;
+  reportDashboard(out+' outstanding · '+prog+' running', prog||out?'ok':'muted');
+  $('loadNote').textContent='Docket pulled '+new Date().toUTCString().slice(17,25)+' EVE · '+rows.length+' contracts';
+  btn.disabled=false;
+  if(Object.keys(charErrs).length)toast('Some pilots could not be read — see notes above the ledger',true);
+}
+$('loadBtn').onclick=loadAll;
+window.onRosterChange=()=>{ if(rows.length)loadAll(); };
+renderFilters();
+</script>
+<script>
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
+</script>
+</body>
+</html>

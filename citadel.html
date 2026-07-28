@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html data-app="citadel">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Citadel Watch</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Orbitron:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.yard{max-width:1460px;margin:0 auto;padding:26px 30px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctl .hint{font-size:10.5px}
+/* the skyline: tall narrow tower cards with a vertical fuel tube */
+.skyline{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;align-items:start}
+/* moon-watch style type lanes: one lane per structure type, hungriest first */
+.typelanes{display:flex;flex-direction:column;gap:16px}
+.tlane{position:relative}
+.tlane-hd{display:flex;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.tlane-hd h2{font-size:11.5px;margin:0}
+.tlane-hd .cnt{font-size:10px;padding:2px 9px}
+.tlane-hd .desc{font-size:10px}
+.tlane .towers{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;align-items:start;padding:4px 14px 14px}
+.corpstrip{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.thead{display:flex;gap:10px;align-items:flex-start}
+.thead-t{min-width:0}
+.timg{display:block;width:46px;height:46px;border-radius:7px;object-fit:cover;flex:none;margin-top:1px}
+.tower{position:relative;padding:0 0 14px;display:grid;grid-template-columns:34px 1fr;gap:0}
+.tube{position:relative;margin:14px 0 0 12px;width:12px;align-self:stretch;min-height:190px}
+.tube .fill{position:absolute;left:0;right:0;bottom:0}
+.tube .cap{position:absolute;top:-8px;left:-3px;right:-3px;height:5px}
+.tbody{padding:13px 14px 0 12px;min-width:0}
+.tbody .tn{font-size:12.5px;line-height:1.4;word-break:break-word}
+.tbody .tt{font-size:9.5px;margin-top:4px}
+.tbody .sys{font-size:10px;margin-top:2px}
+.fuelnum{margin-top:10px}
+.fuelnum .fv{font-size:17px}
+.fuelnum .fl{font-size:8.5px;margin-top:3px}
+.state{display:inline-block;font-size:8.5px;padding:3px 8px;margin-top:9px}
+.svcs{margin-top:11px}
+.svc{display:flex;align-items:center;gap:7px;font-size:10.5px;padding:3px 0}
+.svc .dot{width:6px;height:6px;flex:none;border-radius:50%}
+.corpband{grid-column:1/-1;padding:9px 16px;margin:4px 0 6px;font-size:10.5px;display:flex;justify-content:space-between;gap:10px}
+/* refuel button — red on low-fuel towers, green after marking refuelled */
+.refuel-btn{display:none;margin-top:10px;font-size:9px;padding:5px 11px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;border:none;border-radius:3px;font-family:inherit;font-weight:600;transition:background .2s,color .2s,box-shadow .2s;
+  background:rgba(200,60,60,.18);color:var(--c-warn,#e06060);box-shadow:inset 0 0 0 1px rgba(200,60,60,.55)}
+.refuel-btn:hover{background:rgba(200,60,60,.32);box-shadow:inset 0 0 0 1px rgba(200,60,60,.85)}
+.refuel-btn.visible{display:inline-block}
+.refuel-btn.refuelled{background:rgba(80,180,80,.14);color:var(--green,#9ac878);box-shadow:inset 0 0 0 1px rgba(80,180,80,.5)}
+.refuel-btn.refuelled:hover{background:rgba(80,180,80,.28);box-shadow:inset 0 0 0 1px rgba(80,180,80,.85)}
+/* refuelled tower sits at the bottom of its lane, slightly dimmed */
+.tower.snoozed-tower{opacity:.72}
+
+</style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
+</head>
+<body>
+
+<div class="yard">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Corporation Holdings · Upwell</div>
+      <h1>Citadel<span class="diamond"></span>Watch</h1>
+      <div class="subline">The corp skyline — every Upwell structure as a tower with a fuel tube, its services, its state, and how long the lights stay on. Rebuilt anew from the Structure Browser.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+<div class="ctl">
+  <button class="btn primary" id="loadBtn">Walk the skyline</button>
+  <span class="hint" id="loadNote">Reads corp structures for each pilot's corporation — needs the Station Manager role in game; pilots without it are noted, not failed.</span>
+</div>
+<div id="out"><div class="empty">Press <b>Walk the skyline</b> to read corp structures.<br>Sign-in lives in the Toolset menu.</div></div>
+</div>
+
+<div id="toast"></div>
+<script>
+const MY_SECTION='citadel';
+
+'use strict';
+/* ================================================================== */
+/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
+/* Sign-in happens exclusively in index.html. The SSO client id is    */
+/* NOT embedded here: index.html publishes it to localStorage         */
+/* (eve_suite_client_id) and this tool reads it for token refreshes.  */
+/* No theme selector and no character portraits live in this file —   */
+/* pilots appear as text tags only; icons belong to index.html.       */
+/* ================================================================== */
+function suiteClientId(){try{return localStorage.getItem('eve_suite_client_id')||'';}catch(e){return '';}}
+const SHARED_KEY='eve_suite_chars';
+const SECTION_KEY='eve_suite_char_sections';
+const DASHBOARD_KEY='eve_suite_dashboard';
+const ESI='https://esi.evetech.net/latest';
+const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
+const now=()=>Date.now();
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
+let chars=loadChars();
+function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
+function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
+function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
+function visibleIds(){return Object.keys(chars).filter(sectionOn);}
+function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
+function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
+function fmtISK(n){if(n==null||isNaN(n))return '—';const a=Math.abs(n),s=n<0?'−':'';
+  if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+a.toFixed(a>0&&a<10?2:0);}
+function fmtFull(n){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('en-US',{maximumFractionDigits:2});}
+function fmtInt(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function timeago(ts){const m=(now()-ts)/60000;if(m<1)return 'just now';if(m<60)return Math.round(m)+'m ago';if(m<1440)return Math.round(m/60)+'h ago';return Math.round(m/1440)+'d ago';}
+function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
+  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
+function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
+
+/* SDE service module fuel cycle rates (blocks per hour, attrID 2109).
+   The hull itself consumes no fuel — only online service modules do.
+   Each module runs on a 1-hour cycle; its rate is blocks consumed per cycle.
+   ESI returns services as {name, state} — keyed by canonical in-game name.   */
+const SVC_FUEL_BLK_HR_BY_NAME = {
+  // Engineering Service Modules (groupID 1415)
+  'Standup Supercapital Shipyard I':36,
+  'Standup Manufacturing Plant I':12,
+  'Standup Capital Shipyard I':24,
+  'Standup Invention Lab I':12,
+  'Standup Research Lab I':12,
+  'Standup Hyasyoda Research Lab':10,
+  // Citadel Service Modules (groupID 1321)
+  'Standup Market Hub I':40,
+  'Standup Cloning Center I':10,
+  // Resource Processing Service Modules (groupID 1322)
+  'Standup Reprocessing Facility I':10,
+  'Standup Composite Reactor I':15,
+  'Standup Hybrid Reactor I':15,
+  'Standup Biochemical Reactor I':15,
+  // FLEX Service Modules (groupID 1324)
+  'Standup Cynosural Field Generator I':15,
+  'Standup Conduit Generator I':30,
+  'Standup Cynosural System Jammer I':40,
+  'Standup Metenox Moon Drill':5,
+  // Moon Drilling (groupID 1887)
+  'Standup Moon Drill I':5,
+  // Unpublished — confirmed SDE values
+  'Standup Drug Lab I':5,
+  'Structure Compression Plant':5,
+  'Structure Time Efficiency Laboratory':5,
+  'Structure Material Efficiency Laboratory':10,
+};
+
+/* Returns blocks/hr for this structure based solely on its online service modules.
+   Each module's SDE cycle rate (blocks/hr) is summed; unknown modules fall back
+   to 10 blk/hr. Returns 0 if no services are online.                           */
+function fuelBph(s){
+  let bph=0;
+  (s.services||[]).forEach(v=>{
+    if(v.state==='online'){
+      const key=(v.name||'').replace(/_/g,' ');
+      const rate=SVC_FUEL_BLK_HR_BY_NAME[key];
+      bph+=rate!=null?rate:10;
+    }
+  });
+  return bph;
+}
+/* Convenience: blocks per 30-day month at this structure's burn rate */
+function fuelBpMonth(s){ return fuelBph(s)*24*30; }
+function fmtBlocks(n){return n.toLocaleString()+' blocks';}
+async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
+async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
+  const cid=suiteClientId();
+  if(!cid)throw new Error('sign-in config not shared yet — open the Toolset menu (index.html) once');
+  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:cid}).toString());
+  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
+  chars[id]=ns;saveChars();return ns;}
+async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
+  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
+async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
+  if(o.body!==undefined)h['Content-Type']='application/json';
+  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
+  return {json:await r.json(),res:r};}
+async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
+async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
+async function esiGetPaged(path,token,cap){const sep=path.includes('?')?'&':'?';
+  const first=await esiFetch(path+sep+'page=1',{token});let out=first.json;
+  const pages=Math.min(parseInt(first.res.headers.get('X-Pages')||'1',10),cap||10);
+  for(let p=2;p<=pages;p++){try{out=out.concat((await esiFetch(path+sep+'page='+p,{token})).json);}catch(e){}}
+  return out;}
+function pLimit(n){let act=0;const q=[];
+  const next=()=>{if(act>=n||!q.length)return;act++;const [fn,res,rej]=q.shift();
+    Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});};
+  return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();});}
+/* ---- persistent id→name cache (shared with the rest of the suite) ---- */
+const NAME_CACHE_KEY='eve_suite_namecache_v1';
+let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
+function saveNameCache(){try{const ks=Object.keys(nameCache);
+  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
+  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
+async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
+    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
+  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
+      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
+    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
+async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
+  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
+  if(need.length)saveNameCache();
+  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
+function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
+async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
+  try{const s=await esiGet('/universe/structures/'+id+'/',token);
+    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
+  catch(e){return 'Structure '+id;}}
+async function locationName(id,token){if(id==null)return '—';
+  if(id>=1e12)return structureName(id,token);
+  await resolveNames([id]);return nameOf(id,'Location '+id);}
+/* ---- persistent type-info cache (volume, group) ---- */
+const TYPE_CACHE_KEY='eve_suite_typeinfo_v1';
+let typeCache={};try{typeCache=JSON.parse(localStorage.getItem(TYPE_CACHE_KEY)||'{}');}catch(e){}
+function saveTypeCache(){try{const ks=Object.keys(typeCache);
+  if(ks.length>6000)ks.slice(0,ks.length-5000).forEach(k=>delete typeCache[k]);
+  localStorage.setItem(TYPE_CACHE_KEY,JSON.stringify(typeCache));}catch(e){}}
+const typeLimit=pLimit(6);
+async function typeInfo(id){if(typeCache[id])return typeCache[id];
+  const t=await typeLimit(()=>esiGet('/universe/types/'+id+'/'));
+  typeCache[id]={name:t.name,volume:t.volume,pv:t.packaged_volume,gid:t.group_id};
+  nameCache[id]={n:t.name,c:'inventory_type'};saveTypeCache();return typeCache[id];}
+/* ---- pilot toggles: TEXT tags only — portraits/icons live in index.html ---- */
+function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
+  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
+  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
+    const t='click to '+(on?'exclude from':'include in')+' this tool';
+    return '<button class="ptag'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'">'+esc(c.charName||('Char '+id))+'</button>';}).join('');
+  el.querySelectorAll('.ptag').forEach(b=>{b.onclick=()=>{const id=b.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
+window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
+function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
+  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
+setInterval(tickClock,15000);tickClock();
+try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
+renderPilots();
+function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
+  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
+  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a pilot name above to include one.</div>';return true;}
+  return false;}
+
+
+/* ================= Citadel Watch ================= */
+let towersByCorp=null;
+
+/* ---- snooze store: structure_id → true, persisted in localStorage ---- */
+const SNOOZE_KEY='eve_suite_citadel_snooze';
+function loadSnooze(){try{return JSON.parse(localStorage.getItem(SNOOZE_KEY)||'{}');}catch(e){return{};}}
+function saveSnooze(s){try{localStorage.setItem(SNOOZE_KEY,JSON.stringify(s));}catch(e){}}
+let snoozed=loadSnooze();
+
+/* Called by the snooze button on each tower card — toggles snooze and re-renders in place */
+window._towerSnooze=function(id){
+  id=String(id);
+  if(snoozed[id]){delete snoozed[id];}
+  else{snoozed[id]=true;}
+  saveSnooze(snoozed);
+  if(towersByCorp)render();
+};
+
+async function loadAll(){
+  if(noPilotsGuard('out'))return;
+  const btn=$('loadBtn');btn.disabled=true;
+  $('out').innerHTML='<div class="empty"><span class="spin"></span>Walking the skyline…</div>';
+  const corps={};   // corpId -> {name, structures, err, via}
+  for(const id of visibleIds()){
+    try{
+      const s=await getTok(id);
+      if(!s)throw new Error('token expired — re-open the Toolset menu');
+      const corpId=s.corpId;
+      if(!corpId||corps[corpId])continue;
+      corps[corpId]={name:s.corpName||('Corp '+corpId),via:s.charName};
+      try{
+        const st=await esiGetPaged('/corporations/'+corpId+'/structures/',s.access,5);
+        corps[corpId].structures=st;
+        corps[corpId].tok=s.access;
+      }catch(e){
+        corps[corpId].err=e.status===403
+          ? 'no read via '+(s.charName||'this pilot')+' — needs the Station Manager role (or the corp-structures scope; re-add the character in the Toolset menu)'
+          : e.message;
+      }
+    }catch(e){}
+  }
+  /* resolve type + system names, structure names */
+  const all=Object.values(corps).flatMap(c=>c.structures||[]);
+  try{await resolveNames(all.flatMap(s=>[s.type_id,s.system_id]));}catch(e){}
+  await Promise.all(all.map(s=>{
+    const c=Object.values(corps).find(x=>(x.structures||[]).includes(s));
+    return structureName(s.structure_id,c.tok).then(n=>{s._name=n;}).catch(()=>{});
+  }));
+  towersByCorp=corps;render();
+  btn.disabled=false;
+}
+
+const MAX_FUEL_DAYS=60;  // tube scale only — a full tube means 60+ days
+function render(){
+  const corps=towersByCorp;
+  /* corp read summary strip stays on top; towers regroup into moon-watch
+     style lanes, one per structure type, resolved live from ESI type names
+     (no hardcoded hull list — Athanor/Tatara/Fortizar/Azbel/anything just
+     groups by whatever its type_id resolves to). Lanes are ordered by their
+     hungriest member and towers inside each lane run lowest→highest fuel. */
+  const HULL_CLASS={'Athanor':'refinery','Tatara':'refinery',
+    'Astrahus':'citadel','Fortizar':'citadel','Keepstar':'citadel',
+    'Raitaru':'engineering complex','Azbel':'engineering complex','Sotiyo':'engineering complex',
+    'Ansiblex Jump Gate':'navigation','Pharolux Cyno Beacon':'navigation','Tenebrex Cyno Jammer':'navigation',
+    'Metenox Moon Drill':'moon drill','Orbital Skyhook':'sovereignty'};
+  let strip='',all=[],low=0,total=0;
+  for(const cid of Object.keys(corps)){
+    const c=corps[cid];
+    strip+='<div class="corpband panel"><span>'+esc(c.name)+'</span><span>'+((c.structures||[]).length||0)+' structures · read via '+esc(c.via||'—')+'</span></div>';
+    if(c.err){strip+='<div class="charerr">⚠ '+esc(c.err)+'</div>';continue;}
+    (c.structures||[]).forEach(s=>{const t=Object.assign({},s);t._corp=c.name;all.push(t);});
+  }
+  strip='<div class="corpstrip">'+ (strip||'') +'</div>';
+  if(!all.length){
+    $('out').innerHTML=strip+'<div class="empty">no Upwell structures on the books</div>';
+    reportDashboard('0 structures','ok');
+    $('loadNote').textContent='Skyline read '+new Date().toUTCString().slice(17,25)+' EVE';
+    return;
+  }
+  const fuelMsOf=s=>s.fuel_expires?Date.parse(s.fuel_expires)-now():Infinity;
+  const days_lt10=s=>{const ms=fuelMsOf(s);return ms!==Infinity&&ms/86400000<10;};
+  const groups={};
+  all.forEach(s=>{const tn=nameOf(s.type_id,'Type '+s.type_id);(groups[tn]=groups[tn]||[]).push(s);});
+  const lanes=Object.keys(groups).map(tn=>{
+    const list=groups[tn].slice().sort((a,b)=>fuelMsOf(a)-fuelMsOf(b));
+    return {tn,list,min:fuelMsOf(list[0])};
+  }).sort((a,b)=>a.min-b.min||a.tn.localeCompare(b.tn));
+  const tower=s=>{
+    total++;
+    const fuelMs=s.fuel_expires?Date.parse(s.fuel_expires)-now():null;
+    const days=fuelMs==null?null:fuelMs/86400000;
+    const pct=days==null?0:Math.max(2,Math.min(100,100*days/MAX_FUEL_DAYS));
+    const lowFuel=days!=null&&days<7;
+    const tempAlert=days!=null&&days<10;  /* snooze button threshold: <10 days */
+    const isSnoozed=tempAlert&&!!snoozed[String(s.structure_id)];
+    if(lowFuel)low++;
+    const state=(s.state||'').replace(/_/g,' ');
+    const svcs=(s.services||[]).map(v=>'<div class="svc"><span class="dot '+(v.state==='online'?'on':'off')+'"></span>'+esc((v.name||'').replace(/_/g,' '))+'</div>').join('');
+    return '<div class="tower panel'+(lowFuel?' lowfuel':'')+(isSnoozed?' snoozed-tower':'')+'">'+
+      '<div class="tube"><span class="cap"></span><span class="fill '+(lowFuel?'low':'ok')+'" style="height:'+pct.toFixed(0)+'%"></span></div>'+
+      '<div class="tbody">'+
+      '<div class="thead"><img class="timg" src="https://images.evetech.net/types/'+(+s.type_id||0)+'/render?size=64" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'+
+      '<div class="thead-t">'+
+      '<div class="tn">'+esc(s._name||('Structure '+s.structure_id))+'</div>'+
+      '<div class="tt">'+esc(s._corp||'')+'</div>'+
+      '<div class="sys">'+esc(nameOf(s.system_id,'System'))+'</div>'+
+      '</div></div>'+
+      (()=>{
+      const bph=fuelBph(s);                          // blocks/hr from online services
+      const bpMonth=fuelBpMonth(s);                  // bph * 24 * 30
+      const inBay=s.fuel_quantity!=null?s.fuel_quantity:null; // ESI fuel_quantity
+      const target30=Math.ceil(30*24*bph);           // blocks needed for 30 days
+      // top-up: prefer inBay (exact) else derive from expiry timestamp
+      const needed=bph===0?0:inBay!=null
+        ?Math.max(0,target30-inBay)
+        :(days!=null&&days<30?Math.ceil((30-days)*24*bph):0);
+      const noSvcs=bph===0;
+      return '<div class="fuelnum">'+
+        '<div class="fv">'+(fuelMs==null?'no fuel data':fmtDur(fuelMs))+'</div>'+
+        '<div class="fl">fuel remaining'+(days!=null?' · expires '+s.fuel_expires.slice(0,10):'')+'</div>'+
+        (noSvcs
+          ?'<div class="fl" style="margin-top:4px">no online services · no fuel consumption</div>'
+          :'<div class="fl" style="margin-top:4px">'+(inBay!=null?fmtBlocks(inBay)+' in bay · ':'')
+            +fmtBlocks(bph)+'/hr · ~'+fmtBlocks(bpMonth)+'/month</div>'+
+            (needed>0?'<div class="fl" style="margin-top:4px;color:var(--c-warn)">⬆ '+needed.toLocaleString()+' blocks to reach 30 days</div>':'')
+        )+
+        '</div>';
+      })()+
+      
+      '<span class="state st-'+(s.state==='shield_vulnerable'||s.state==='armor_vulnerable'||s.state==='hull_vulnerable'?'warn':'ok')+'">'+esc(state||'state unknown')+'</span>'+
+      (svcs?'<div class="svcs">'+svcs+'</div>':'')+
+      (tempAlert?'<button class="refuel-btn visible'+(isSnoozed?' refuelled':'')+'" onclick="window._towerSnooze('+s.structure_id+')" title="'+(isSnoozed?'Marked as refuelled — will return to correct position after next ESI check':'Mark as refuelled — card moves to end of section until ESI confirms new fuel level')+'">'+(isSnoozed?'✓ Refuelled':'Refuelled')+'</button>':'')+
+      '</div></div>';
+  };
+  /* auto-clear snooze for any structure now at ≥10 days fuel */
+  let snoozeChanged=false;
+  all.forEach(s=>{
+    const sid=String(s.structure_id);
+    if(snoozed[sid]){
+      const fms=s.fuel_expires?Date.parse(s.fuel_expires)-now():null;
+      const d=fms==null?null:fms/86400000;
+      if(d==null||d>=10){delete snoozed[sid];snoozeChanged=true;}
+    }
+  });
+  if(snoozeChanged)saveSnooze(snoozed);
+
+  const html=lanes.map(L=>{
+    const hot=L.min!==Infinity&&L.min/86400000<7;
+    const cls=HULL_CLASS[L.tn];
+    /* partition: snoozed towers go to the bottom of their lane */
+    const active=L.list.filter(s=>!(days_lt10(s)&&snoozed[String(s.structure_id)]));
+    const pinned=L.list.filter(s=>days_lt10(s)&&snoozed[String(s.structure_id)]);
+    const ordered=[...active,...pinned];
+    /* hotness based on non-snoozed minimum */
+    const activeMin=active.length?fuelMsOf(active[0]):Infinity;
+    const isHot=activeMin!==Infinity&&activeMin/86400000<7;
+    const desc=(cls?cls+' · ':'')+'lowest fuel '+(activeMin===Infinity?'no fuel data':fmtDur(activeMin));
+    return '<div class="tlane panel'+(isHot?' hot':'')+'">'+
+      '<div class="tlane-hd"><h2>'+esc(L.tn)+'</h2><span class="cnt">'+L.list.length+'</span><span class="desc">'+esc(desc)+'</span></div>'+
+      '<div class="towers">'+ordered.map(tower).join('')+'</div></div>';
+  }).join('');
+  $('out').innerHTML=strip+'<div class="typelanes">'+html+'</div>';
+  reportDashboard(total+' structures'+(low?' · '+low+' low fuel!':''), low?'bad':'ok');
+  $('loadNote').textContent='Skyline read '+new Date().toUTCString().slice(17,25)+' EVE';
+}
+$('loadBtn').onclick=loadAll;
+window.onRosterChange=()=>{ if(towersByCorp)loadAll(); };
+
+</script>
+<script>
+(function(){
+  function applySuiteTheme(name){
+    if(!name)return;
+    try{document.documentElement.dataset.theme=name;}catch(err){}
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  });
+})();
+</script>
+</body>
+</html>
