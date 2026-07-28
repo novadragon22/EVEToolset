@@ -3041,10 +3041,11 @@ html[data-theme="triglavian"] header{
     linear-gradient(180deg,rgba(176,90,20,.04),transparent 40%)}
 
 /* singularity orb in .thm-halo — maps to .sing-body */
+/* singularity anchor: both orb and trinary pin to the same fixed point in header */
 html[data-theme="triglavian"] .thm-halo{min-height:108px;position:static}
 html[data-theme="triglavian"] .thm-halo::before{
-  content:'';position:absolute;left:50%;top:0;width:88px;height:88px;
-  margin:10px 0 0 -44px;border-radius:50%;
+  content:'';position:absolute;left:50%;top:10px;width:88px;height:88px;
+  margin-left:-44px;border-radius:50%;z-index:3;
   background:
     radial-gradient(circle at 50% 50%,#fff8ee 0 3px,#ffb060 6px,rgba(200,40,58,.85) 13px,rgba(120,16,26,.5) 26px,transparent 44px),
     conic-gradient(from 0deg,rgba(255,176,96,.55) 0 8deg,transparent 8deg 112deg,rgba(255,176,96,.55) 120deg 128deg,transparent 128deg 232deg,rgba(255,176,96,.55) 240deg 248deg,transparent 248deg);
@@ -3055,6 +3056,7 @@ html[data-theme="triglavian"] .thm-halo::before{
 html[data-theme="triglavian"] header > .em-trig{
   display:block;position:absolute;left:50%;top:0;
   width:108px;height:108px;margin-left:-54px;
+  z-index:2;
   animation:tg-spin 60s linear infinite reverse}
 html[data-theme="triglavian"] .em-trig polygon{
   animation:none}
