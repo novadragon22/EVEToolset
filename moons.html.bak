@@ -475,7 +475,6 @@ $('genPatternBtn').onclick=()=>{
 
   // Build units: one per refinery (or one per system if not yet synced).
   // Exclusion filter is applied HERE so excluded refineries consume no schedule slot.
-  // Each unit may carry a liveArrival (ms timestamp) from ESI if currently extracting.
   const units=[];
   plansToSchedule.forEach(p=>{
     // system-level exclusion — if the system itself matches, skip every refinery in it
@@ -485,15 +484,11 @@ $('genPatternBtn').onclick=()=>{
       !isExcluded(r.name, r.system)  // per-refinery exclusion
     );
     if(refs.length){
-      refs.forEach(r=>{
-        // Carry the live chunk_arrival_time if this refinery is currently extracting
-        const liveArrival=(r.arrive && Date.parse(r.arrive)>now()) ? Date.parse(r.arrive) : null;
-        units.push({system:p.system,constellation:p.constellation||r.constellation||'Unknown',refinery:r.name,liveArrival});
-      });
+      refs.forEach(r=>units.push({system:p.system,constellation:p.constellation||r.constellation||'Unknown',refinery:r.name}));
     } else {
       // System queued but no synced refineries (or all excluded by name) — include as unresolved slot
       // only if the system itself isn't excluded
-      units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null,liveArrival:null});
+      units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null});
     }
   });
 
@@ -503,59 +498,10 @@ $('genPatternBtn').onclick=()=>{
   }
 
   const N=units.length, cycleDays=Math.round(N*gap);
-
-  // ── Chunk-arrival-anchored scheduling ──────────────────────────────────────
-  // 1. Units with a live in-flight chunk get their arrival anchored to the real
-  //    ESI chunk_arrival_time (normalised to start-of-day for schedule comparison).
-  // 2. Remaining units are assigned to the nearest open slot in a gap-day grid
-  //    that doesn't clash (within 1 day) with any already-anchored arrival.
-  //
-  // "Slot" positions are measured as whole-day offsets from today (mod cycleDays),
-  // so the pattern repeats correctly each full cycle.
-
-  const gapDays=Math.round(gap); // integer day granularity for slot grid
-  const safeGap=Math.max(gapDays,1);
-
-  // Seed anchored units first — sort by their live arrival so earlier chunks
-  // get lower slot indices, giving a naturally ascending table.
-  const anchored=[], free=[];
-  units.forEach(u=>{
-    if(u.liveArrival!==null) anchored.push(u);
-    else free.push(u);
-  });
-  anchored.sort((a,b)=>a.liveArrival-b.liveArrival);
-
-  // Build a set of taken day-offsets (mod cycleDays) from anchored arrivals.
-  // Each anchored unit pins a specific day.
-  const takenOffsets=new Set();
-  anchored.forEach(u=>{
-    const dayOffset=Math.round((startOfDay(new Date(u.liveArrival))-today)/86400000);
-    u._slot=((dayOffset%cycleDays)+cycleDays)%cycleDays; // normalise into [0, cycleDays)
-    takenOffsets.add(u._slot);
-  });
-
-  // Assign free units to the lowest available slot that isn't taken.
-  // Walk slot candidates 0, safeGap, 2*safeGap … and skip taken positions.
-  const allSlots=[];
-  for(let s=0;s<cycleDays;s+=safeGap) allSlots.push(s);
-  // Remove slots taken by anchored units (± 0 days — exact clash only; users may
-  // want adjacent days for deliberate grouping, so we only block exact matches).
-  const freeSlots=allSlots.filter(s=>!takenOffsets.has(s));
-
-  free.forEach((u,i)=>{
-    // Assign the next available free slot; if we run out, wrap with an offset
-    u._slot=(i<freeSlots.length) ? freeSlots[i] : (freeSlots[freeSlots.length-1]||0)+(i-freeSlots.length+1)*safeGap;
-  });
-
-  // Merge and sort all units by their assigned slot for a clean ascending table.
-  const allUnits=[...anchored,...free].sort((a,b)=>a._slot-b._slot);
-
-  const results=allUnits.map(u=>{
-    // Anchored units: use the real ESI date as arrivalDate (preserves exact time for
-    // on-schedule matching); free units: project forward from today by slot days.
-    const arrivalDate=u.liveArrival!==null
-      ? startOfDay(new Date(u.liveArrival))
-      : addDays(today, u._slot);
+  // arrivalDate = target chunk finish date (what we stagger by gap days)
+  // drillStartDate = arrivalDate − extractionDuration (when to activate the drill)
+  const results=units.map((u,i)=>{
+    const arrivalDate=addDays(today, Math.round(i*gap));
     const drillStartDate=addDays(arrivalDate, -extractDays);
     const nextArrivalDate=addDays(arrivalDate, cycleDays);
     const nextDrillStart=addDays(drillStartDate, cycleDays);
@@ -565,30 +511,24 @@ $('genPatternBtn').onclick=()=>{
   saveSchedule(results);
   if(refineries.length) render();
 
-  const anchoredCount=results.filter(r=>r.liveArrival!==null).length;
-  const anchorNote=anchoredCount
-    ? ' · <span title="'+anchoredCount+' refiner'+(anchoredCount===1?'y':'ies')+' already extracting — arrival dates taken from live ESI chunk timers">⚓ '+anchoredCount+' live-anchored</span>'
-    : '';
   out.innerHTML=
     '<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+
-    [...new Set(allUnits.map(u=>u.system))].length+' system'+(plansToSchedule.length!==1?'s':'')+
-    ' · <b>'+gap+'d</b> between arrivals · one full cycle every <b>'+cycleDays+'d</b> · '+extractDays+'d extraction duration'+
-    anchorNote+'.'+
+    [...new Set(units.map(u=>u.system))].length+' system'+(plansToSchedule.length!==1?'s':'')+
+    ' · <b>'+gap+'d</b> between arrivals · one full cycle every <b>'+cycleDays+'d</b> · '+extractDays+'d extraction duration.'+
     ' <b style="color:var(--green,#9ac878)">Schedule saved</b> — moon chips now show ✓/✗ against target arrival dates.</div>'+
     '<div style="overflow-x:auto"><table><thead><tr>'+
     '<th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Start drill by</th><th>Chunk arrives</th><th>Next arrival</th>'+
     '</tr></thead><tbody>'+
-    results.map((r,i)=>{
-      const live=r.liveArrival!==null;
-      return '<tr'+(live?' title="Anchored to live ESI chunk timer"':'')+'><td class="dim">'+(i+1)+(live?' <span title="Live chunk arrival" style="color:var(--cyan,#70d4ff)">⚓</span>':'')+'</td>'+
+    results.map((r,i)=>
+      '<tr><td class="dim">'+(i+1)+'</td>'+
       '<td><div class="nm">'+esc(r.system)+'</div></td>'+
       '<td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td>'+
       '<td class="dim">'+esc(r.constellation||'Unspecified')+'</td>'+
-      '<td>'+(live?'<span class="dim">already running</span>':dayLabel(r.drillStartDate))+'</td>'+
-      '<td><b>'+dayLabel(r.arrivalDate)+'</b>'+(live?' <span style="font-size:9px;color:var(--cyan,#70d4ff)">(live)</span>':'')+'</td>'+
+      '<td>'+dayLabel(r.drillStartDate)+'</td>'+
+      '<td><b>'+dayLabel(r.arrivalDate)+'</b></td>'+
       '<td class="dim">'+dayLabel(r.nextArrivalDate)+'</td>'+
-      '</tr>';
-    }).join('')+
+      '</tr>'
+    ).join('')+
     '</tbody></table></div>'+
     '<button class="btn" id="clearScheduleBtn" style="margin-top:10px;font-size:10px;padding:6px 12px">✕ Clear saved schedule</button>';
 
