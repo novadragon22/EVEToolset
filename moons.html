@@ -134,7 +134,7 @@ td.dim{font-size:10.5px}
 <div class="optgrid" id="optGrid" style="display:none">
   <aside class="optdesk panel">
     <h2>Chunk Extraction Optimiser</h2>
-    <span class="c">Stagger chunk <b>arrival</b> dates across your refineries so they don't all land the same day. Enter how many days apart you want chunks to arrive, and how long your drills run — the schedule will tell you when to start each drill.</span>
+    <span class="c">Stagger chunk <b>arrival</b> dates across your refineries so they don't all land the same day. Enter your extraction duration and how many buffer days to wait after each chunk arrives before the next drill starts — the schedule chains arrivals and cycles back to refinery 1 after the last extraction completes.</span>
     <label>ADD A SYSTEM TO THE QUEUE</label>
     <input id="planSystem" placeholder="system name">
     <label>CONSTELLATION (OPTIONAL — AUTO-FILLED IF SYNCED)</label>
@@ -143,8 +143,8 @@ td.dim{font-size:10.5px}
     <button class="btn" id="addPlanBtn">+ Queue system</button>
     <label style="margin-top:14px">QUEUED SYSTEMS</label>
     <div id="planList"></div>
-    <label style="margin-top:14px">DAYS BETWEEN CHUNK ARRIVALS</label>
-    <input type="number" id="optDuration" value="25" min="0.5" step="0.5">
+    <label style="margin-top:14px">BUFFER DAYS AFTER CHUNK ARRIVES (before next drill starts)</label>
+    <input type="number" id="optDuration" value="2" min="0.5" step="0.5">
     <label>EXTRACTION DURATION (DAYS) — used to calculate drill start date</label>
     <input type="number" id="optExtractDuration" value="7" min="1" max="28" step="0.5">
     <button class="btn primary" id="genPatternBtn">Generate stagger pattern</button>
@@ -497,11 +497,14 @@ $('genPatternBtn').onclick=()=>{
     return;
   }
 
-  const N=units.length, cycleDays=Math.round(N*gap);
-  // arrivalDate = target chunk finish date (what we stagger by gap days)
+  // slotDays = time each refinery occupies in the cycle: extraction run + buffer after arrival
+  const slotDays=extractDays+gap;
+  const N=units.length, cycleDays=Math.round(N*slotDays);
+  // Chain arrivals: arrival[i] = today + i * slotDays
   // drillStartDate = arrivalDate − extractionDuration (when to activate the drill)
+  // After the last extraction the cycle wraps: nextArrivalDate = arrivalDate + cycleDays
   const results=units.map((u,i)=>{
-    const arrivalDate=addDays(today, Math.round(i*gap));
+    const arrivalDate=addDays(today, Math.round(i*slotDays));
     const drillStartDate=addDays(arrivalDate, -extractDays);
     const nextArrivalDate=addDays(arrivalDate, cycleDays);
     const nextDrillStart=addDays(drillStartDate, cycleDays);
@@ -514,7 +517,7 @@ $('genPatternBtn').onclick=()=>{
   out.innerHTML=
     '<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+
     [...new Set(units.map(u=>u.system))].length+' system'+(plansToSchedule.length!==1?'s':'')+
-    ' · <b>'+gap+'d</b> between arrivals · one full cycle every <b>'+cycleDays+'d</b> · '+extractDays+'d extraction duration.'+
+    ' · <b>'+extractDays+'d</b> extraction + <b>'+gap+'d</b> buffer = <b>'+slotDays+'d</b> per slot · one full cycle every <b>'+cycleDays+'d</b>.'+
     ' <b style="color:var(--green,#9ac878)">Schedule saved</b> — moon chips now show ✓/✗ against target arrival dates.</div>'+
     '<div style="overflow-x:auto"><table><thead><tr>'+
     '<th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Start drill by</th><th>Chunk arrives</th><th>Next arrival</th>'+
