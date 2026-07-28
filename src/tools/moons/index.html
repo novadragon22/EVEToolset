@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html data-app="moons">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Moon Watch</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.obsv{max-width:1420px;margin:0 auto;padding:26px 30px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:23px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:660px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctl .hint{font-size:10.5px}
+/* two swimlanes: extracting / idle */
+.lanes3{display:flex;flex-direction:column;gap:16px;margin-bottom:24px}
+.swim{position:relative}
+.swim-hd{display:flex;align-items:center;gap:12px;padding:11px 16px}
+.swim-hd h2{font-size:11.5px;margin:0}
+.swim-hd .cnt{font-size:10px;padding:2px 9px}
+.swim-hd .desc{font-size:10px}
+.moonchips{display:flex;flex-wrap:wrap;gap:10px;padding:4px 16px 15px}
+.mchip{flex:1 1 250px;max-width:340px;padding:11px 13px;position:relative;display:flex;gap:11px;align-items:flex-start}
+.mchip .mimg-wrap{position:relative;flex:none;margin-top:2px}
+.mchip .mimg{display:block;width:44px;height:44px;border-radius:7px;object-fit:cover;background:#0a0e14}
+.mchip .phase{width:16px;height:16px;border-radius:50%;position:absolute;right:-5px;bottom:-5px;overflow:hidden}
+.mchip .phase::after{content:'';position:absolute;inset:0;border-radius:50%}
+.mchip .mn{font-size:11.5px;line-height:1.4;word-break:break-word}
+.mchip .mt{font-size:9px;margin-top:2px}
+.mchip .ms{font-size:10.5px;margin-top:5px}
+.mchip .md{font-size:9.5px;margin-top:2px}
+/* arrivals calendar */
+.calpanel{margin-bottom:24px}
+.calpanel .panel-hd2{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.calpanel h2{font-size:11.5px;margin:0}
+.calctl{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.calctl label{font-size:8.5px}
+.calctl input,.calctl select{font-size:11px;padding:5px 8px}
+.calctl input[type=number]{width:60px}
+.cal-strip{display:flex;gap:5px;overflow-x:auto;padding:12px 16px 6px}
+.cal-tile{flex:none;width:52px;text-align:center;padding:7px 3px 6px;position:relative}
+.cal-tile .cal-dow{display:block;font-size:8px}
+.cal-tile .cal-dom{display:block;font-size:14px;margin-top:2px}
+.cal-tile .cal-count{position:absolute;top:3px;right:4px;font-size:8.5px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.cal-list{padding:6px 16px 14px}
+.cal-day-row{display:flex;gap:12px;padding:6px 0;align-items:baseline}
+.cal-day-date{font-size:10px;width:110px;flex:none}
+.cal-day-chips{display:flex;flex-wrap:wrap;gap:6px}
+.cal-chip{font-size:10px;padding:3px 9px}
+.cal-chip i{font-style:normal;margin-left:5px}
+/* optimiser desk */
+.optgrid{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
+@media (max-width:980px){.optgrid{grid-template-columns:1fr}}
+.optdesk{padding:14px 16px}
+.optdesk h2{font-size:11.5px;margin:0 0 4px}
+.optdesk .c{font-size:10px;display:block;margin-bottom:12px;line-height:1.5}
+.optdesk label{display:block;font-size:8.5px;margin:9px 0 4px}
+.optdesk input,.optdesk select{width:100%;font-size:11.5px;padding:7px 9px}
+.optdesk .btn{width:100%;font-size:10px;padding:8px 10px;cursor:pointer;margin-top:10px}
+.plan-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;padding:6px 8px;margin-top:5px}
+.plan-row .dim{font-size:9.5px}
+.plan-row .char-x{cursor:pointer;font-size:11px;padding:0 5px;background:none;border:none}
+.optout{padding:4px 16px 16px}
+.optout .hint2{font-size:10.5px;margin:12px 0 10px;line-height:1.6}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{font-size:9px;text-align:left;padding:8px 12px;white-space:nowrap}
+td{padding:7px 12px}
+td .nm{font-size:11.5px}
+td.dim{font-size:10.5px}
+
+</style>
+  <link rel="stylesheet" href="../../assets/themes.css">
+  <script src="../../assets/themes.js" defer></script>
+</head>
+<body>
+
+<div class="obsv">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Refinery Extractions · Corp Moons</div>
+      <h1>Moon<span class="diamond"></span>Watch</h1>
+      <div class="subline">Every Athanor and Tatara in two lanes — chunks inbound and drills sitting idle — with an arrivals calendar and the chunk stagger optimiser.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+<div class="ctl">
+  <button class="btn primary" id="loadBtn">Sight the moons</button>
+  <span class="hint" id="loadNote">Reads corp structures + moon-extraction timers — needs the Station Manager role in game.</span>
+</div>
+
+<div id="out"><div class="empty">Press <b>Sight the moons</b> to read refineries and extraction timers.<br>Sign-in lives in the Toolset menu.</div></div>
+
+<div class="calpanel panel" id="calPanel" style="display:none">
+  <div class="panel-hd2"><h2>Extraction arrivals</h2>
+    <div class="calctl">
+      <label>WINDOW (DAYS)</label><input type="number" id="optWindow" value="14" min="3" max="60">
+      <label>CONSTELLATION</label><select id="optConst"><option value="all">All constellations</option></select>
+      <label>EXCLUDE (KEYWORDS, COMMA-SEP)</label><input type="text" id="optExclude" placeholder="e.g. keepstar, staging">
+    </div>
+  </div>
+  <div id="calendarWrap"></div>
+</div>
+
+<div class="optgrid" id="optGrid" style="display:none">
+  <aside class="optdesk panel">
+    <h2>Chunk Extraction Optimiser</h2>
+    <span class="c">Stagger extraction starts across your scan-plan queue so chunks don't all land the same day — same algorithm and saved plans as the original.</span>
+    <label>ADD A SYSTEM TO THE QUEUE</label>
+    <input id="planSystem" placeholder="system name">
+    <label>CONSTELLATION (OPTIONAL — AUTO-FILLED IF SYNCED)</label>
+    <input id="planConst" list="constDatalist" placeholder="constellation">
+    <datalist id="constDatalist"></datalist>
+    <button class="btn" id="addPlanBtn">+ Queue system</button>
+    <label style="margin-top:14px">QUEUED SYSTEMS</label>
+    <div id="planList"></div>
+    <label style="margin-top:14px">DAYS BETWEEN STARTS</label>
+    <input type="number" id="optDuration" value="7" min="0.5" step="0.5">
+    <button class="btn primary" id="genPatternBtn">Generate stagger pattern</button>
+  </aside>
+  <div class="panel"><div class="panel-hd2" style="padding:11px 16px"><h2>Suggested schedule</h2></div>
+    <div class="optout" id="patternResult"><div class="empty" style="padding:20px">queue systems and generate a pattern</div></div>
+  </div>
+</div>
+</div>
+
+<div id="toast"></div>
+  <script type="module" src="./moons.js"></script>
+</body>
+</html>

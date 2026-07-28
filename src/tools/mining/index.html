@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html data-app="mining">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Extraction Ledger</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Saira+Stencil+One&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ----
+   Layout DNA: single full-width industrial flow — banner gauge row, a wide
+   canvas extraction chart, then chunky horizontal ore-mix bars. No sidebars,
+   no card grids: everything runs edge to edge like a conveyor line.        */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.page{max-width:1460px;margin:0 auto;padding:22px 34px 70px;position:relative;z-index:1}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.topbar{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:0;flex-wrap:wrap;padding-bottom:14px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.backlink{font-size:10px;padding:7px 12px;margin-top:6px;display:none;align-items:center;white-space:nowrap}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:30px;margin:0}
+h1 .diamond{margin:0 11px;transform:translateY(-3px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px;max-width:460px;justify-content:flex-end}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.hazard{height:9px;margin:0 -34px 22px}
+/* gauge banner: one long strip, not a card grid */
+.gaugerow{display:flex;flex-wrap:wrap;margin-bottom:22px}
+.gauge{flex:1 1 200px;padding:15px 20px 13px;position:relative}
+.gauge .l{font-size:9.5px}
+.gauge .n{font-size:29px;margin-top:6px;line-height:1}
+.gauge .s{font-size:10.5px;margin-top:6px}
+.ctlrow{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+.ctlrow .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctlrow .hint{font-size:10.5px}
+.beltwrap{position:relative;margin-bottom:26px}
+.belt-hd{display:flex;justify-content:space-between;align-items:center;padding:0 2px 10px}
+.belt-hd h2{font-size:13px;margin:0}
+.belt-hd .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:9.5px}
+.legend .sw{width:9px;height:9px;display:inline-block;margin-right:5px;vertical-align:-1px}
+#beltChart{width:100%;height:230px;display:block}
+#beltTip{position:absolute;pointer-events:none;font-size:10.5px;padding:6px 9px;display:none;z-index:5;white-space:nowrap}
+/* ore mix: chunky full-width horizontal bars */
+.mix{margin-bottom:26px}
+.mix h2{font-size:13px;margin:0 0 12px}
+.orebar{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.orebar .on{font-size:11.5px;width:230px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orebar .track{flex:1;height:18px;position:relative}
+.orebar .fill{position:absolute;inset:0 auto 0 0}
+.orebar .ov{font-size:11px;width:170px;text-align:right;flex:none}
+/* twin manifest tables: systems + pilots */
+.manifests{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:980px){.manifests{grid-template-columns:1fr}}
+.mani h2{font-size:13px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:9.5px;text-align:left;padding:8px 12px;white-space:nowrap}
+td{padding:8px 12px}
+td.num,th.num{text-align:right;white-space:nowrap}
+.charerr{padding:8px 2px;font-size:10.5px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+  <link rel="stylesheet" href="../../assets/themes.css">
+  <script src="../../assets/themes.js" defer></script>
+</head>
+<body>
+<div class="page">
+
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Ore &amp; Ice &amp; Gas · Rolling 30 Days</div>
+      <h1>Extraction<span class="diamond"></span>Ledger</h1>
+      <div class="subline">What the roster actually pulled out of the rocks — daily haul on the belt line, the ore mix, and which systems paid.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+<div class="hazard"></div>
+
+<div class="gaugerow panel" id="gauges">
+  <div class="gauge"><div class="l">Volume mined · 30d</div><div class="n">—</div><div class="s">press start</div></div>
+</div>
+
+<div class="ctlrow">
+  <button class="btn primary" id="loadBtn">Start the belt</button>
+  <span class="hint" id="loadNote">Reads each pilot's personal mining ledger from ESI (≈30 days of history). ISK figures use CCP's published average prices — a reference estimate, not your local sell value.</span>
+</div>
+
+<div id="out"><div class="empty">Press <b>Start the belt</b> to pull mining ledgers.<br>Sign-in lives in the Toolset menu — this page only reads what's already authorised.</div></div>
+
+</div>
+<div id="toast"></div>
+  <script type="module" src="./mining.js"></script>
+</body>
+</html>

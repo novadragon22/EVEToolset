@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html data-app="hangar">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Fitting Hangar</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.bays{max-width:1380px;margin:0 auto;padding:26px 34px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctl .hint{font-size:10.5px}
+/* hangar bays: one wide horizontal bay per hull, fits as chips inside */
+.bay{margin-bottom:14px;position:relative}
+.bay-hd{display:flex;align-items:center;gap:14px;padding:12px 18px;cursor:pointer}
+.bay-hd .hull{font-size:13.5px}
+.bay-hd .cnt{font-size:10px}
+.bay-hd .grip{flex:1;height:1px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 18px 14px}
+.fitchip{font-size:11px;padding:6px 12px;cursor:pointer}
+/* opened fit: three-column slot board */
+.board{padding:4px 18px 16px;display:none}
+.board.open{display:block}
+.board .bh{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.board .bh .fn{font-size:12.5px}
+.board .bh .btn{font-size:9.5px;padding:5px 11px;cursor:pointer}
+.slotcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.scol .sh{font-size:9px;padding-bottom:5px;margin-bottom:7px}
+.mod{font-size:11px;padding:4px 0;display:flex;justify-content:space-between;gap:8px}
+.mod .mq{flex:none;font-size:10px}
+
+</style>
+  <link rel="stylesheet" href="../../assets/themes.css">
+  <script src="../../assets/themes.js" defer></script>
+</head>
+<body>
+
+<div class="bays">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">In-Game Fittings · All Pilots</div>
+      <h1>Fitting<span class="diamond"></span>Hangar</h1>
+      <div class="subline">Every fitting saved in game, racked into bays by hull — open a fit to see its slot board and copy it out as EFT. Rebuilt anew from the Fit Manager.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+<div class="ctl">
+  <button class="btn primary" id="loadBtn">Open the bays</button>
+  <span class="hint" id="loadNote"></span>
+</div>
+<div id="out"><div class="empty">Press <b>Open the bays</b> to read every pilot's saved fittings.<br>Sign-in lives in the Toolset menu.</div></div>
+</div>
+
+<div id="toast"></div>
+  <script type="module" src="./hangar.js"></script>
+</body>
+</html>

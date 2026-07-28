@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html data-app="colonies">
+<head>
+<!-- Earliest possible theme restore — must run before any paint -->
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Colony Orbit</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Comfortaa:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/themes.css">
+<script src="../../assets/themes.js" defer></script>
+
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.orbit{max-width:1460px;margin:0 auto;padding:26px 30px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctl .hint{font-size:10.5px}
+
+/* Planet tiles with an SVG ring meter for the extractor clock */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;align-items:start}
+.tile{padding:15px 15px 13px;position:relative;text-align:center}
+.ringwrap{width:110px;height:110px;margin:0 auto 10px;position:relative}
+.ringwrap svg{position:absolute;inset:0}
+.ringwrap .ptype{position:absolute;inset:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.tile .pn{font-size:12.5px}
+.tile .own{font-size:9.5px;margin-top:3px}
+.tile .clock{font-size:11px;margin-top:8px}
+.tile .pins{display:flex;justify-content:center;gap:10px;margin-top:8px;font-size:9.5px}
+.tile .lvl{position:absolute;top:10px;right:12px;font-size:9px;padding:2px 7px}
+.tile.alarm .clock{animation:blink 1.1s ease-in-out infinite}
+.watchchk{font-size:10.5px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin-left:14px}
+.rolebadge{font-size:8px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+@keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="orbit">
+  <header class="topbar">
+    <div class="tb-left">
+      <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+      <div>
+        <div class="kicker">Planetary Holdings · All Pilots</div>
+        <h1>Colony<span class="diamond"></span>Orbit</h1>
+        <div class="subline">Every colony as a planet tile with its extractor clock on a ring — see at a glance which heads are still cycling and which colonies have gone dark. Chalk pilots onto Extractor or Full-chain duty in Chain Works and watch just those clocks here.</div>
+      </div>
+    </div>
+    <div class="tb-right">
+      <span class="eveclock" id="eveclock"></span>
+      <div class="pilots" id="pilots"></div>
+    </div>
+  </header>
+
+  <div class="ctl">
+    <button class="btn primary" id="loadBtn">Scan the orbits</button>
+    <label class="watchchk" title="Show only pilots chalked Extractor or Full chain on the Chain Works pilot chalkboard">
+      <input type="checkbox" id="watchChk"> watch extractor duty only
+    </label>
+    <span class="hint" id="loadNote"></span>
+  </div>
+
+  <div class="grid" id="out">
+    <div class="empty" style="grid-column:1/-1">
+      Press <b>Scan the orbits</b> to read every colony.<br>
+      Sign-in lives in the Toolset menu.
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module" src="./colonies.js"></script>
+</body>
+</html>

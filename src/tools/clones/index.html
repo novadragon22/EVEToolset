@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html data-app="clones">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Clone Bay</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/themes.css">
+<script src="../../assets/themes.js" defer></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-size:14px}body::before,body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.page{max-width:1420px;margin:0 auto;padding:26px 34px 70px;position:relative;z-index:1}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.topbar{text-align:center;margin-bottom:8px;padding-bottom:16px;position:relative}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap;position:absolute;left:0;top:4px}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px;position:absolute;right:0;top:4px}
+.kicker{font-size:10px;margin-bottom:8px}h1{font-size:25px;margin:0}h1 .diamond{margin:0 12px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto}
+.pilots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}.nochars{font-size:10px}
+.ctlrow{display:flex;gap:12px;align-items:center;justify-content:center;margin:14px 0 24px;flex-wrap:wrap}
+.ctlrow .btn{font-size:10.5px;padding:8px 18px;cursor:pointer}.ctlrow .hint{font-size:10.5px}
+.bay{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px;align-items:start}
+.pod{position:relative;padding:0 0 16px}.pod-hd{padding:13px 16px 11px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.pod-hd .pn{font-size:13.5px}.pod-hd .pc{font-size:9.5px;white-space:nowrap}
+.vitals{display:flex;padding:0 16px;gap:0;margin-bottom:12px}.vital{flex:1;padding:8px 10px 7px}.vital .l{font-size:8.5px}.vital .v{font-size:13px;margin-top:3px}
+.home{padding:0 16px;font-size:11px;margin-bottom:12px}.home .hl{font-size:8.5px;display:block;margin-bottom:3px}
+.cdwrap{padding:0 16px;margin-bottom:14px}.cdwrap .hl{font-size:8.5px;display:block;margin-bottom:5px}
+.cdbar{height:12px;position:relative}.cdbar .fill{position:absolute;inset:0 auto 0 0}.cdbar .txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+.rack{padding:0 16px;margin-bottom:14px}.rack .hl{font-size:8.5px;display:block;margin-bottom:6px}
+.slot{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:11px}.slot .sn{width:16px;flex:none;font-size:9px;text-align:right}.slot .pin{width:7px;height:7px;flex:none}.slot .im{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slot.void .im{font-size:10px}
+.jcs{padding:0 16px}.jcs .hl{font-size:8.5px;display:block;margin-bottom:6px}
+details.jc{margin-bottom:6px}details.jc summary{font-size:11px;padding:7px 10px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:8px}details.jc summary::-webkit-details-marker{display:none}details.jc summary .jn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}details.jc summary .jt{font-size:9.5px;flex:none}details.jc .jcbody{padding:6px 10px 8px;font-size:10.5px;line-height:1.6}
+.poderr{padding:10px 16px;font-size:10.5px}.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8;grid-column:1/-1}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="topbar">
+  <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+  <span class="eveclock" id="eveclock"></span>
+  <div class="kicker">Infomorph Registry · Medical Deck</div>
+  <h1>Clone<span class="diamond"></span>Bay</h1>
+  <div class="subline">Every body the roster owns — active implants slot by slot, jump-clone vats and where they float, and whether the next jump is off cooldown.</div>
+  <div class="pilots" id="pilots"></div>
+</header>
+<div class="ctlrow">
+  <button class="btn primary" id="loadBtn">Open the vats</button>
+  <span class="hint" id="loadNote">Reads clones, implants and the two Infomorph skills per pilot.</span>
+</div>
+<div class="bay" id="out"><div class="empty">Press <b>Open the vats</b> to read the clone registry from ESI.</div></div>
+</div>
+<div id="toast"></div>
+<script type="module" src="./clones.js"></script>
+</body>
+</html>

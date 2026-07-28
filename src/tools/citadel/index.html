@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html data-app="citadel">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Citadel Watch</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Orbitron:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.yard{max-width:1460px;margin:0 auto;padding:26px 30px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctl .hint{font-size:10.5px}
+/* the skyline: tall narrow tower cards with a vertical fuel tube */
+.skyline{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;align-items:start}
+/* moon-watch style type lanes: one lane per structure type, hungriest first */
+.typelanes{display:flex;flex-direction:column;gap:16px}
+.tlane{position:relative}
+.tlane-hd{display:flex;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.tlane-hd h2{font-size:11.5px;margin:0}
+.tlane-hd .cnt{font-size:10px;padding:2px 9px}
+.tlane-hd .desc{font-size:10px}
+.tlane .towers{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;align-items:start;padding:4px 14px 14px}
+.corpstrip{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.thead{display:flex;gap:10px;align-items:flex-start}
+.thead-t{min-width:0}
+.timg{display:block;width:46px;height:46px;border-radius:7px;object-fit:cover;flex:none;margin-top:1px}
+.tower{position:relative;padding:0 0 14px;display:grid;grid-template-columns:34px 1fr;gap:0}
+.tube{position:relative;margin:14px 0 0 12px;width:12px;align-self:stretch;min-height:190px}
+.tube .fill{position:absolute;left:0;right:0;bottom:0}
+.tube .cap{position:absolute;top:-8px;left:-3px;right:-3px;height:5px}
+.tbody{padding:13px 14px 0 12px;min-width:0}
+.tbody .tn{font-size:12.5px;line-height:1.4;word-break:break-word}
+.tbody .tt{font-size:9.5px;margin-top:4px}
+.tbody .sys{font-size:10px;margin-top:2px}
+.fuelnum{margin-top:10px}
+.fuelnum .fv{font-size:17px}
+.fuelnum .fl{font-size:8.5px;margin-top:3px}
+.state{display:inline-block;font-size:8.5px;padding:3px 8px;margin-top:9px}
+.svcs{margin-top:11px}
+.svc{display:flex;align-items:center;gap:7px;font-size:10.5px;padding:3px 0}
+.svc .dot{width:6px;height:6px;flex:none;border-radius:50%}
+.corpband{grid-column:1/-1;padding:9px 16px;margin:4px 0 6px;font-size:10.5px;display:flex;justify-content:space-between;gap:10px}
+/* refuel button — red on low-fuel towers, green after marking refuelled */
+.refuel-btn{display:none;margin-top:10px;font-size:9px;padding:5px 11px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;border:none;border-radius:3px;font-family:inherit;font-weight:600;transition:background .2s,color .2s,box-shadow .2s;
+  background:rgba(200,60,60,.18);color:var(--c-warn,#e06060);box-shadow:inset 0 0 0 1px rgba(200,60,60,.55)}
+.refuel-btn:hover{background:rgba(200,60,60,.32);box-shadow:inset 0 0 0 1px rgba(200,60,60,.85)}
+.refuel-btn.visible{display:inline-block}
+.refuel-btn.refuelled{background:rgba(80,180,80,.14);color:var(--green,#9ac878);box-shadow:inset 0 0 0 1px rgba(80,180,80,.5)}
+.refuel-btn.refuelled:hover{background:rgba(80,180,80,.28);box-shadow:inset 0 0 0 1px rgba(80,180,80,.85)}
+/* refuelled tower sits at the bottom of its lane, slightly dimmed */
+.tower.snoozed-tower{opacity:.72}
+
+</style>
+  <link rel="stylesheet" href="../../assets/themes.css">
+  <script src="../../assets/themes.js" defer></script>
+</head>
+<body>
+
+<div class="yard">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Corporation Holdings · Upwell</div>
+      <h1>Citadel<span class="diamond"></span>Watch</h1>
+      <div class="subline">The corp skyline — every Upwell structure as a tower with a fuel tube, its services, its state, and how long the lights stay on. Rebuilt anew from the Structure Browser.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+<div class="ctl">
+  <button class="btn primary" id="loadBtn">Walk the skyline</button>
+  <span class="hint" id="loadNote">Reads corp structures for each pilot's corporation — needs the Station Manager role in game; pilots without it are noted, not failed.</span>
+</div>
+<div id="out"><div class="empty">Press <b>Walk the skyline</b> to read corp structures.<br>Sign-in lives in the Toolset menu.</div></div>
+</div>
+
+<div id="toast"></div>
+  <script type="module" src="./citadel.js"></script>
+</body>
+</html>

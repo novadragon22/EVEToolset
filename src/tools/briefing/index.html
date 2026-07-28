@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html data-app="briefing">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Command Briefing</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/themes.css">
+<script src="../../assets/themes.js" defer></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.deck{max-width:1500px;margin:0 auto;padding:24px 30px 70px;position:relative;z-index:1}
+.cmdbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:10px 16px;margin-bottom:22px}
+.cmdbar h1{font-size:19px;margin:0;white-space:nowrap}
+.cmdbar h1 .diamond{margin:0 9px;transform:translateY(-2px)}
+.cmdbar .kicker{font-size:9px;white-space:nowrap}
+.cmdbar .spacer{flex:1}
+.subline{font-size:11.5px;margin:-12px 4px 18px}
+.strip{display:grid;grid-template-columns:190px repeat(6,1fr);gap:0;margin-bottom:14px;position:relative}
+.strip .who{padding:14px 16px;display:flex;flex-direction:column;justify-content:center}
+.strip .who .cn{font-size:14px}
+.strip .who .cc{font-size:10px;margin-top:4px}
+.cell{padding:12px 14px;min-width:0}
+.cell .l{font-size:8.5px;display:flex;align-items:center;gap:6px}
+.cell .v{font-size:16px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .s{font-size:10px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.warn .v{animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.55}50%{opacity:1}}
+.agg{display:flex;flex-wrap:wrap;gap:0;margin-top:24px}
+.agg .a{flex:1 1 180px;padding:13px 16px}
+.agg .a .l{font-size:8.5px}
+.agg .a .v{font-size:20px;margin-top:5px}
+.ctl{display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctl .hint{font-size:10.5px}
+@media (max-width:1100px){.strip{grid-template-columns:150px repeat(3,1fr)}}
+@media (max-width:640px){.strip{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="deck">
+<header class="cmdbar panel">
+  <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+  <div>
+    <div class="kicker">Morning Orders · All Pilots</div>
+    <h1>Command<span class="diamond"></span>Briefing</h1>
+  </div>
+  <span class="spacer"></span>
+  <div class="pilots" id="pilots"></div>
+  <span class="eveclock" id="eveclock"></span>
+</header>
+<div class="subline">One strip per pilot — wallet, what's training, jobs on the line, colonies, live orders and whereabouts — read it before you undock.</div>
+<div class="ctl">
+  <button class="btn primary" id="loadBtn">Read the briefing</button>
+  <span class="hint" id="loadNote"></span>
+</div>
+<div id="out"><div class="empty">Press <b>Read the briefing</b> to pull every pilot's morning numbers.<br>Sign-in lives in the Toolset menu.</div></div>
+</div>
+<div id="toast"></div>
+<script type="module" src="./briefing.js"></script>
+</body>
+</html>

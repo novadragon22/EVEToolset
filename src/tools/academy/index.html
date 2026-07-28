@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html data-app="academy">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Training Deck</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/themes.css">
+<script src="../../assets/themes.js" defer></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hall{max-width:1500px;margin:0 auto;padding:26px 30px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:25px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:640px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
+.ctl .hint{font-size:10.5px}
+.tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;align-items:start}
+.track{position:relative;padding-bottom:14px}
+.track-hd{padding:13px 16px 12px}
+.track-hd .cn{font-size:13.5px}
+.track-hd .sp{font-size:10px;margin-top:5px;display:flex;justify-content:space-between;gap:10px}
+.alarm{display:inline-block;font-size:9px;padding:3px 8px;margin-top:8px}
+.alarm.bad{animation:blink 1.1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
+.rail{position:relative;margin:6px 0 0;padding:4px 16px 0 34px}
+.rail::before{content:'';position:absolute;top:0;bottom:8px;left:20px;width:2px}
+.qe{position:relative;margin-bottom:13px}
+.qe::before{content:'';position:absolute;left:-19px;top:4px;width:9px;height:9px;border-radius:50%}
+.qe .qn{font-size:12px}
+.qe .qn b{margin-left:5px}
+.qe .qt{font-size:10px;margin-top:3px}
+.qe .prog{height:5px;margin-top:6px;position:relative}
+.qe .prog .fill{position:absolute;inset:0 auto 0 0}
+.qe.now .qn{font-size:12.5px}
+.attr{display:flex;flex-wrap:wrap;gap:5px;padding:0 16px;margin-top:10px}
+.attr span{font-size:9px;padding:3px 8px}
+.qmod-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+.qmod{width:100%;max-width:780px;position:relative}
+.qmod-hd{padding:18px 20px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.qmod-hd h2{margin:0;font-size:15px}
+.qmod-close{cursor:pointer;font-size:18px;line-height:1;padding:4px 8px;opacity:.6}
+.qmod-close:hover{opacity:1}
+.qmod-tabs{display:flex;gap:0;padding:0 20px;border-bottom:1px solid var(--line)}
+.qmod-tab{font-size:10.5px;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.qmod-tab.on{border-bottom-color:var(--gold-bright);color:var(--gold-bright)}
+.qmod-body{padding:16px 20px 20px}
+.qmod-note{font-size:10.5px;padding:8px 14px;margin-bottom:12px;border-left:3px solid var(--gold-dim);opacity:.8}
+.qrow{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
+.qrow:last-child{border:none}
+.qrow .qpos{font-size:9.5px;width:22px;text-align:right;opacity:.4;flex-shrink:0}
+.qrow .qskn{font-size:12px;flex:1}
+.qrow .qskl{font-size:10px;width:20px;text-align:center;font-weight:700;color:var(--gold-bright)}
+.qrow .qtm{font-size:10px;width:68px;text-align:right;opacity:.6;font-family:var(--mono)}
+.qrow.prereq .qskn{opacity:.55}
+.qrow.prereq .qskl{color:var(--cyan)}
+.qmod-copy{margin-top:14px}
+.qmod-copy textarea{width:100%;height:90px;font-size:10px;font-family:var(--mono);resize:vertical;padding:8px}
+.qmod-spin{padding:24px;text-align:center;font-size:11px}
+.opt-btn{font-size:9.5px;padding:3px 9px;cursor:pointer;margin-top:6px;display:inline-block}
+.qdelta{font-size:9.5px;margin-left:4px}
+.qdelta.faster{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="hall">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Neural Curriculum · All Pilots</div>
+      <h1>Training<span class="diamond"></span>Deck</h1>
+      <div class="subline">Every skill queue as a vertical training track — what's injecting now, what's stacked behind it, and which pilots have gone idle.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+<div class="ctl">
+  <button class="btn primary" id="loadBtn">Sound the bell</button>
+  <span class="hint" id="loadNote"></span>
+</div>
+<div class="tracks" id="out"><div class="empty" style="grid-column:1/-1">Press <b>Sound the bell</b> to read every training queue.<br>Sign-in lives in the Toolset menu.</div></div>
+</div>
+<div id="toast"></div>
+<script type="module" src="./academy.js"></script>
+</body>
+</html>

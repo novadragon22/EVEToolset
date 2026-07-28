@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html data-app="exchange">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVE Exchange</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Aldrich&display=swap" rel="stylesheet">
+<style>
+/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
+.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
+.pilots{display:flex;flex-wrap:wrap;gap:6px}
+.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
+.nochars{font-size:10px}
+.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
+.charerr{padding:8px 12px;font-size:10.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.floor{max-width:1460px;margin:0 auto;padding:22px 30px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;padding-bottom:12px;margin-bottom:18px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:26px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:600px}
+.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+/* the pit: search dock left, chart center, hub board right */
+.pit{display:grid;grid-template-columns:280px 1fr 300px;gap:18px;align-items:start;margin-bottom:22px}
+@media (max-width:1150px){.pit{grid-template-columns:1fr}}
+.dock{padding:14px}
+.dock .dl{font-size:9px;margin-bottom:7px;display:block}
+.dock input,.dock textarea,.dock select{width:100%;font-size:12px;padding:9px 11px;margin-bottom:10px}
+.dock textarea{height:130px;resize:vertical}
+.dock .btn{width:100%;font-size:10.5px;padding:9px 12px;cursor:pointer;margin-bottom:6px}
+.dock .note{font-size:9.5px;line-height:1.55}
+.chartbox{position:relative}
+.chartbox h2{font-size:12px;margin:0;padding:11px 16px;display:flex;justify-content:space-between;gap:10px}
+#histChart{width:100%;height:280px;display:block}
+#histTip{position:absolute;pointer-events:none;font-size:10.5px;padding:6px 9px;display:none;z-index:5;white-space:nowrap}
+.hubboard h2{font-size:12px;margin:0;padding:11px 16px}
+.hub{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:9px 16px;font-size:12px}
+.hub .hn{white-space:nowrap}
+.hub .hp{text-align:right}
+.hub .hp .sell{display:block;font-size:12.5px}
+.hub .hp .buy{display:block;font-size:10px;margin-top:2px}
+/* appraisal + my orders */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:1000px){.split{grid-template-columns:1fr}}
+.split h2{font-size:12px;margin:0;padding:11px 16px;display:flex;justify-content:space-between}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{font-size:9px;text-align:left;padding:8px 14px;white-space:nowrap}
+td{padding:7px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+td.num,th.num{text-align:right}
+
+</style>
+  <link rel="stylesheet" href="../../assets/themes.css">
+  <script src="../../assets/themes.js" defer></script>
+</head>
+<body>
+
+<div class="floor">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" id="backlink" href="../../tools/index/index.html">◂ Toolset</a>
+    <div>
+      <div class="kicker">Open Outcry · Five Hubs</div>
+      <h1>The<span class="diamond"></span>Exchange</h1>
+      <div class="subline">A trading pit for any item — best sell and buy at the five trade hubs, a year of history on the board, cargo-scan appraisal and your own live orders. Rebuilt anew from the Market Console.</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="eveclock" id="eveclock"></span>
+    <div class="pilots" id="pilots"></div>
+  </div>
+</header>
+
+<div class="pit">
+  <aside class="dock panel">
+    <span class="dl">Look up an item (exact in-game name)</span>
+    <input id="itemIn" placeholder="e.g. Tritanium" autocomplete="off">
+    <button class="btn primary" id="quoteBtn">Quote it</button>
+    <span class="dl" style="margin-top:8px">Appraise a cargo scan / paste (one "Name  qty" per line)</span>
+    <textarea id="pasteIn" placeholder="Veldspar 15000&#10;Scordite 8000"></textarea>
+    <button class="btn" id="appraiseBtn">Appraise paste</button>
+    <span class="dl" style="margin-top:8px">Janice market</span>
+    <select id="janMarket"><option value="jita">Jita</option><option value="perimeter">Perimeter</option><option value="jitameter">Jitameter</option><option value="r1o-gn">R1O-GN</option><option value="t5zi-s">T5ZI-S</option><option value="npc">NPC</option></select>
+    <div class="note">Quotes read live hub order books. Appraisal reads Janice hub quotes (best buy / best sell, cached 6&nbsp;h), falling back to CCP's published averages if Janice is unreachable.</div>
+  </aside>
+  <div class="chartbox panel">
+    <h2><span id="chartTitle">Price history — quote an item</span><span class="hint" id="chartHint"></span></h2>
+    <div style="padding:6px 14px 14px;position:relative"><canvas id="histChart"></canvas><div id="histTip"></div></div>
+  </div>
+  <aside class="hubboard panel">
+    <h2>Hub board</h2>
+    <div id="hubs"><div class="empty" style="padding:24px">no item quoted yet</div></div>
+  </aside>
+</div>
+
+<div class="split">
+  <div class="panel"><h2>Appraisal<span class="hint" id="apprTot"></span></h2><div id="apprOut"><div class="empty" style="padding:24px">paste a scan and press appraise</div></div></div>
+  <div class="panel"><h2>My live orders<button class="btn" id="ordersBtn" style="font-size:9.5px;padding:5px 10px;cursor:pointer">refresh</button></h2><div id="ordersOut"><div class="empty" style="padding:24px">press refresh to read the roster's orders</div></div></div>
+</div>
+</div>
+
+<div id="toast"></div>
+  <script type="module" src="./exchange.js"></script>
+</body>
+</html>
