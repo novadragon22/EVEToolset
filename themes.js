@@ -24,6 +24,51 @@
   if (window.__thmDecor) return; // idempotent across double includes
   window.__thmDecor = 1;
 
+  /* ---- UI SCALE: apply immediately so layout never flashes at wrong size ---- */
+  var SCALE_KEY = 'eve_suite_ui_scale';
+  var SCALE_MIN = 50, SCALE_MAX = 200, SCALE_DEF = 100;
+  function clampScale(v) { v = parseInt(v, 10); return isNaN(v) ? SCALE_DEF : Math.min(SCALE_MAX, Math.max(SCALE_MIN, v)); }
+  function readScale() { try { return clampScale(localStorage.getItem(SCALE_KEY)); } catch(e) { return SCALE_DEF; } }
+  function applyScale(v) { document.documentElement.style.fontSize = v + '%'; }
+  applyScale(readScale());
+
+  function injectScaleSlider(container, inline) {
+    if (!container || container.__scaleSlider) return;
+    container.__scaleSlider = 1;
+    var wrap = document.createElement('div');
+    wrap.className = 'scale-ctl';
+    if (inline) wrap.style.cssText = 'margin-left:auto';
+    var lbl = document.createElement('span');
+    lbl.className = 'scale-lbl';
+    var slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = SCALE_MIN; slider.max = SCALE_MAX; slider.step = 5;
+    var cur = readScale();
+    slider.value = cur;
+    lbl.textContent = cur + '%';
+    lbl.title = 'Click to reset to 100%';
+    lbl.onclick = function() { slider.value = SCALE_DEF; update(SCALE_DEF); };
+    function update(v) {
+      v = clampScale(v);
+      lbl.textContent = v + '%';
+      applyScale(v);
+      try { localStorage.setItem(SCALE_KEY, v); } catch(e) {}
+    }
+    slider.oninput = function() { update(+slider.value); };
+    wrap.appendChild(lbl);
+    wrap.appendChild(slider);
+    container.appendChild(wrap);
+  }
+
+  function injectSliders() {
+    try {
+      var tbRights = document.querySelectorAll('.tb-right');
+      for (var i = 0; i < tbRights.length; i++) injectScaleSlider(tbRights[i], false);
+      var themes = document.querySelectorAll('.topbar .themes');
+      for (var j = 0; j < themes.length; j++) injectScaleSlider(themes[j], false);
+    } catch(e) {}
+  }
+
   var CARD_SEL = '.kcard,.card,.tile';
   var PANEL_SEL = '.panel';
   var HD_SEL = '.panel-hd,.panel-head';
@@ -156,6 +201,7 @@
   function boot() {
     ensureChrome();
     sweep(document.body || document.documentElement);
+    injectSliders();
     try {
       var pending = false;
       var mo = new MutationObserver(function (muts) {

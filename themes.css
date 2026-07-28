@@ -3277,3 +3277,12 @@ html[data-theme="amarr"] .theme-swatch.on::after{color:#e8d296}
 html[data-theme="caldari"] .theme-swatch.on::after{color:#5ad8ff;border-radius:0}
 html[data-theme="gallente"] .theme-swatch.on::after{color:#4ac89a}
 html[data-theme="minmatar"] .theme-swatch.on::after{color:#e8946a;border-style:dashed;border-radius:0}
+
+
+/* ---- UI SCALE SLIDER ---- */
+.scale-ctl{display:flex;align-items:center;gap:7px;flex:none}
+.scale-ctl .scale-lbl{font-size:9px;white-space:nowrap;cursor:pointer;min-width:34px;text-align:right;opacity:.7;transition:opacity .15s}
+.scale-ctl .scale-lbl:hover{opacity:1}
+.scale-ctl input[type=range]{-webkit-appearance:none;appearance:none;width:72px;height:3px;border-radius:2px;outline:none;cursor:pointer;background:var(--line,#2a3040)}
+.scale-ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--accent,#00c8ff);border:1px solid var(--bg,#0a0e14);cursor:pointer}
+.scale-ctl input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--accent,#00c8ff);border:1px solid var(--bg,#0a0e14);cursor:pointer;box-sizing:border-box}

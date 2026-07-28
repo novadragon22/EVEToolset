@@ -354,39 +354,35 @@ function moonSortKeyForChip(name,system){
   const moon=m?+m[2]:9999;
   return [(system||'').toLowerCase(),planet,moon];
 }
-function nextCycleDate(r){
-  /* Build the same sorted unit list the optimiser uses, respecting exclusions */
-  const gap=2;
+function buildScheduleUnits(){
+  /* Single source of truth for unit ordering — queue order, planet/moon within each system */
+  const gap=3;
   const plansToSchedule=extractionPlans.filter(p=>!isExcluded(p.system,p.system));
-  if(!plansToSchedule.length)return null;
   const units=[];
   plansToSchedule.forEach(p=>{
     const refs=refineries.filter(rf=>(rf.system||'').toLowerCase()===p.system.toLowerCase()&&!isExcluded(rf.name,rf.system));
-    if(refs.length)refs.forEach(rf=>units.push({system:p.system,constellation:p.constellation||rf.constellation||'Unknown',refinery:rf.name,sid:rf.sid}));
-    else units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null,sid:null});
+    if(refs.length){
+      refs.sort((a,b)=>{
+        const ma=a.name?a.name.match(/Planet\s+(\w+).*Moon\s+(\d+)/i):null;
+        const mb=b.name?b.name.match(/Planet\s+(\w+).*Moon\s+(\d+)/i):null;
+        const pa=ma?romanToInt(ma[1]):9999,pb=mb?romanToInt(mb[1]):9999;
+        const moa=ma?+ma[2]:9999,mob=mb?+mb[2]:9999;
+        return pa!==pb?pa-pb:moa-mob;
+      });
+      refs.forEach(rf=>units.push({system:p.system,constellation:p.constellation||rf.constellation||'Unknown',refinery:rf.name,sid:rf.sid}));
+    } else {
+      units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null,sid:null});
+    }
   });
-  /* within each system, sort by planet then moon; system order follows the queue */
-  /* group by system in queue order, sort refs within each group */
-  const grouped=[];
-  plansToSchedule.forEach(p=>{
-    const g=units.filter(u=>u.system.toLowerCase()===p.system.toLowerCase());
-    g.sort((a,b)=>{
-      const ma=a.refinery?a.refinery.match(/Planet\s+(\w+).*Moon\s+(\d+)/i):null;
-      const mb=b.refinery?b.refinery.match(/Planet\s+(\w+).*Moon\s+(\d+)/i):null;
-      const pa=ma?romanToInt(ma[1]):9999,pb=mb?romanToInt(mb[1]):9999;
-      const moa=ma?+ma[2]:9999,mob=mb?+mb[2]:9999;
-      return pa!==pb?pa-pb:moa-mob;
-    });
-    g.forEach(u=>{if(!grouped.find(x=>x.sid===u.sid&&x.refinery===u.refinery))grouped.push(u);});
-  });
-  units.length=0;grouped.forEach(u=>units.push(u));
+  return {units,gap,plansToSchedule};
+}
+function nextCycleDate(r){
+  const {units,gap}=buildScheduleUnits();
   const N=units.length;
   if(!N)return null;
   const cycleDays=N*gap;
-  /* find this refinery's index in the schedule */
   const idx=units.findIndex(u=>u.sid===r.sid||(u.refinery&&r.name&&u.refinery.toLowerCase()===r.name.toLowerCase()));
   if(idx<0)return null;
-  /* use the same epoch anchor as the optimiser: earliest known arrival among synced units */
   const today=startOfDay(now());
   const syncedArrivals=units.map(u=>{
     const ref=refineries.find(rf=>rf.sid&&u.sid&&rf.sid===u.sid);
@@ -505,32 +501,17 @@ $('optExclude').addEventListener('input',e=>{excludeKeywords=parseExclude(e.targ
   try{localStorage.setItem(EXCLUDE_KEY,JSON.stringify(e.target.value));}catch(err){}
   renderCalendar();renderPlanList();});
 $('genPatternBtn').onclick=()=>{
-  const gap=2;
   const today=startOfDay(now());
-  const plansToSchedule=extractionPlans.filter(p=>(optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation)&&!isExcluded(p.system,p.system));
+  const {units,gap,plansToSchedule}=buildScheduleUnits();
+  /* apply constellation filter on top of the shared unit list */
+  const filteredUnits=optFilter.constellation==='all'?units:units.filter(u=>u.constellation===optFilter.constellation);
+  const filteredPlans=[...new Set(filteredUnits.map(u=>u.system))];
   const out=$('patternResult');
-  if(!plansToSchedule.length){out.innerHTML='<div class="empty" style="padding:20px">No systems to schedule — add one, or it may be hidden by your exclusion keywords.</div>';return;}
-  const units=[];
-  plansToSchedule.forEach(p=>{
-    const refs=refineries.filter(r=>(r.system||'').toLowerCase()===p.system.toLowerCase()&&!isExcluded(r.name,r.system));
-    if(refs.length){
-      refs.sort((a,b)=>{
-        const ma=a.name?a.name.match(/Planet\s+(\w+).*Moon\s+(\d+)/i):null;
-        const mb=b.name?b.name.match(/Planet\s+(\w+).*Moon\s+(\d+)/i):null;
-        const pa=ma?romanToInt(ma[1]):9999,pb=mb?romanToInt(mb[1]):9999;
-        const moa=ma?+ma[2]:9999,mob=mb?+mb[2]:9999;
-        return pa!==pb?pa-pb:moa-mob;
-      });
-      refs.forEach(r=>units.push({system:p.system,constellation:p.constellation||r.constellation||'Unknown',refinery:r.name,sid:r.sid}));
-    }
-    else units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null,sid:null});
-  });
-  /* refineries within each system are sorted by planet then moon number;
-     system order follows the queue as the user arranged it */
-  const N=units.length,cycleDays=Math.round(N*gap);
+  if(!filteredUnits.length){out.innerHTML='<div class="empty" style="padding:20px">No systems to schedule — add one, or it may be hidden by your exclusion keywords.</div>';return;}
+  const N=filteredUnits.length,cycleDays=N*gap;
   /* anchor the cycle to the earliest known chunk arrival among synced refineries in the plan,
      so arrival dates never shift when the pattern is regenerated */
-  const syncedArrivals=units.map(u=>{
+  const syncedArrivals=filteredUnits.map(u=>{
     const ref=refineries.find(r=>r.sid&&u.sid&&r.sid===u.sid);
     return (ref&&ref.arrive)?Date.parse(ref.arrive):null;
   }).filter(Boolean);
@@ -538,14 +519,14 @@ $('genPatternBtn').onclick=()=>{
   const epoch=startOfDay(epochMs);
   /* for each slot, find its fixed phase (index*gap days from epoch) then advance by full
      cycles until the next occurrence on or after today */
-  const results=units.map((u,i)=>{
+  const results=filteredUnits.map((u,i)=>{
     const slotOffset=Math.round(i*gap);
     let arrivalDate=addDays(epoch,slotOffset);
     while(arrivalDate<today)arrivalDate=addDays(arrivalDate,cycleDays);
     const nextArrival=addDays(arrivalDate,cycleDays);
     return {...u,arrivalDate,nextArrival};
   });
-  out.innerHTML='<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+plansToSchedule.length+' system'+(plansToSchedule.length!==1?'s':'')+' · one full cycle every <b>'+cycleDays+'d</b>. Each system\'s refineries are all scheduled before the cycle returns to the first.</div>'+
+  out.innerHTML='<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+filteredPlans.length+' system'+(plansToSchedule.length!==1?'s':'')+' · one full cycle every <b>'+cycleDays+'d</b>. Each system\'s refineries are all scheduled before the cycle returns to the first.</div>'+
   '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Chunk arrival</th><th>Next arrival</th></tr></thead><tbody>'+
   results.map((r,i)=>'<tr><td class="dim">'+(i+1)+'</td><td><div class="nm">'+esc(r.system)+'</div></td><td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td><td class="dim">'+esc(r.constellation||'Unspecified')+'</td><td>'+dayLabel(r.arrivalDate)+'</td><td class="dim">'+dayLabel(r.nextArrival)+'</td></tr>').join('')+
   '</tbody></table></div>';
