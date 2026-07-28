@@ -134,7 +134,7 @@ td.dim{font-size:10.5px}
 <div class="optgrid" id="optGrid" style="display:none">
   <aside class="optdesk panel">
     <h2>Chunk Extraction Optimiser</h2>
-    <span class="c">Stagger chunk <b>arrival</b> dates across your refineries so they don't all land the same day. Enter how many days apart you want chunks to arrive, and how long your drills run — the schedule will tell you when to start each drill.</span>
+    <span class="c">Stagger extraction starts across your scan-plan queue so chunks don't all land the same day — same algorithm and saved plans as the original.</span>
     <label>ADD A SYSTEM TO THE QUEUE</label>
     <input id="planSystem" placeholder="system name">
     <label>CONSTELLATION (OPTIONAL — AUTO-FILLED IF SYNCED)</label>
@@ -143,10 +143,8 @@ td.dim{font-size:10.5px}
     <button class="btn" id="addPlanBtn">+ Queue system</button>
     <label style="margin-top:14px">QUEUED SYSTEMS</label>
     <div id="planList"></div>
-    <label style="margin-top:14px">DAYS BETWEEN CHUNK ARRIVALS</label>
-    <input type="number" id="optDuration" value="25" min="0.5" step="0.5">
-    <label>EXTRACTION DURATION (DAYS) — used to calculate drill start date</label>
-    <input type="number" id="optExtractDuration" value="7" min="1" max="28" step="0.5">
+    <label style="margin-top:14px">DAYS BETWEEN STARTS</label>
+    <input type="number" id="optDuration" value="7" min="0.5" step="0.5">
     <button class="btn primary" id="genPatternBtn">Generate stagger pattern</button>
   </aside>
   <div class="panel"><div class="panel-hd2" style="padding:11px 16px"><h2>Suggested schedule</h2></div>
@@ -279,30 +277,9 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
    and exclusions share its localStorage keys, so both tools stay in step. */
 const REFINERY_TYPES={35835:'Athanor',35836:'Tatara'};
 const PLAN_KEY='eve_extraction_plans_v1', EXCLUDE_KEY='eve_extraction_exclude_v1';
-const SCHEDULE_KEY='eve_extraction_schedule_v1';
 let refineries=[];    // {name,type,typeId,system,constellation,sec,corp, start,arrive,decay}
 let extractionPlans=[]; let optFilter={constellation:'all'}; let excludeKeywords=[];
-let savedSchedule=[]; // [{system,refinery,startDate(ISO)}]
 try{extractionPlans=JSON.parse(localStorage.getItem(PLAN_KEY)||'[]')||[];}catch(e){}
-try{savedSchedule=JSON.parse(localStorage.getItem(SCHEDULE_KEY)||'[]')||[];}catch(e){}
-function saveSchedule(results){
-  try{
-    savedSchedule=results.map(r=>({system:r.system,refinery:r.refinery||null,arrivalDate:r.arrivalDate.toISOString()}));
-    localStorage.setItem(SCHEDULE_KEY,JSON.stringify(savedSchedule));
-  }catch(e){}
-}
-// Returns 'on-schedule' | 'off-schedule' | null
-function scheduleStatus(r){
-  if(!savedSchedule.length) return null;
-  const entry=savedSchedule.find(s=>
-    s.refinery ? s.refinery===r.name : s.system===r.system
-  );
-  if(!entry) return null;
-  if(!r.arrive) return null;
-  const scheduledDay=dateKey(startOfDay(new Date(entry.arrivalDate)));
-  const arrivalDay=dateKey(startOfDay(new Date(r.arrive)));
-  return arrivalDay===scheduledDay ? 'on-schedule' : 'off-schedule';
-}
 let excludeRaw='';try{excludeRaw=JSON.parse(localStorage.getItem(EXCLUDE_KEY)||'""')||'';}catch(e){try{excludeRaw=localStorage.getItem(EXCLUDE_KEY)||'';}catch(e2){}}
 function parseExclude(str){return (str||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);}
 excludeKeywords=parseExclude(excludeRaw);
@@ -369,21 +346,16 @@ async function loadAll(){
 function phaseChip(r){
   const st=statusOf(r);
   const sec=r.sec!=null?r.sec.toFixed(1):'?';
-  const sched=scheduleStatus(r);
-  let line,sub='',schedStyle='';
-  if(st==='extracting'){
-    line='Chunk lands in '+fmtDur(Date.parse(r.arrive)-now());
-    if(r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';
-    if(sched==='on-schedule') schedStyle=' style="color:var(--green,#9ac878)"';
-    else if(sched==='off-schedule') schedStyle=' style="color:var(--c-warn,#e06060)"';
-  }
+  let line,sub='';
+  if(st==='extracting'){line='Chunk lands in '+fmtDur(Date.parse(r.arrive)-now());
+    if(r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';}
   else{line='No extraction scheduled';sub='drill is dark — schedule a chunk';}
   return '<div class="mchip card st-'+st+'">'+
     '<span class="mimg-wrap"><img class="mimg" src="https://images.evetech.net/types/'+r.typeId+'/render?size=64" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'+
     '<span class="phase ph-'+st+'"></span></span>'+
     '<div><div class="mn">'+esc(r.name)+'</div>'+
     '<div class="mt">'+esc(r.type)+' · '+sec+' '+esc(r.system)+' · '+esc(r.constellation||'')+'</div>'+
-    '<div class="ms"'+schedStyle+'>'+line+(sched?(' · '+(sched==='on-schedule'?'✓ on schedule':'✗ off schedule')):'')+'</div>'+(sub?'<div class="md">'+sub+'</div>':'')+'</div></div>';
+    '<div class="ms">'+line+'</div>'+(sub?'<div class="md">'+sub+'</div>':'')+'</div></div>';
 }
 
 function render(errs){
@@ -405,11 +377,9 @@ function render(errs){
     '</div>';
   $('calPanel').style.display='';$('optGrid').style.display='';
   refreshOptFilters();renderCalendar();renderPlanList();
-  if(errs!==undefined){  // only update status on a fresh ESI load, not on schedule re-render
-    reportDashboard(lanes.extracting.length+' extracting'+(lanes.idle.length?' · '+lanes.idle.length+' idle!':''),
-      lanes.idle.length?'bad':'ok');
-    $('loadNote').textContent='Moons sighted '+new Date().toUTCString().slice(17,25)+' EVE · '+refineries.length+' refineries';
-  }
+  reportDashboard(lanes.extracting.length+' extracting'+(lanes.idle.length?' · '+lanes.idle.length+' idle!':''),
+    lanes.idle.length?'bad':'ok');
+  $('loadNote').textContent='Moons sighted '+new Date().toUTCString().slice(17,25)+' EVE · '+refineries.length+' refineries';
 }
 
 /* ---- arrivals calendar (algorithm carried over from the Structure Browser) ---- */
@@ -463,141 +433,23 @@ $('optExclude').addEventListener('input',e=>{excludeKeywords=parseExclude(e.targ
   try{localStorage.setItem(EXCLUDE_KEY,JSON.stringify(e.target.value));}catch(err){}
   renderCalendar();renderPlanList();});
 $('genPatternBtn').onclick=()=>{
-  const gap=Math.max(0.5,+$('optDuration').value||25);
-  const extractDays=Math.max(1,+$('optExtractDuration').value||7);
+  const gap=Math.max(0.5,+$('optDuration').value||7);
   const today=startOfDay(now());
-  // Filter queued plans by constellation filter (exclusion keywords handled per-unit below)
-  const plansToSchedule=extractionPlans.filter(p=>
-    optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation
-  );
+  const plansToSchedule=extractionPlans.filter(p=>(optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation)&&!isExcluded(p.system,p.system));
   const out=$('patternResult');
-  if(!plansToSchedule.length){out.innerHTML='<div class="empty" style="padding:20px">No systems to schedule — add one, or it may be hidden by your constellation filter.</div>';return;}
-
-  // Build units: one per refinery (or one per system if not yet synced).
-  // Exclusion filter is applied HERE so excluded refineries consume no schedule slot.
-  // Each unit may carry a liveArrival (ms timestamp) from ESI if currently extracting.
+  if(!plansToSchedule.length){out.innerHTML='<div class="empty" style="padding:20px">No systems to schedule — add one, or it may be hidden by your exclusion keywords.</div>';return;}
   const units=[];
   plansToSchedule.forEach(p=>{
-    // system-level exclusion — if the system itself matches, skip every refinery in it
-    if(isExcluded(p.system, p.system)) return;
-    const refs=refineries.filter(r=>
-      (r.system||'').toLowerCase()===p.system.toLowerCase() &&
-      !isExcluded(r.name, r.system)  // per-refinery exclusion
-    );
-    if(refs.length){
-      refs.forEach(r=>{
-        // Carry the live chunk_arrival_time if this refinery is currently extracting
-        const liveArrival=(r.arrive && Date.parse(r.arrive)>now()) ? Date.parse(r.arrive) : null;
-        units.push({system:p.system,constellation:p.constellation||r.constellation||'Unknown',refinery:r.name,liveArrival});
-      });
-    } else {
-      // System queued but no synced refineries (or all excluded by name) — include as unresolved slot
-      // only if the system itself isn't excluded
-      units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null,liveArrival:null});
-    }
+    const refs=refineries.filter(r=>(r.system||'').toLowerCase()===p.system.toLowerCase()&&!isExcluded(r.name,r.system));
+    if(refs.length)refs.forEach(r=>units.push({system:p.system,constellation:p.constellation||r.constellation||'Unknown',refinery:r.name}));
+    else units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null});
   });
-
-  if(!units.length){
-    out.innerHTML='<div class="empty" style="padding:20px">All queued systems are excluded by your exclusion keywords — adjust the filter or queue a non-excluded system.</div>';
-    return;
-  }
-
-  const N=units.length, cycleDays=Math.round(N*gap);
-
-  // ── Chunk-arrival-anchored scheduling ──────────────────────────────────────
-  // 1. Units with a live in-flight chunk get their arrival anchored to the real
-  //    ESI chunk_arrival_time (normalised to start-of-day for schedule comparison).
-  // 2. Remaining units are assigned to the nearest open slot in a gap-day grid
-  //    that doesn't clash (within 1 day) with any already-anchored arrival.
-  //
-  // "Slot" positions are measured as whole-day offsets from today (mod cycleDays),
-  // so the pattern repeats correctly each full cycle.
-
-  const gapDays=Math.round(gap); // integer day granularity for slot grid
-  const safeGap=Math.max(gapDays,1);
-
-  // Seed anchored units first — sort by their live arrival so earlier chunks
-  // get lower slot indices, giving a naturally ascending table.
-  const anchored=[], free=[];
-  units.forEach(u=>{
-    if(u.liveArrival!==null) anchored.push(u);
-    else free.push(u);
-  });
-  anchored.sort((a,b)=>a.liveArrival-b.liveArrival);
-
-  // Build a set of taken day-offsets (mod cycleDays) from anchored arrivals.
-  // Each anchored unit pins a specific day.
-  const takenOffsets=new Set();
-  anchored.forEach(u=>{
-    const dayOffset=Math.round((startOfDay(new Date(u.liveArrival))-today)/86400000);
-    u._slot=((dayOffset%cycleDays)+cycleDays)%cycleDays; // normalise into [0, cycleDays)
-    takenOffsets.add(u._slot);
-  });
-
-  // Assign free units to the lowest available slot that isn't taken.
-  // Walk slot candidates 0, safeGap, 2*safeGap … and skip taken positions.
-  const allSlots=[];
-  for(let s=0;s<cycleDays;s+=safeGap) allSlots.push(s);
-  // Remove slots taken by anchored units (± 0 days — exact clash only; users may
-  // want adjacent days for deliberate grouping, so we only block exact matches).
-  const freeSlots=allSlots.filter(s=>!takenOffsets.has(s));
-
-  free.forEach((u,i)=>{
-    // Assign the next available free slot; if we run out, wrap with an offset
-    u._slot=(i<freeSlots.length) ? freeSlots[i] : (freeSlots[freeSlots.length-1]||0)+(i-freeSlots.length+1)*safeGap;
-  });
-
-  // Merge and sort all units by their assigned slot for a clean ascending table.
-  const allUnits=[...anchored,...free].sort((a,b)=>a._slot-b._slot);
-
-  const results=allUnits.map(u=>{
-    // Anchored units: use the real ESI date as arrivalDate (preserves exact time for
-    // on-schedule matching); free units: project forward from today by slot days.
-    const arrivalDate=u.liveArrival!==null
-      ? startOfDay(new Date(u.liveArrival))
-      : addDays(today, u._slot);
-    const drillStartDate=addDays(arrivalDate, -extractDays);
-    const nextArrivalDate=addDays(arrivalDate, cycleDays);
-    const nextDrillStart=addDays(drillStartDate, cycleDays);
-    return {...u, arrivalDate, drillStartDate, nextArrivalDate, nextDrillStart};
-  });
-
-  saveSchedule(results);
-  if(refineries.length) render();
-
-  const anchoredCount=results.filter(r=>r.liveArrival!==null).length;
-  const anchorNote=anchoredCount
-    ? ' · <span title="'+anchoredCount+' refiner'+(anchoredCount===1?'y':'ies')+' already extracting — arrival dates taken from live ESI chunk timers">⚓ '+anchoredCount+' live-anchored</span>'
-    : '';
-  out.innerHTML=
-    '<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+
-    [...new Set(allUnits.map(u=>u.system))].length+' system'+(plansToSchedule.length!==1?'s':'')+
-    ' · <b>'+gap+'d</b> between arrivals · one full cycle every <b>'+cycleDays+'d</b> · '+extractDays+'d extraction duration'+
-    anchorNote+'.'+
-    ' <b style="color:var(--green,#9ac878)">Schedule saved</b> — moon chips now show ✓/✗ against target arrival dates.</div>'+
-    '<div style="overflow-x:auto"><table><thead><tr>'+
-    '<th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Start drill by</th><th>Chunk arrives</th><th>Next arrival</th>'+
-    '</tr></thead><tbody>'+
-    results.map((r,i)=>{
-      const live=r.liveArrival!==null;
-      return '<tr'+(live?' title="Anchored to live ESI chunk timer"':'')+'><td class="dim">'+(i+1)+(live?' <span title="Live chunk arrival" style="color:var(--cyan,#70d4ff)">⚓</span>':'')+'</td>'+
-      '<td><div class="nm">'+esc(r.system)+'</div></td>'+
-      '<td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td>'+
-      '<td class="dim">'+esc(r.constellation||'Unspecified')+'</td>'+
-      '<td>'+(live?'<span class="dim">already running</span>':dayLabel(r.drillStartDate))+'</td>'+
-      '<td><b>'+dayLabel(r.arrivalDate)+'</b>'+(live?' <span style="font-size:9px;color:var(--cyan,#70d4ff)">(live)</span>':'')+'</td>'+
-      '<td class="dim">'+dayLabel(r.nextArrivalDate)+'</td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table></div>'+
-    '<button class="btn" id="clearScheduleBtn" style="margin-top:10px;font-size:10px;padding:6px 12px">✕ Clear saved schedule</button>';
-
-  $('clearScheduleBtn').onclick=()=>{
-    savedSchedule=[];
-    try{localStorage.removeItem(SCHEDULE_KEY);}catch(e){}
-    if(refineries.length) render();
-    out.innerHTML='<div class="empty" style="padding:20px">Schedule cleared — generate a new pattern to save another.</div>';
-  };
+  const N=units.length,cycleDays=Math.round(N*gap);
+  const results=units.map((u,i)=>{const startDate=addDays(today,Math.round(i*gap));return {...u,startDate,nextDate:addDays(startDate,cycleDays)};});
+  out.innerHTML='<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+plansToSchedule.length+' system'+(plansToSchedule.length!==1?'s':'')+' · one full cycle every <b>'+cycleDays+'d</b>. Each system\'s refineries are all scheduled before the cycle returns to the first.</div>'+
+  '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Suggested start</th><th>Next cycle</th></tr></thead><tbody>'+
+  results.map((r,i)=>'<tr><td class="dim">'+(i+1)+'</td><td><div class="nm">'+esc(r.system)+'</div></td><td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td><td class="dim">'+esc(r.constellation||'Unspecified')+'</td><td>'+dayLabel(r.startDate)+'</td><td class="dim">'+dayLabel(r.nextDate)+'</td></tr>').join('')+
+  '</tbody></table></div>';
 };
 $('loadBtn').onclick=loadAll;
 window.onRosterChange=()=>{ if(refineries.length)loadAll(); };
