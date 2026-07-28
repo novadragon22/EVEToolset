@@ -143,8 +143,6 @@ td.dim{font-size:10.5px}
     <button class="btn" id="addPlanBtn">+ Queue system</button>
     <label style="margin-top:14px">QUEUED SYSTEMS</label>
     <div id="planList"></div>
-    <label style="margin-top:14px">DAYS BETWEEN STARTS</label>
-    <input type="number" id="optDuration" value="7" min="0.5" step="0.5">
     <button class="btn primary" id="genPatternBtn">Generate stagger pattern</button>
   </aside>
   <div class="panel"><div class="panel-hd2" style="padding:11px 16px"><h2>Suggested schedule</h2></div>
@@ -402,9 +400,10 @@ function renderCalendar(){
   let strip='',list='';
   for(let i=0;i<windowDays;i++){
     const d=addDays(today,i),k=dateKey(d),items=buckets[k]||[];
-    const lvl=items.length===0?'':items.length<=2?'lo':'hi';
-    strip+='<div class="cal-tile '+lvl+(i===0?' today':'')+'"><span class="cal-dow">'+d.toLocaleDateString([],{weekday:'short'})+'</span><span class="cal-dom">'+d.getDate()+'</span>'+(items.length?'<span class="cal-count">'+items.length+'</span>':'')+'</div>';
-    if(items.length)list+='<div class="cal-day-row"><div class="cal-day-date">'+dayLabel(d)+'</div><div class="cal-day-chips">'+items.map(a=>'<span class="cal-chip">'+esc(a.name)+' <i>'+esc(a.system)+'</i></span>').join('')+'</div></div>';
+    if(!items.length)continue;
+    const lvl=items.length<=2?'lo':'hi';
+    strip+='<div class="cal-tile '+lvl+(i===0?' today':'')+'"><span class="cal-dow">'+d.toLocaleDateString([],{weekday:'short'})+'</span><span class="cal-dom">'+d.getDate()+'</span><span class="cal-count">'+items.length+'</span></div>';
+    list+='<div class="cal-day-row"><div class="cal-day-date">'+dayLabel(d)+'</div><div class="cal-day-chips">'+items.map(a=>'<span class="cal-chip">'+esc(a.name)+' <i>'+esc(a.system)+'</i></span>').join('')+'</div></div>';
   }
   wrap.innerHTML='<div class="cal-strip">'+strip+'</div>'+(list?'<div class="cal-list">'+list+'</div>':'<div class="empty" style="padding:14px">No scheduled arrivals in this window'+(optFilter.constellation!=='all'?' for '+esc(optFilter.constellation):'')+'.</div>');
 }
@@ -433,7 +432,7 @@ $('optExclude').addEventListener('input',e=>{excludeKeywords=parseExclude(e.targ
   try{localStorage.setItem(EXCLUDE_KEY,JSON.stringify(e.target.value));}catch(err){}
   renderCalendar();renderPlanList();});
 $('genPatternBtn').onclick=()=>{
-  const gap=Math.max(0.5,+$('optDuration').value||7);
+  const gap=2;
   const today=startOfDay(now());
   const plansToSchedule=extractionPlans.filter(p=>(optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation)&&!isExcluded(p.system,p.system));
   const out=$('patternResult');
