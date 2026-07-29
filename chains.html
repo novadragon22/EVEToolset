@@ -197,6 +197,47 @@ td .reg{font-size:9px}
 .sg-row .sg-impact{color:var(--cyan)}
 .sg-nodata{font-size:10px;color:var(--muted2);padding:4px 0}
 
+/* stale pilot warning */
+.stale-badge{font-size:8px;padding:1px 5px;vertical-align:middle;margin-left:5px;background:rgba(220,160,40,.18);color:#d4a040;border:1px solid rgba(220,160,40,.4)}
+.stale-banner{font-size:10px;padding:7px 11px;margin-top:8px;border-left:3px solid #d4a040;background:rgba(220,160,40,.07)}
+/* chain comparison */
+.compare-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.compare-bar .navbtn{font-size:10.5px;padding:4px 12px;cursor:pointer;border:1px solid var(--line2);color:var(--muted)}
+.compare-bar .navbtn.active{border-color:var(--gold-dim);color:var(--gold-bright);background:rgba(201,168,104,.12)}
+.cmp-panel{padding:16px;margin-bottom:20px;display:none}
+.cmp-panel.on{display:block}
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:800px){.cmp-grid{grid-template-columns:1fr}}
+.cmp-slot{padding:13px 14px}
+.cmp-slot h3{font-size:11px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.cmp-slot h3 .slot-label{font-size:9px;padding:1px 8px}
+.cmp-stat{font-size:10.5px;padding:4px 0;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.cmp-stat .csl{color:var(--muted2);font-size:9.5px}
+.cmp-stat .csv{font-size:11px}
+.cmp-stat .csv.better{color:var(--green)}
+.cmp-stat .csv.worse{color:var(--red)}
+.cmp-sep{height:1px;background:var(--line2);margin:10px 0}
+.cmp-nodata{font-size:10px;color:var(--muted2);padding:8px 0}
+.cmp-overlap{font-size:9.5px;margin-top:8px;line-height:1.7}
+.slot-basket-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.slot-basket-chip{font-size:9.5px;padding:2px 8px;border:1px solid var(--line2)}
+/* expiry timeline */
+.expiry-timeline{margin-top:14px;border-top:1px solid var(--line2);padding-top:10px;display:none}
+.expiry-timeline.on{display:block}
+.expiry-tl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.expiry-tl-head h3{font-size:10px;margin:0}
+.expiry-tl-head .hint{font-size:9px}
+.tl-svg-wrap{overflow-x:auto}
+.tl-svg-wrap svg{display:block}
+.tl-pilot-label{font-size:9px;fill:var(--muted2,#888)}
+.tl-axis-label{font-size:8px;fill:var(--muted2,#888)}
+.tl-grid-line{stroke:rgba(255,255,255,.06);stroke-width:1}
+.tl-now-line{stroke:var(--cyan,#7ab8c8);stroke-width:1.5;stroke-dasharray:3 3}
+.tl-head-exp{rx:3;ry:3}
+.tl-legend{display:flex;gap:14px;font-size:9px;margin-top:6px}
+.tl-legend i{font-style:normal;display:inline-flex;align-items:center;gap:4px}
+.tl-legend .dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+
 .capband{padding:13px 18px;margin-top:20px}
 .capband .cb-row{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;padding:5px 0}
 .capband .cb-big{font-size:17px}
@@ -254,6 +295,15 @@ td .reg{font-size:9px}
     <div class="pilots" id="pilots"></div>
   </div>
 </header>
+
+<div class="compare-bar">
+  <span class="navbtn" id="cmpToggle">⇄ Compare drafts</span>
+  <span class="hint" style="font-size:10px">side-by-side A vs B — P0 overlap, throughput, ISK/day</span>
+</div>
+<div class="cmp-panel panel" id="cmpPanel">
+  <div id="cmpControls" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;margin-bottom:12px"></div>
+  <div class="cmp-grid" id="cmpGrid"></div>
+</div>
 
 <div class="workbench">
   <aside class="desk panel">
@@ -351,9 +401,23 @@ td .reg{font-size:9px}
     <span class="hint" style="font-size:10px">finds the role split that maximises throughput lines for this draft</span>
   </div>
   <div id="autochalkDiff" style="display:none"></div>
+  <div id="staleBanner" style="display:none"></div>
   <div class="skillgap-section" id="skillgapSection" style="display:none">
     <span class="skillgap-toggle" id="skillgapToggle"><span class="arr">▶</span> Skill gap report</span>
     <div class="skillgap-body" id="skillgapBody"></div>
+  </div>
+  <div class="expiry-timeline" id="expiryTimeline">
+    <div class="expiry-tl-head">
+      <h3>Extractor head expiry — next 48 h</h3>
+      <span class="hint" id="expiryTlHint"></span>
+    </div>
+    <div class="tl-svg-wrap" id="tlSvgWrap"></div>
+    <div class="tl-legend">
+      <i><span class="dot" style="background:#e05050"></span>expired / &lt;4h</i>
+      <i><span class="dot" style="background:#d4a040"></span>4–12h</i>
+      <i><span class="dot" style="background:#6dc86d"></span>&gt;12h</i>
+      <i><span class="dot" style="background:rgba(122,184,200,.35)"></span>now</i>
+    </div>
   </div>
 </div>
 </div>
@@ -1729,7 +1793,7 @@ function _orig_renderRoles2(){
   $('roleSum').textContent='Chalked: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
 }
 // Fetch colony clocks when roles change or on page load (silently)
-function refreshColonyClocks(){
+function _rcc_base(){
   fetchColonyClocks().then(()=>renderRoles()).catch(()=>{});
 }
 
@@ -1811,7 +1875,7 @@ function refreshDraft(){
 
 /* Patch liveRefresh to include colony clocks + BFR */
 const _origLiveRefresh=_orig_liveRefresh;
-function liveRefresh(){
+function _lr_base(){
   chars=loadChars();
   try{roles=JSON.parse(localStorage.getItem(ROLE_KEY)||'{}')||{};}catch(e){}
   try{piSkills=JSON.parse(localStorage.getItem(SKILL_CACHE_KEY)||'{}')||{};}catch(e){}
@@ -2139,7 +2203,7 @@ function hintWhyNoDelta(id,role,st){
 
 /* Patch renderRoles to also refresh skill gap if open, and auto-chalk diff if needed */
 const _origRenderRolesForSkillGap=_orig_renderRoles2;
-function renderRoles(){
+function _rr_stale_base(){
   _orig_renderRoles2();
   const body=$('skillgapBody');
   if(body&&body.classList.contains('on'))renderSkillGap();
@@ -2177,13 +2241,383 @@ function renderLogistics(){
   renderPilotAssign(stagesMap);
 }
 
+/* ============================================================
+   FEATURE 1: Stale / inactive pilot warning
+   getTok returns null when refresh fails and token is expired.
+   We run a background check on all visible pilots after load
+   and on every liveRefresh, storing {stale:bool} per id.
+   Stale pilots get ⚠ on their pill; capband gets a banner.
+   ============================================================ */
+const STALE_KEY='eve_suite_chains_stale';
+let staleMap={};
+try{staleMap=JSON.parse(localStorage.getItem(STALE_KEY)||'{}')||{};}catch(e){}
+function saveStaleMap(){try{localStorage.setItem(STALE_KEY,JSON.stringify(staleMap));}catch(e){}}
+
+async function checkStalePilots(){
+  const lim=pLimit(4);let changed=false;
+  await Promise.all(Object.keys(chars).map(id=>lim(async()=>{
+    /* Only flag as stale if we've seen this char before (has an expires field)
+       and the token genuinely can't be refreshed — not just "never tried" */
+    const s=chars[id];
+    if(!s||!s.expires)return; // never had a token, not stale
+    const tok=await getTok(id);
+    const wasStale=staleMap[id]===true;
+    const nowStale=!tok;
+    if(wasStale!==nowStale){staleMap[id]=nowStale;changed=true;}
+  })));
+  if(changed){saveStaleMap();renderStaleBanner();renderRoles();}
+}
+
+function renderStaleBanner(){
+  const el=$('staleBanner');if(!el)return;
+  const staleIds=visibleIds().filter(id=>staleMap[id]);
+  if(!staleIds.length){el.style.display='none';return;}
+  const names=staleIds.map(id=>(chars[id]&&chars[id].charName)||('Pilot '+id));
+  el.style.display='';
+  el.innerHTML='<div class="stale-banner">⚠ '+esc(names.join(', '))+
+    (staleIds.length===1?' has':' have')+
+    ' a stale ESI token — they are contributing 0 to capacity calculations. '+
+    'Re-add them from the Toolset menu to restore their contribution.</div>';
+}
+
+/* patch renderRoles to inject stale badge */
+const _baseRenderRolesForStale=_rr_stale_base;
+function renderRoles(){
+  /* call the current top-level renderRoles, then annotate stale pilots */
+  _rr_stale_base();
+  renderStaleBanner();
+  /* inject ⚠ badge on stale pills */
+  const row=$('roleRow');if(!row)return;
+  row.querySelectorAll('.rolepill[data-id]').forEach(pill=>{
+    const id=pill.dataset.id;
+    if(!staleMap[id])return;
+    if(pill.querySelector('.stale-badge'))return;
+    const badge=document.createElement('span');
+    badge.className='stale-badge';badge.title='ESI token expired — re-add this pilot from the Toolset menu';
+    badge.textContent='⚠ stale';
+    const nameSpan=pill.querySelector('span');
+    if(nameSpan)nameSpan.appendChild(badge);
+  });
+}
+
+/* ============================================================
+   FEATURE 2: Chain comparison — Draft A vs Draft B
+   Each slot is an independent (basket, targetSys) pair stored
+   in localStorage. The panel renders side-by-side stats:
+   P0 types needed, planet type overlap between slots, roster
+   throughput lines each slot would use, and ISK/day if prices
+   are loaded.
+   ============================================================ */
+const CMP_KEY_A='eve_suite_chains_compare_a';
+const CMP_KEY_B='eve_suite_chains_compare_b';
+let cmpMode=false;
+let cmpSlots={A:null,B:null}; // each: {basket:{id:qty}, name:string} or null
+try{
+  const a=localStorage.getItem(CMP_KEY_A);if(a)cmpSlots.A=JSON.parse(a);
+  const b=localStorage.getItem(CMP_KEY_B);if(b)cmpSlots.B=JSON.parse(b);
+}catch(e){}
+
+function saveCmpSlot(slot){
+  try{localStorage.setItem(slot==='A'?CMP_KEY_A:CMP_KEY_B,JSON.stringify(cmpSlots[slot]));}catch(e){}
+}
+
+function captureCurrentAsCmpSlot(slot){
+  const ids=basketIds();
+  if(!ids.length){toast('Draft a product first before capturing to slot '+slot,'bad');return;}
+  const name=ids.map(i=>PI.recipe[i].name).join(' + ');
+  cmpSlots[slot]={basket:Object.assign({},basket),name};
+  saveCmpSlot(slot);
+  toast('Snapshot saved as Draft '+slot);
+  if(cmpMode)renderCmpPanel();
+}
+
+function cmpP0s(b){
+  const out=new Set();
+  Object.keys(b).forEach(pid=>chainP0s(+pid).forEach(p=>out.add(String(p))));
+  return [...out];
+}
+
+function cmpThroughputLines(b){
+  /* simulate capacityState() using this basket's contents */
+  const ids=Object.keys(b);if(!ids.length)return 0;
+  const rate=extractRate();
+  let fSlots=0,ePlanets=0,fullPlanets=0;
+  visibleIds().forEach(id=>{
+    const r=roles[id],c=pilotCap(id);
+    if(r==='Factory')fSlots+=c.planets*c.slots;
+    else if(r==='Extractor')ePlanets+=c.planets;
+    else if(r==='Full chain')fullPlanets+=c.planets;
+  });
+  const wSum=ids.reduce((a,i)=>a+(+b[i]||1),0)||1;
+  let total=0;
+  ids.forEach(tid=>{
+    const t=+tid,need=chainNeeds(t),share=(+b[tid]||1)/wSum;
+    const fLines=need.slots>0?share*fSlots/need.slots:0;
+    const eLines=need.p0>0?share*ePlanets*rate/need.p0:Infinity;
+    const ppl=need.slots/SLOTS_BY_CCU[5]+need.p0/rate;
+    const fullLines=ppl>0?share*fullPlanets/ppl:0;
+    total+=Math.min(fLines,eLines)+fullLines;
+  });
+  return total;
+}
+
+function cmpIskDay(b){
+  /* sum ISK/day across basket products at current hub prices */
+  const hub=mk_buyHub||60003760;
+  let total=null;
+  const lines=cmpThroughputLines(b);
+  const wSum=Object.keys(b).reduce((a,i)=>a+(+b[i]||1),0)||1;
+  Object.keys(b).forEach(tid=>{
+    const t=+tid,need=chainNeeds(t),share=(+b[tid]||1)/wSum;
+    const rate=(lines*share*need.ph); // output per hr
+    const px=mk_px(hub,tid);
+    if(!px){return;}
+    const fees=mk_feeRates();
+    total=(total||0)+rate*24*px.buy*(1-fees.total);
+  });
+  return total;
+}
+
+function renderCmpSlot(slot,other){
+  const data=cmpSlots[slot];
+  const otherData=cmpSlots[other];
+  const label='Draft '+slot;
+
+  const capBtn='<button class="btn" style="font-size:9px;padding:3px 9px" id="cmpCapture'+slot+'">← snapshot current basket</button>';
+  const clearBtn=data?'<button class="btn" style="font-size:9px;padding:3px 9px;color:var(--muted2)" id="cmpClear'+slot+'">clear</button>':'';
+
+  if(!data){
+    return '<div class="cmp-slot card"><h3>'+esc(label)+' <span class="slot-label">empty</span></h3>'+
+      '<div class="cmp-nodata">No draft saved. Build a basket and click "← snapshot current basket".</div>'+
+      '<div style="margin-top:10px;display:flex;gap:6px">'+capBtn+'</div></div>';
+  }
+
+  const p0s=cmpP0s(data.basket);
+  const lines=cmpThroughputLines(data.basket);
+  const iskDay=cmpIskDay(data.basket);
+
+  /* overlap with other slot */
+  let overlapHtml='';
+  if(otherData){
+    const otherP0s=new Set(cmpP0s(otherData.basket));
+    const shared=p0s.filter(p=>otherP0s.has(p));
+    const unique=p0s.filter(p=>!otherP0s.has(p));
+    overlapHtml='<div class="cmp-overlap">'+
+      (shared.length?'<span style="color:var(--muted2)">Shared P0: </span>'+shared.map(p=>esc(PI.names[p]||p)).join(', ')+'<br>':'')  +
+      (unique.length?'<span style="color:var(--cyan)">Unique to '+esc(label)+': </span>'+unique.map(p=>esc(PI.names[p]||p)).join(', '):'')  +
+      '</div>';
+  }
+
+  /* compare lines and isk against other slot for better/worse colouring */
+  const otherLines=otherData?cmpThroughputLines(otherData.basket):null;
+  const otherIsk=otherData?cmpIskDay(otherData.basket):null;
+  const linesBetter=otherLines!=null&&lines>otherLines+0.01;
+  const linesWorse=otherLines!=null&&lines<otherLines-0.01;
+  const iskBetter=otherIsk!=null&&iskDay!=null&&iskDay>otherIsk+100;
+  const iskWorse=otherIsk!=null&&iskDay!=null&&iskDay<otherIsk-100;
+
+  const products=Object.keys(data.basket);
+  const chips=products.map(pid=>'<span class="slot-basket-chip">'+esc(PI.recipe[pid]?PI.recipe[pid].name:(PI.names[pid]||pid))+'</span>').join('');
+
+  return '<div class="cmp-slot card">'+
+    '<h3>'+esc(label)+' <span class="slot-label">'+esc(data.name)+'</span></h3>'+
+    '<div class="slot-basket-chips">'+chips+'</div>'+
+    '<div class="cmp-stat"><span class="csl">P0 types needed</span><span class="csv">'+p0s.length+'</span></div>'+
+    '<div class="cmp-stat"><span class="csl">Roster throughput lines</span><span class="csv '+(linesBetter?'better':linesWorse?'worse':'')+'">'+
+      (lines>0&&isFinite(lines)?lines.toFixed(2)+' lines':'—')+'</span></div>'+
+    '<div class="cmp-stat"><span class="csl">Output/day (all products)</span><span class="csv">'+
+      (lines>0&&isFinite(lines)?products.map(pid=>{
+        const need=chainNeeds(+pid),wSum=products.reduce((a,i)=>a+(+data.basket[i]||1),0)||1;
+        const share=(+data.basket[pid]||1)/wSum;
+        return fmtInt(Math.round(lines*share*need.ph*24))+' '+esc(PI.recipe[pid]?PI.recipe[pid].name:'?');
+      }).join(', '):'—')+'</span></div>'+
+    '<div class="cmp-stat"><span class="csl">Est. ISK/day at hub</span><span class="csv '+(iskBetter?'better':iskWorse?'worse':'')+'">'+
+      (iskDay!=null?fmtISK(iskDay)+'/day':'load prices')+'</span></div>'+
+    overlapHtml+
+    '<div class="cmp-sep"></div>'+
+    '<div style="display:flex;gap:6px">'+capBtn+clearBtn+'</div>'+
+    '</div>';
+}
+
+function renderCmpPanel(){
+  const panel=$('cmpPanel'),grid=$('cmpGrid'),ctrl=$('cmpControls');
+  if(!panel||!grid)return;
+  if(!cmpMode){panel.classList.remove('on');return;}
+  panel.classList.add('on');
+
+  const hub=mk_buyHub||60003760;
+  ctrl.innerHTML='<span style="color:var(--muted2)">Hub for ISK estimates:</span> '+
+    '<select id="cmpHub" style="font-size:11px;padding:2px 4px">'+
+    HUBS.map(([nm,st])=>'<option value="'+st+'" '+(st===hub?'selected':'')+'>'+nm+'</option>').join('')+
+    '</select> <span id="cmpReload" style="cursor:pointer;color:var(--cyan);font-size:11px">↻ load prices</span>';
+
+  $('cmpHub').onchange=e=>{mk_buyHub=+e.target.value;localStorage.setItem('pi_hub',mk_buyHub);renderCmpPanel();};
+  $('cmpReload').onclick=async()=>{
+    const allIds=new Set();
+    ['A','B'].forEach(s=>{if(cmpSlots[s])Object.keys(cmpSlots[s].basket).forEach(id=>{
+      mk_chainTypeIds(id).forEach(t=>allIds.add(t));allIds.add(id);
+    });});
+    await mk_fetchPrices(mk_buyHub,[...allIds]);
+    renderCmpPanel();
+  };
+
+  grid.innerHTML=renderCmpSlot('A','B')+renderCmpSlot('B','A');
+
+  /* wire capture and clear buttons */
+  ['A','B'].forEach(s=>{
+    const cap=$('cmpCapture'+s);if(cap)cap.onclick=()=>captureCurrentAsCmpSlot(s);
+    const clr=$('cmpClear'+s);if(clr)clr.onclick=()=>{cmpSlots[s]=null;saveCmpSlot(s);renderCmpPanel();};
+  });
+}
+
+(function wireCmpToggle(){
+  const tog=$('cmpToggle');if(!tog)return;
+  tog.onclick=()=>{
+    cmpMode=!cmpMode;
+    tog.classList.toggle('active',cmpMode);
+    renderCmpPanel();
+  };
+})();
+
+/* ============================================================
+   FEATURE 4 (2nd suggestion list): Extractor head expiry timeline
+   48-hour SVG Gantt strip. Extends fetchColonyClocks to store
+   all per-pilot expiry timestamps, not just the earliest.
+   ============================================================ */
+
+/* Extend the existing fetch to also store allExpiries array */
+const _origFetchColonyClocks=_rcc_base;
+async function fetchColonyClocks(){
+  const lim=pLimit(3);
+  await Promise.all(visibleIds().map(id=>lim(async()=>{
+    const r=roles[id];if(r!=='Extractor'&&r!=='Full chain')return;
+    const cached=colonyClocks[id];
+    if(cached&&now()-cached.ts<600000)return;
+    const tok=await getTok(id);if(!tok)return;
+    try{
+      const planets=await esiGet('/characters/'+id+'/planets/',tok.access);
+      let earliest=null;
+      const allExpiries=[];
+      for(const pl of planets){
+        try{
+          const det=await esiGet('/characters/'+id+'/planets/'+pl.planet_id+'/',tok.access);
+          const heads=(det.pins||[]).filter(p=>(p.expiry_time&&p.extractor_details));
+          for(const h of heads){
+            const exp=new Date(h.expiry_time).getTime();
+            allExpiries.push(exp);
+            if(!earliest||exp<earliest)earliest=exp;
+          }
+        }catch(e){}
+      }
+      colonyClocks[id]={earliest,allExpiries,ts:now()};saveColonyClocks();
+    }catch(e){}
+  })));
+}
+
+function renderExpiryTimeline(){
+  const tl=$('expiryTimeline');if(!tl)return;
+  const hint=$('expiryTlHint');
+  const wrap=$('tlSvgWrap');if(!wrap)return;
+
+  /* collect pilots with expiry data */
+  const pilotRows=visibleIds().filter(id=>{
+    const r=roles[id];
+    return (r==='Extractor'||r==='Full chain')&&colonyClocks[id]&&colonyClocks[id].allExpiries&&colonyClocks[id].allExpiries.length;
+  });
+
+  if(!pilotRows.length){
+    tl.classList.remove('on');return;
+  }
+  tl.classList.add('on');
+
+  const WINDOW_MS=48*3600000;
+  const t0=now();
+  const t1=t0+WINDOW_MS;
+
+  /* SVG dimensions */
+  const LABEL_W=110,BAR_W=520,BAR_H=18,ROW_GAP=6,PAD_TOP=24,PAD_BOT=18;
+  const totalH=PAD_TOP+pilotRows.length*(BAR_H+ROW_GAP)+PAD_BOT;
+  const totalW=LABEL_W+BAR_W+20;
+
+  /* helper: x position for a timestamp */
+  const tx=t=>LABEL_W+Math.max(0,Math.min(BAR_W,(t-t0)/(t1-t0)*BAR_W));
+
+  /* axis labels: every 6h */
+  let axisHtml='';
+  for(let h=0;h<=48;h+=6){
+    const t=t0+h*3600000;
+    const x=tx(t);
+    const d=new Date(t);
+    const lbl=d.getUTCHours()===0?(d.getUTCMonth()+1)+'/'+d.getUTCDate():String(d.getUTCHours()).padStart(2,'0')+'h';
+    axisHtml+=`<text class="tl-axis-label" x="${x}" y="${PAD_TOP-6}" text-anchor="middle">${esc(lbl)}</text>`;
+    axisHtml+=`<line class="tl-grid-line" x1="${x}" y1="${PAD_TOP}" x2="${x}" y2="${totalH-PAD_BOT}"/>`;
+  }
+
+  /* now line */
+  const nowX=tx(t0);
+  axisHtml+=`<line class="tl-now-line" x1="${nowX}" y1="${PAD_TOP-4}" x2="${nowX}" y2="${totalH-PAD_BOT}"/>`;
+  axisHtml+=`<text class="tl-axis-label" x="${nowX}" y="${totalH-PAD_BOT+12}" text-anchor="middle" style="fill:var(--cyan,#7ab8c8)">now</text>`;
+
+  /* rows */
+  let rowsHtml='';
+  pilotRows.forEach((id,i)=>{
+    const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
+    const y=PAD_TOP+i*(BAR_H+ROW_GAP);
+    const expiries=(colonyClocks[id].allExpiries||[]).filter(e=>e>=t0-3600000&&e<=t1+3600000);
+
+    /* pilot label */
+    rowsHtml+=`<text class="tl-pilot-label" x="${LABEL_W-6}" y="${y+BAR_H/2+4}" text-anchor="end">${esc(nm)}</text>`;
+
+    /* background track */
+    rowsHtml+=`<rect x="${LABEL_W}" y="${y}" width="${BAR_W}" height="${BAR_H}" fill="rgba(255,255,255,.03)" rx="2"/>`;
+
+    /* expiry marks */
+    expiries.forEach(exp=>{
+      const msLeft=exp-t0;
+      const col=msLeft<0?'#e05050':msLeft<14400000?'#e05050':msLeft<43200000?'#d4a040':'#6dc86d';
+      const ex=tx(exp);
+      const bw=Math.min(14,Math.max(4,BAR_W/expiries.length*0.6));
+      rowsHtml+=`<rect class="tl-head-exp" x="${ex-bw/2}" y="${y+2}" width="${bw}" height="${BAR_H-4}" fill="${col}" opacity="0.82">`;
+      const lbl=msLeft<0?'expired':fmtDur(msLeft);
+      rowsHtml+=`<title>${esc(nm)} head: ${new Date(exp).toUTCString().replace(/.*,\s*/,'')} EVE (${esc(lbl)})</title></rect>`;
+    });
+  });
+
+  const svg=`<svg width="${totalW}" height="${totalH}" xmlns="http://www.w3.org/2000/svg">
+    <style>.tl-pilot-label{font-family:var(--mono,monospace);font-size:9px}.tl-axis-label{font-family:var(--mono,monospace);font-size:8px}</style>
+    ${axisHtml}${rowsHtml}
+  </svg>`;
+
+  wrap.innerHTML=svg;
+  if(hint){
+    const nextExp=Math.min(...pilotRows.map(id=>colonyClocks[id].earliest||Infinity).filter(isFinite));
+    hint.textContent=isFinite(nextExp)?'next expiry: '+fmtDur(nextExp-t0):'';
+  }
+}
+
+/* Patch refreshColonyClocks to also update timeline */
+const _origRefreshColonyClocks=_rcc_base;
+function refreshColonyClocks(){
+  fetchColonyClocks().then(()=>{renderRoles();renderExpiryTimeline();}).catch(()=>{});
+}
+
+/* Patch liveRefresh to include stale check, compare refresh, timeline */
+const _baseLiveRefresh=_lr_base;
+function liveRefresh(){
+  _baseLiveRefresh();
+  renderStaleBanner();
+  renderExpiryTimeline();
+  if(cmpMode)renderCmpPanel();
+}
+
 $('prodSearch').addEventListener('input',renderSugg);
 $('prodSearch').addEventListener('focus',renderSugg);
 window.onRosterChange=()=>{renderRoles();refreshColonyClocks();};
 renderTierChips();renderRoles();renderBasket();renderChain();renderCoverage();renderCapacity();
 renderPresets();
-// Initial colony clock fetch (async, non-blocking)
-setTimeout(refreshColonyClocks,1500);
+// Initial: stale check + colony clocks (async, non-blocking)
+setTimeout(()=>{checkStalePilots();refreshColonyClocks();},1500);
+
 
 { /* populate datalist lazily with common trade hubs + on first focus full index */
   const dl=$('sysDatalist');
