@@ -130,6 +130,73 @@ td .reg{font-size:9px}
 .cand-row .cn{font-size:11px;display:flex;justify-content:space-between;gap:6px}
 .cand-row .cm{font-size:9px}
 /* logistics deck */
+/* preset bar */
+.presetbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:6px 0 10px;padding:7px 10px}
+.presetbar .lbl3{font-size:8.5px;white-space:nowrap}
+.pchip{font-size:9.5px;padding:3px 10px;cursor:pointer;border:1px solid var(--line2)}
+.pchip.active{border-color:var(--gold-dim);background:rgba(201,168,104,.12);color:var(--gold-bright)}
+.pchip.del-btn{color:var(--red);border-color:transparent;padding:3px 5px}
+.preset-name-input{font-size:11px;padding:4px 8px;width:130px}
+/* split planner */
+.split-panel{padding:12px 14px;margin-top:10px;display:none}
+.split-panel.on{display:block}
+.split-panel h3{font-size:10px;margin:0 0 8px}
+.split-row{display:flex;gap:10px;align-items:baseline;font-size:10.5px;padding:5px 8px;margin-top:4px}
+.split-row .sysnames{font-size:11.5px}
+.split-row .split-meta{font-size:9.5px}
+/* price in chain tree */
+.ct-price{font-size:9px;margin-left:6px}
+/* clipboard route button */
+.copy-route-btn{font-size:9.5px;padding:4px 10px;cursor:pointer;margin-top:7px;display:inline-block}
+/* best-for-roster panel */
+.bfr-panel{padding:14px 16px;margin-top:20px;display:none}
+.bfr-panel.on{display:block}
+.bfr-panel h2{font-size:11.5px;margin:0 0 10px}
+.bfr-row{display:flex;gap:10px;align-items:baseline;font-size:10.5px;padding:6px 9px;margin-top:4px;cursor:pointer}
+.bfr-row:hover{background:rgba(122,184,200,.09)}
+.bfr-row .bfr-name{font-size:12px;flex:1}
+.bfr-row .bfr-num{font-size:10px;white-space:nowrap}
+/* planet type dots in coverage */
+.pt-dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:3px}
+/* colony clock badge */
+.clock-badge{font-size:8px;padding:1px 5px;vertical-align:middle;margin-left:5px}
+.clock-badge.warn{background:rgba(220,100,60,.2);color:#e07050;border:1px solid rgba(220,100,60,.35)}
+.clock-badge.ok{background:rgba(100,200,100,.1);color:#6dc86d;border:1px solid rgba(100,200,100,.25)}
+/* navbtn used for BFR toggle */
+.navbtn{font-family:var(--mono)}
+
+/* auto-chalk */
+.autochalk-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)}
+.autochalk-bar .btn{font-size:9.5px;padding:5px 12px;cursor:pointer}
+.autochalk-diff{font-size:10px;margin-top:6px;line-height:1.8;padding:8px 10px}
+.autochalk-diff .gain{color:var(--green)}
+.autochalk-diff .same{color:var(--muted2)}
+/* pilot-system assignment */
+.assign-panel{margin-top:16px}
+.assign-panel h3{font-size:10px;margin:0 0 8px}
+.assign-table{width:100%;border-collapse:collapse;font-size:10.5px}
+.assign-table th{font-size:8.5px;text-align:left;padding:6px 8px;white-space:nowrap;border-bottom:1px solid var(--line2)}
+.assign-table td{padding:5px 8px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.04)}
+.assign-table td:first-child{white-space:nowrap;font-size:10px;color:var(--muted2)}
+.assign-sel{font-size:10.5px;padding:3px 6px;background:var(--bg2);border:1px solid var(--line2);color:var(--fg);width:100%;min-width:120px}
+.assign-warn{font-size:9px;color:var(--amber);display:block;margin-top:2px}
+.assign-contrib{font-size:9px;color:var(--cyan);display:block;margin-top:2px}
+/* skill gap report */
+.skillgap-section{margin-top:14px;border-top:1px solid var(--line2);padding-top:10px}
+.skillgap-toggle{font-size:9.5px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.skillgap-toggle .arr{display:inline-block;transition:transform .15s}
+.skillgap-toggle.open .arr{transform:rotate(90deg)}
+.skillgap-body{margin-top:8px;display:none}
+.skillgap-body.on{display:block}
+.sg-pilot{padding:8px 10px;margin-top:5px;font-size:10.5px}
+.sg-pilot .sg-name{font-size:11px;margin-bottom:4px}
+.sg-row{display:flex;gap:10px;align-items:baseline;font-size:10px;padding:2px 0}
+.sg-row .sg-skill{color:var(--muted2);min-width:180px}
+.sg-row .sg-now{min-width:90px}
+.sg-row .sg-delta{color:var(--green);min-width:100px}
+.sg-row .sg-impact{color:var(--cyan)}
+.sg-nodata{font-size:10px;color:var(--muted2);padding:4px 0}
+
 .capband{padding:13px 18px;margin-top:20px}
 .capband .cb-row{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;padding:5px 0}
 .capband .cb-big{font-size:17px}
@@ -198,6 +265,7 @@ td .reg{font-size:9px}
     <div class="tierchips" id="tierChips"></div>
     <div class="lbl2" style="margin:10px 0 5px">WHAT TO MAKE</div>
     <div class="prodchips" id="prodChips"></div>
+    <div class="presetbar card" id="presetBar"><span class="lbl3">PRESETS</span><span id="presetChips"></span><input class="preset-name-input" id="presetNameInput" placeholder="name this draft…" style="display:none"><span id="presetSaveBtn" class="pchip" style="display:none">save</span><span id="presetNewBtn" class="pchip">+ save draft</span></div>
     <div class="chaintree" id="chainTree"><div class="empty" style="padding:14px">no product drafted — search above</div></div>
     <div class="deskfoot" id="deskFoot"></div>
   </aside>
@@ -217,6 +285,10 @@ td .reg{font-size:9px}
         <button class="btn primary" id="huntBtn">Hunt systems</button>
       </div>
       <div id="huntOut"><div class="empty" style="padding:12px">draft a product, set a home system, hunt</div></div>
+      <div class="split-panel card" id="splitPanel">
+        <h3>SPLIT SYSTEM SUGGESTIONS — no single system covers the full basket</h3>
+        <div id="splitBody"></div>
+      </div>
       <div class="mappanel card" id="mapPanel">
         <canvas id="uniCanvas"></canvas>
         <div id="uniTip" class="panel"></div>
@@ -228,9 +300,16 @@ td .reg{font-size:9px}
   </div>
 </div>
 
-<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
   <span id="makeToggle" class="navbtn" style="cursor:pointer;padding:4px 12px;border:1px solid var(--line2);color:var(--muted);font-size:10.5px;font-family:var(--mono)">What to make</span>
   <span class="hint" style="font-size:10px">profit ranking · P1–P4 products</span>
+  <span id="bfrToggle" class="navbtn" style="cursor:pointer;padding:4px 12px;border:1px solid var(--line2);color:var(--muted);font-size:10.5px;font-family:var(--mono);margin-left:8px">Best for my roster</span>
+  <span class="hint" style="font-size:10px">output × price · based on chalked pilots</span>
+</div>
+<div class="bfr-panel panel" id="bfrPanel">
+  <h2>Best for my roster <span class="hint" style="font-weight:400">· output volume × market value, ranked by ISK/day your chalked pilots can produce</span></h2>
+  <div id="bfrControls" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;margin-bottom:8px"></div>
+  <div id="bfrBody"></div>
 </div>
 <div class="logideck panel" id="logiDeck">
   <h2>Colony logistics — <span id="logiSysName"></span></h2>
@@ -241,6 +320,10 @@ td .reg{font-size:9px}
     <div><label>M³ INFRA HOLD — reference value, adjust to match your fit</label><input type="number" id="haulCapacityInput" min="1"></div>
   </div>
   <div id="stageFlow"></div>
+  <div class="assign-panel" id="assignPanel" style="display:none">
+    <h3>PILOT → STAGE ASSIGNMENT</h3>
+    <div id="assignBody"></div>
+  </div>
   <div class="logigrid">
     <div><div class="lbl2" style="font-size:8.5px;margin-bottom:6px" id="haulLbl">HAUL CADENCE &amp; TRIPS</div><div class="haulrows" id="haulRows"></div></div>
     <div class="routebox card"><div class="lbl2" id="haulShipLbl">ROUTE OPTIMISER</div><div id="logiRoute"></div></div>
@@ -263,6 +346,15 @@ td .reg{font-size:9px}
   <span class="c">Chalk each pilot onto colony duty for this draft — extractors pull P0, factories cook it up the chain. Roles are remembered per pilot and shared with Colony Orbit, which watches the extractor clocks of pilots chalked Extractor or Full chain. Toggle pilots in the Toolset menu.</span>
   <div class="rolerow" id="roleRow"></div>
   <div class="rolesum" id="roleSum"></div>
+  <div class="autochalk-bar">
+    <button class="btn" id="autochalkBtn">⚙ Auto-assign roles</button>
+    <span class="hint" style="font-size:10px">finds the role split that maximises throughput lines for this draft</span>
+  </div>
+  <div id="autochalkDiff" style="display:none"></div>
+  <div class="skillgap-section" id="skillgapSection" style="display:none">
+    <span class="skillgap-toggle" id="skillgapToggle"><span class="arr">▶</span> Skill gap report</span>
+    <div class="skillgap-body" id="skillgapBody"></div>
+  </div>
 </div>
 </div>
 
@@ -331,6 +423,11 @@ function pLimit(n){let act=0;const q=[];
   const next=()=>{if(act>=n||!q.length)return;act++;const [fn,res,rej]=q.shift();
     Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});};
   return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();});}
+/* ---- Feature 2: named presets ---- */
+const PRESET_KEY='eve_suite_chains_presets';
+function loadPresets(){try{return JSON.parse(localStorage.getItem(PRESET_KEY)||'{}')||{};}catch(e){return{};}}
+function savePresets(p){try{localStorage.setItem(PRESET_KEY,JSON.stringify(p));}catch(e){}}
+
 /* ---- persistent id→name cache (shared with the rest of the suite) ---- */
 const NAME_CACHE_KEY='eve_suite_namecache_v1';
 let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
@@ -446,7 +543,7 @@ function removeProduct(id){
   if(String(target)===String(id))target=basketIds().length?+basketIds()[basketIds().length-1]:null;
   refreshDraft();
 }
-function refreshDraft(){
+function _orig_refreshDraft(){
   saveBasket();renderBasket();renderChain();renderCoverage();renderCapacity();
   $('huntOut').innerHTML='<div class="empty" style="padding:12px">'+(basketIds().length?'re-hunt for the new basket':'draft a product, set a home system, hunt')+'</div>';
   lastHunt=null;selectedSystemId=null;$('mapPanel').classList.remove('on');$('logiDeck').classList.remove('on');
@@ -467,7 +564,7 @@ function renderBasket(){
 }
 
 /* ---- chain tree ---- */
-function renderChain(){
+function _orig_renderChain(){
   const wrap=$('chainTree');
   const ids=basketIds();
   if(!ids.length){wrap.innerHTML='<div class="empty" style="padding:14px">no product drafted</div>';$('deskFoot').innerHTML='';return;}
@@ -497,7 +594,7 @@ function renderChain(){
 function fmtQ(n){return n>=1000?Math.round(n).toLocaleString():(Math.round(n*100)/100).toString();}
 
 /* ---- planet coverage ---- */
-function renderCoverage(){
+function _orig_renderCoverage(){
   const wrap=$('covGrid');
   if(!basketIds().length){wrap.innerHTML='<div class="empty" style="padding:10px">draft a product first</div>';return;}
   const p0s=basketP0();
@@ -532,7 +629,7 @@ function matchingPlanets(sysRow,p0s){
   p0s.forEach(p=>(PI.p0pt[p]||[]).forEach(t=>need.add(t)));
   let n=0;need.forEach(t=>n+=counts[t]||0);return n;
 }
-function hunt(){
+function _orig_hunt(){
   buildNameIndex();
   const out=$('huntOut');
   if(!basketIds().length){out.innerHTML='<div class="empty" style="padding:12px">draft a product first</div>';return;}
@@ -585,7 +682,31 @@ function renderCandStrip(rows){
     }).join('');
   strip.querySelectorAll('.cand-row').forEach(el=>{el.onclick=(ev)=>{ev.stopPropagation();selectSystem(el.dataset.id);};});
 }
-$('huntBtn').onclick=hunt;
+/* ---- Feature 6: persist hunt prefs across sessions ---- */
+const HUNT_PREF_KEY='eve_suite_chains_hunt_prefs';
+function saveHuntPrefs(){
+  try{localStorage.setItem(HUNT_PREF_KEY,JSON.stringify({
+    home:$('homeSys').value,
+    jumps:$('maxJumps').value,
+    sec:$('secBand').value,
+    whole:$('wholeChain').checked
+  }));}catch(e){}
+}
+function loadHuntPrefs(){
+  try{const p=JSON.parse(localStorage.getItem(HUNT_PREF_KEY)||'{}');
+    if(p.home)$('homeSys').value=p.home;
+    if(p.jumps)$('maxJumps').value=p.jumps;
+    if(p.sec)$('secBand').value=p.sec;
+    if(p.whole!=null)$('wholeChain').checked=!!p.whole;
+  }catch(e){}
+}
+loadHuntPrefs();
+['homeSys','maxJumps','secBand'].forEach(id=>{
+  const el=$(id);if(el)el.addEventListener('change',saveHuntPrefs);
+  if(el)el.addEventListener('input',saveHuntPrefs);
+});
+$('wholeChain').addEventListener('change',saveHuntPrefs);
+$('huntBtn').onclick=_orig_hunt;
 
 
 /* ================= Universe map + Colony Logistics =================
@@ -945,7 +1066,7 @@ function selectSystem(id){
   });
   cap.addEventListener('input',()=>{haulCapacity=+cap.value||1;try{localStorage.setItem('pi_haul_capacity',haulCapacity);}catch(e){}renderLogistics();});
 }
-function renderLogistics(){
+function _orig_renderLogistics(){
   if(!selectedSystemId||!basketIds().length)return;
   const SYS=UNIVERSE.systems;
   const selSys=SYS[selectedSystemId];
@@ -1026,7 +1147,7 @@ function renderLogistics(){
 }
 
 /* ---- pilot chalkboard ---- */
-function renderRoles(){
+function _orig_renderRoles(){
   const row=$('roleRow');
   const ids=visibleIds();
   if(!ids.length){row.innerHTML='<div class="empty" style="padding:10px">no pilots on the roster — sign in via the Toolset menu</div>';$('roleSum').textContent='';return;}
@@ -1194,7 +1315,7 @@ loadPiSkills().then(ch=>{if(ch)renderCapacity();});
    (skills: 12h), respecting ESI's server-side cache timers instead of
    hammering identical payloads. Storage events give instant cross-tab
    updates when another suite page edits the roster or roles. */
-function liveRefresh(){
+function _orig_liveRefresh(){
   chars=loadChars();
   try{roles=JSON.parse(localStorage.getItem(ROLE_KEY)||'{}')||{};}catch(e){}
   try{piSkills=JSON.parse(localStorage.getItem(SKILL_CACHE_KEY)||'{}')||{};}catch(e){}
@@ -1209,10 +1330,861 @@ window.addEventListener('storage',e=>{
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)liveRefresh();});
 
+/* ============================================================
+   FEATURE 2: Named preset save/load
+   ============================================================ */
+function renderPresets(){
+  const presets=loadPresets();
+  const chips=$('presetChips');if(!chips)return;
+  const names=Object.keys(presets);
+  chips.innerHTML=names.map(n=>'<span class="pchip'+(n===activePreset?' active':'')+'" data-pn="'+esc(n)+'">'+esc(n)+'</span>'+
+    '<span class="pchip del-btn" data-pd="'+esc(n)+'" title="delete preset">✕</span>').join('');
+  chips.querySelectorAll('.pchip[data-pn]').forEach(c=>{c.onclick=()=>loadPreset(c.dataset.pn);});
+  chips.querySelectorAll('.pchip[data-pd]').forEach(c=>{c.onclick=()=>{
+    if(!confirm('Delete preset "'+c.dataset.pd+'"?'))return;
+    const p=loadPresets();delete p[c.dataset.pd];savePresets(p);
+    if(activePreset===c.dataset.pd)activePreset=null;
+    renderPresets();
+  };});
+}
+let activePreset=null;
+function loadPreset(name){
+  const p=loadPresets()[name];if(!p)return;
+  basket={};
+  (p.basket||[]).forEach(([id,qty])=>{basket[id]=qty;});
+  target=basketIds().length?+basketIds()[basketIds().length-1]:null;
+  activePreset=name;
+  saveBasket();renderPresets();refreshDraft();
+  toast('Preset "'+name+'" loaded');
+}
+function saveCurrentAsPreset(name){
+  if(!name.trim())return;
+  const p=loadPresets();
+  p[name.trim()]=({basket:basketIds().map(id=>[id,basket[id]||10])});
+  savePresets(p);activePreset=name.trim();
+  renderPresets();
+  $('presetNameInput').style.display='none';
+  $('presetSaveBtn').style.display='none';
+  $('presetNewBtn').style.display='';
+  toast('Preset "'+name.trim()+'" saved');
+}
+(function wirePresetUI(){
+  const newBtn=$('presetNewBtn'),inp=$('presetNameInput'),saveBtn=$('presetSaveBtn');
+  if(!newBtn)return;
+  newBtn.onclick=()=>{
+    if(!basketIds().length){toast('Add products to the basket first','bad');return;}
+    inp.style.display='';saveBtn.style.display='';newBtn.style.display='none';
+    inp.value='';inp.focus();
+  };
+  if(saveBtn)saveBtn.onclick=()=>saveCurrentAsPreset(inp.value);
+  if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')saveCurrentAsPreset(inp.value);if(e.key==='Escape'){inp.style.display='none';saveBtn.style.display='none';newBtn.style.display='';}});
+})();
+
+/* ============================================================
+   FEATURE 1: Multi-system split planner
+   ============================================================ */
+function findSplitPairs(p0s,dist,band,maxJ){
+  /* For each candidate system that covers ≥1 P0 type, find the cheapest
+     partner that covers all remaining types within maxJ jumps.
+     Returns top-5 pairs sorted by totalJumps. */
+  const SYS=UNIVERSE.systems;
+  const candidates=Object.keys(dist).filter(id=>secBandOk(SYS[id][1],band));
+  // group by coverage bitmask
+  const byId={};
+  candidates.forEach(id=>{
+    const cov=p0s.filter(p=>coversP0(SYS[id],p));
+    if(cov.length&&cov.length<p0s.length)byId[id]=new Set(cov.map(String));
+  });
+  const pairs=[];
+  const ids=Object.keys(byId);
+  for(let i=0;i<ids.length&&pairs.length<200;i++){
+    const a=ids[i];const covA=byId[a];
+    const missing=p0s.filter(p=>!covA.has(String(p)));
+    // find partner that covers all missing types closest to a
+    const partnerDist=bfsFull(a);
+    for(const b of Object.keys(UNIVERSE.systems)){
+      if(b===a||dist[b]===undefined)continue;
+      if(!secBandOk(SYS[b][1],band))continue;
+      const covB=missing.filter(p=>coversP0(SYS[b],p));
+      if(covB.length<missing.length)continue;
+      const dA=dist[a]??Infinity,dB=dist[b]??Infinity;
+      if(dA>maxJ||dB>maxJ)continue;
+      const between=partnerDist[b]??Infinity;
+      pairs.push({a,b,nameA:SYS[a][0],nameB:SYS[b][0],dA,dB,between,total:dA+dB});
+    }
+  }
+  pairs.sort((x,y)=>x.total-y.total||(x.between-y.between));
+  // dedup: skip pairs where (b,a) already seen
+  const seen=new Set();const out=[];
+  for(const p of pairs){
+    const key=[p.a,p.b].sort().join(':');
+    if(seen.has(key))continue;seen.add(key);out.push(p);
+    if(out.length>=5)break;
+  }
+  return out;
+}
+function renderSplitPanel(pairs,p0s){
+  const panel=$('splitPanel'),body=$('splitBody');
+  if(!panel||!body)return;
+  if(!pairs||!pairs.length){panel.classList.remove('on');return;}
+  panel.classList.add('on');
+  const SYS=UNIVERSE.systems;
+  body.innerHTML=pairs.map((p,i)=>{
+    const secA=SYS[p.a][1],secB=SYS[p.b][1];
+    const scA=secA>=0.45?'hi':secA>0?'lo':'nu';
+    const scB=secB>=0.45?'hi':secB>0?'lo':'nu';
+    return '<div class="split-row card" style="cursor:pointer" data-a="'+p.a+'" data-b="'+p.b+'">'+
+      '<span style="min-width:22px;font-size:9px">'+(i+1)+'.</span>'+
+      '<span class="sysnames">'+esc(p.nameA)+' <span class="sec-'+scA+'">'+secA.toFixed(1)+'</span>'+
+      ' &amp; '+esc(p.nameB)+' <span class="sec-'+scB+'">'+secB.toFixed(1)+'</span></span>'+
+      '<span class="split-meta">'+p.dA+'j + '+p.dB+'j from home · '+p.between+'j between · click to plan logistics on first system</span></div>';
+  }).join('');
+  body.querySelectorAll('.split-row').forEach(row=>{
+    row.onclick=()=>selectSystem(row.dataset.a);
+  });
+}
+
+/* ============================================================
+   FEATURE 3: Live prices in chain tree
+   ============================================================ */
+const PT_COLOR_DEF={T:'#6fd06f',I:'#9fd4e0',G:'#c9a868',O:'#5aa0d0',L:'#d66a5a',B:'#b09060',S:'#b69adf',P:'#e0a040'};
+let chainPriceCache={};   // typeId -> sell price at selected hub
+let chainPricesLoaded=false;
+async function fetchChainPrices(ids){
+  const hub=mk_buyHub||60003760;
+  const miss=ids.filter(t=>chainPriceCache[t]===undefined);
+  if(!miss.length)return;
+  try{
+    const url='https://market.fuzzwork.co.uk/aggregates/?station='+hub+'&types='+miss.join(',');
+    const r=await fetch(url);if(!r.ok)throw new Error();
+    const j=await r.json();
+    miss.forEach(t=>{const d=j[t]||{};chainPriceCache[t]=d.sell?+d.sell.min:null;});
+  }catch(e){miss.forEach(t=>{if(chainPriceCache[t]===undefined)chainPriceCache[t]=null;});}
+}
+function priceTag(id){
+  const p=chainPriceCache[id];
+  if(!p)return '';
+  return ' <span class="ct-price hint">'+fmtIsk(p)+'/u</span>';
+}
+// Augment renderChain to show prices when loaded — patch via override
+const _origRenderChain=_orig_renderChain;
+function renderChainWithPrices(){
+  _orig_renderChain();
+  if(!chainPricesLoaded)return;
+  // annotate each ct-node with a price tag if we have it
+  const wrap=$('chainTree');if(!wrap)return;
+  wrap.querySelectorAll('.ct-node').forEach(node=>{
+    const pid=node.dataset.pid;
+    if(!pid)return;
+    const p=chainPriceCache[pid];
+    if(!p)return;
+    let el=node.querySelector('.ct-price');
+    if(!el){el=document.createElement('span');el.className='ct-price hint';node.querySelector('.q').after(el);}
+    el.textContent=fmtIsk(p)+'/u';
+  });
+}
+
+// We need to patch renderChain to emit data-pid on ct-nodes.
+// Override the whole function with a version that adds data-pid:
+function renderChain(){
+  const wrap=$('chainTree');
+  const ids=basketIds();
+  if(!ids.length){wrap.innerHTML='<div class="empty" style="padding:14px">no product drafted</div>';$('deskFoot').innerHTML='';return;}
+  let html='',footBits=[];
+  ids.forEach((tid,pi_)=>{
+    const t=+tid;
+    const acc=bomExpand(t,1);
+    const byTier={};
+    Object.keys(acc.steps).forEach(x=>{(byTier[PI.tier[x]]=byTier[PI.tier[x]]||[]).push(x);});
+    if(ids.length>1)html+='<div class="ct-prodhead">'+esc(PI.recipe[t].name)+' \u00d7'+(basket[tid]||10)+'</div>';
+    for(let tier=PI.tier[t];tier>=1;tier--){
+      const list=(byTier[tier]||[]).sort((a,b)=>acc.steps[b]-acc.steps[a]);
+      if(!list.length)continue;
+      html+='<div class="ct-tier"><div class="ct-tlabel">P'+tier+' \u2014 '+(tier===PI.tier[t]?'TARGET':'INTERMEDIATE')+'</div>'+
+        list.map(x=>{
+          const pricetag=chainPricesLoaded&&chainPriceCache[x]?(' <span class="ct-price hint">'+fmtIsk(chainPriceCache[x])+'/u</span>'):'';
+          return '<div class="ct-node t'+tier+'" data-pid="'+x+'"><span>'+esc(PI.recipe[x].name)+pricetag+'</span><span class="q">'+fmtQ(acc.steps[x])+' / unit \u00b7 '+fmtQ(acc.steps[x]*perHour(t))+'/hr</span></div>';
+        }).join('')+'</div><div class="ct-conn"></div>';
+    }
+    const p0list=Object.keys(acc.p0).sort((a,b)=>acc.p0[b]-acc.p0[a]);
+    html+='<div class="ct-tier"><div class="ct-tlabel">P0 \u2014 RAW EXTRACTION</div>'+
+      p0list.map(x=>{
+        const pricetag=chainPricesLoaded&&chainPriceCache[x]?(' <span class="ct-price hint">'+fmtIsk(chainPriceCache[x])+'/u</span>'):'';
+        return '<div class="ct-node t0" data-pid="'+x+'"><span>'+esc(PI.names[x]||x)+pricetag+'</span><span class="q">'+fmtQ(acc.p0[x])+' / unit \u00b7 '+fmtQ(acc.p0[x]*perHour(t))+'/hr</span></div>';
+      }).join('')+'</div>';
+    if(pi_<ids.length-1)html+='<div class="ct-divider"></div>';
+    const r=PI.recipe[t];
+    footBits.push(esc(r.name)+': '+r.ct/60+' min cycle \u2192 '+r.out+' units, <b>'+fmtQ(perHour(t))+'/hr</b> per factory line');
+  });
+  wrap.innerHTML=html;
+  $('deskFoot').innerHTML=footBits.join(' \u00b7 ')+'. Quantities above are per factory line; basket \u00d7 values are roster SHARES \u2014 supported lines are computed from chalked pilots below.';
+  // auto-fetch prices for visible nodes if we have a price cache started
+  if(chainPricesLoaded||Object.keys(chainPriceCache).length){
+    const allIds=new Set();ids.forEach(tid=>{
+      const acc=bomExpand(+tid,1);
+      Object.keys(acc.steps).forEach(x=>allIds.add(x));
+      Object.keys(acc.p0).forEach(x=>allIds.add(x));
+      allIds.add(tid);
+    });
+    fetchChainPrices([...allIds]).then(()=>{chainPricesLoaded=true;renderChain();});
+  }
+}
+
+/* small "load chain prices" link in deskFoot — inject after first render */
+function ensureChainPriceLoader(){
+  const foot=$('deskFoot');if(!foot)return;
+  if(foot.querySelector('.chain-price-load'))return;
+  const sp=document.createElement('span');
+  sp.className='chain-price-load';
+  sp.style.cssText='margin-left:8px;cursor:pointer;color:var(--cyan);font-size:10px';
+  sp.textContent='↻ load intermediate prices';
+  sp.onclick=async()=>{
+    sp.textContent='loading…';
+    const allIds=new Set();
+    basketIds().forEach(tid=>{
+      const acc=bomExpand(+tid,1);
+      Object.keys(acc.steps).forEach(x=>allIds.add(x));
+      Object.keys(acc.p0).forEach(x=>allIds.add(x));
+      allIds.add(tid);
+    });
+    await fetchChainPrices([...allIds]);
+    chainPricesLoaded=true;
+    renderChain();
+  };
+  foot.appendChild(sp);
+}
+
+/* ============================================================
+   FEATURE 4: Copy route to clipboard
+   ============================================================ */
+function renderCopyRouteBtn(){
+  const box=$('logiRoute');if(!box)return;
+  // remove old button if present
+  const old=box.querySelector('.copy-route-btn');if(old)old.remove();
+  const btn=document.createElement('button');
+  btn.className='copy-route-btn btn';
+  btn.textContent='Copy route';
+  btn.onclick=()=>{
+    const summary=box.querySelector('.route-summary');
+    const rows=[...box.querySelectorAll('.route-row')];
+    const lines=['Chain Works route \u2014 '+basketIds().map(i=>PI.recipe[i].name).join(' + ')];
+    rows.forEach(r=>{
+      const idx=r.querySelector('.stop-idx')?.textContent||'';
+      const nm=r.querySelector('.stop-name')?.textContent||r.textContent;
+      const jumps=r.querySelector('span:last-child')?.textContent||'';
+      lines.push(idx+' '+nm.trim()+' \u00b7 '+jumps.trim());
+    });
+    if(summary)lines.push(summary.textContent);
+    navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+      btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy route',2000);
+    }).catch(()=>{btn.textContent='Copy failed';setTimeout(()=>btn.textContent='Copy route',2000);});
+  };
+  box.appendChild(btn);
+}
+
+/* ============================================================
+   FEATURE 5: Best for my roster panel
+   ============================================================ */
+let bfrVisible=false;
+let bfrHub=mk_buyHub||60003760;
+async function renderBFR(){
+  const panel=$('bfrPanel');if(!panel)return;
+  if(!bfrVisible){panel.classList.remove('on');return;}
+  panel.classList.add('on');
+  const tog=$('bfrToggle');
+  if(tog){tog.style.borderColor='var(--gold-dim)';tog.style.color='var(--gold-bright)';tog.style.background='rgba(201,168,104,.12)';}
+  const st=capacityState();
+  if(!st||!visibleIds().length){
+    $('bfrBody').innerHTML='<div class="empty" style="padding:12px">Chalk pilots onto roles in the chalkboard below, then return here to see what your roster can produce most profitably.</div>';
+    return;
+  }
+  // For each P2/P3/P4, compute max lines this roster can support, then value
+  const tiers=[2,3,4];
+  const hubSel='<select id="bfrHub" style="font-size:11px;padding:2px 4px">'+HUBS.map(([nm,st_])=>'<option value="'+st_+'" '+(st_===bfrHub?'selected':'')+'>'+nm+'</option>').join('')+'</select>';
+  $('bfrControls').innerHTML='Hub '+hubSel+' <span id="bfrReload" style="cursor:pointer;color:var(--cyan);font-size:11px">↻ load prices</span>';
+  $('bfrHub').onchange=e=>{bfrHub=+e.target.value;renderBFR();};
+  $('bfrReload').onclick=async()=>{
+    const allIds=new Set();
+    tiers.forEach(tier=>{
+      Object.keys(PI.recipe).filter(o=>PI.tier[o]===tier).forEach(o=>{
+        mk_chainTypeIds(o).forEach(t=>allIds.add(t));
+        allIds.add(o);
+      });
+    });
+    await mk_fetchPrices(bfrHub,[...allIds]);
+    renderBFR();
+  };
+  // compute rows
+  const wSum=1; // uniform share for BFR — each product gets full roster
+  const rows=[];
+  tiers.forEach(tier=>{
+    Object.keys(PI.recipe).filter(o=>PI.tier[o]===tier).forEach(o=>{
+      const need=chainNeeds(+o);
+      const fSlots=st.fSlots,ePlanets=st.ePlanets,fullPlanets=st.fullPlanets,rate=st.rate;
+      const fLines=need.slots>0?fSlots/need.slots:0;
+      const eLines=need.p0>0?ePlanets*rate/need.p0:Infinity;
+      const ppl=need.slots/SLOTS_BY_CCU[5]+need.p0/rate;
+      const fullLines=ppl>0?fullPlanets/ppl:0;
+      const lines=Math.min(fLines,eLines)+fullLines;
+      if(lines<=0||!isFinite(lines))return;
+      const ratePerHr=lines*need.ph;
+      const px=mk_px(bfrHub,o);
+      const iskDay=px?ratePerHr*24*px.buy:null;
+      rows.push({o,tier,lines,ratePerHr,iskDay,name:PI.recipe[o].name});
+    });
+  });
+  rows.sort((a,b)=>(b.iskDay??-1)-(a.iskDay??-1)||(b.ratePerHr-a.ratePerHr));
+  if(!rows.length){$('bfrBody').innerHTML='<div class="empty" style="padding:12px">No viable products for current roster roles. Ensure some pilots are chalked Factory, Extractor, or Full chain.</div>';return;}
+  const maxIsk=Math.max(1,...rows.filter(r=>r.iskDay).map(r=>r.iskDay));
+  $('bfrBody').innerHTML='<div style="font-size:9.5px;margin-bottom:8px;color:var(--muted2)">Based on your chalked roster at current extract rate · click any row to draft that product</div>'+
+    rows.slice(0,20).map(r=>{
+      const bar=r.iskDay?Math.round(r.iskDay/maxIsk*100):0;
+      const col=r.iskDay?'var(--green)':'var(--muted2)';
+      return '<div class="bfr-row card" data-o="'+r.o+'">'+
+        '<span class="bfr-name">P'+r.tier+' '+esc(r.name)+'</span>'+
+        '<span class="bfr-num" style="color:var(--cyan)">'+fmtQ(r.ratePerHr)+'/hr</span>'+
+        '<span class="bfr-num" style="width:80px;text-align:right;color:'+col+'">'+(r.iskDay?fmtISK(r.iskDay)+'/day':'load prices')+'</span>'+
+        '<span style="display:inline-block;width:'+Math.round(bar*0.6+1)+'px;height:6px;background:'+col+';opacity:0.4;border-radius:2px;vertical-align:middle;margin-left:8px"></span>'+
+        '</div>';
+    }).join('');
+  $('bfrBody').querySelectorAll('.bfr-row').forEach(row=>{
+    row.onclick=()=>{setTarget(+row.dataset.o);bfrVisible=false;renderBFR();};
+  });
+}
+(function wireBFRToggle(){
+  const tog=$('bfrToggle');if(!tog)return;
+  tog.onclick=()=>{bfrVisible=!bfrVisible;
+    if(!bfrVisible){tog.style.borderColor='var(--line2)';tog.style.color='var(--muted)';tog.style.background='transparent';}
+    renderBFR();};
+})();
+
+/* ============================================================
+   FEATURE 7: Planet type dots in coverage grid
+   ============================================================ */
+function renderCoverage(){
+  const wrap=$('covGrid');
+  if(!basketIds().length){wrap.innerHTML='<div class="empty" style="padding:10px">draft a product first</div>';return;}
+  const p0s=basketP0();
+  wrap.innerHTML=p0s.map(p=>{
+    const types=PI.p0pt[p]||[];
+    const dots=types.map(t=>{
+      const col=PT_COLOR_DEF[t]||'#888';
+      const full=UNIVERSE.planetTypes?UNIVERSE.planetTypes[t]||t:t;
+      return '<span class="pt-dot" style="background:'+col+'" title="'+esc(full)+'"></span><i style="color:var(--fg2)">'+esc(full)+'</i>';
+    }).join(' ');
+    return '<div class="cov card"><div class="pn">'+esc(PI.names[p]||p)+'</div><div class="pt">'+dots+'</div></div>';
+  }).join('');
+}
+
+/* ============================================================
+   FEATURE 8: Colony clock badges on chalkboard
+   ============================================================ */
+const COLONY_CACHE_KEY='eve_suite_chains_colony_clocks';
+let colonyClocks={};try{colonyClocks=JSON.parse(localStorage.getItem(COLONY_CACHE_KEY)||'{}')||{};}catch(e){}
+function saveColonyClocks(){try{localStorage.setItem(COLONY_CACHE_KEY,JSON.stringify(colonyClocks));}catch(e){}}
+async function fetchColonyClocks(){
+  const lim=pLimit(3);
+  await Promise.all(visibleIds().map(id=>lim(async()=>{
+    const r=roles[id];if(r!=='Extractor'&&r!=='Full chain')return;
+    const cached=colonyClocks[id];
+    if(cached&&now()-cached.ts<600000)return; // 10min TTL
+    const tok=await getTok(id);if(!tok)return;
+    try{
+      const planets=await esiGet('/characters/'+id+'/planets/',tok.access);
+      let earliest=null;
+      for(const pl of planets){
+        try{
+          const det=await esiGet('/characters/'+id+'/planets/'+pl.planet_id+'/',tok.access);
+          const heads=(det.pins||[]).filter(p=>(p.expiry_time&&p.extractor_details));
+          for(const h of heads){
+            const exp=new Date(h.expiry_time).getTime();
+            if(!earliest||exp<earliest)earliest=exp;
+          }
+        }catch(e){}
+      }
+      colonyClocks[id]={earliest,ts:now()};saveColonyClocks();
+    }catch(e){}
+  })));
+}
+function colonyClock(id){
+  const c=colonyClocks[id];if(!c||c.earliest==null)return '';
+  const msLeft=c.earliest-now();
+  if(msLeft<0)return '<span class="clock-badge warn" title="extractor head expired">expired</span>';
+  if(msLeft<86400000)return '<span class="clock-badge warn" title="extractor expiring soon">⏱ '+fmtDur(msLeft)+'</span>';
+  return '<span class="clock-badge ok" title="next extractor expiry">⏱ '+fmtDur(msLeft)+'</span>';
+}
+// Override renderRoles to add clock badges
+const _origRenderRoles=_orig_renderRoles;
+function _orig_renderRoles2(){
+  const row=$('roleRow');
+  const ids=visibleIds();
+  if(!ids.length){row.innerHTML='<div class="empty" style="padding:10px">no pilots on the roster — sign in via the Toolset menu</div>';$('roleSum').textContent='';return;}
+  row.innerHTML=ids.map(id=>{
+    const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
+    const r=roles[id]||'—';
+    const badge=(r==='Extractor'||r==='Full chain')?colonyClock(id):'';
+    return '<div class="rolepill card" data-id="'+id+'"><span>'+esc(nm)+badge+'</span><span class="r r-'+ROLES.indexOf(r)+'">'+esc(r)+'</span></div>';
+  }).join('');
+  const counts={};ids.forEach(id=>{const r=roles[id]||'—';counts[r]=(counts[r]||0)+1;});
+  $('roleSum').textContent='Chalked: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
+}
+// Fetch colony clocks when roles change or on page load (silently)
+function refreshColonyClocks(){
+  fetchColonyClocks().then(()=>renderRoles()).catch(()=>{});
+}
+
+/* ============================================================
+   Patch hunt() to also run split planner when whole chain fails
+   ============================================================ */
+const _origHunt=_orig_hunt;
+function hunt(){
+  buildNameIndex();
+  const out=$('huntOut');
+  if(!basketIds().length){out.innerHTML='<div class="empty" style="padding:12px">draft a product first</div>';return;}
+  const homeName=$('homeSys').value.trim().toLowerCase();
+  const homeId=sysByName[homeName];
+  if(!homeId){out.innerHTML='<div class="empty" style="padding:12px">home system not recognised — check the spelling</div>';return;}
+  const maxJ=Math.max(0,Math.min(12,+$('maxJumps').value||5));
+  const band=$('secBand').value, whole=$('wholeChain').checked;
+  const p0s=basketP0().map(Number);
+  const dist={};dist[homeId]=0;let frontier=[homeId];
+  for(let d=1;d<=maxJ;d++){
+    const next=[];
+    frontier.forEach(id=>{(UNIVERSE.systems[id][6]||[]).forEach(nb=>{
+      if(dist[String(nb)]===undefined&&UNIVERSE.systems[String(nb)]){dist[String(nb)]=d;next.push(String(nb));}});});
+    frontier=next;if(!next.length)break;
+  }
+  const rows=[];
+  Object.keys(dist).forEach(id=>{
+    const s=UNIVERSE.systems[id];
+    if(!secBandOk(s[1],band))return;
+    const covered=p0s.filter(p=>coversP0(s,p));
+    if(whole&&covered.length<p0s.length)return;
+    if(!covered.length)return;
+    rows.push({id,name:s[0],sec:s[1],region:UNIVERSE.regions[s[2]]||'',jumps:dist[id],covered:covered.length,planets:matchingPlanets(s,p0s),counts:s[5]||{}});
+  });
+  rows.sort((a,b)=>b.covered-a.covered||a.jumps-b.jumps||b.planets-a.planets);
+  lastHunt={rows,p0s,homeId,dist:bfsFull(homeId)};
+  $('mapPanel').classList.add('on');
+  mapZoom=1;mapPanX=0;mapPanY=0;
+  requestAnimationFrame(renderUniverseMap);
+  if(!rows.length){
+    out.innerHTML='<div class="empty" style="padding:12px">no systems within '+maxJ+' jumps cover '+(whole?'the whole basket':'any of the basket')+' — widen the hunt, drop the whole-chain requirement, or plan a split</div>';
+    renderCandStrip([]);
+    // Feature 1: try split planner
+    if(whole&&p0s.length>1){
+      const pairs=findSplitPairs(p0s,dist,band,maxJ);
+      renderSplitPanel(pairs,p0s);
+    }else{$('splitPanel')&&$('splitPanel').classList.remove('on');}
+    return;
+  }
+  // check if whole-chain wasn't required but no single system covers everything — offer splits
+  const fullCount=rows.filter(r=>r.covered===p0s.length).length;
+  if(fullCount===0&&p0s.length>1){
+    const pairs=findSplitPairs(p0s,dist,band,maxJ);
+    renderSplitPanel(pairs,p0s);
+  }else{$('splitPanel')&&$('splitPanel').classList.remove('on');}
+  out.innerHTML='<div class="miss" style="padding:8px 2px">'+rows.length+' candidate system'+(rows.length===1?'':'s')+' lit on the map'+(fullCount?' ('+fullCount+' covering full basket)':'')+' — pick one to plan its colony logistics</div>';
+  renderCandStrip(rows);
+}
+
+/* Patch renderLogistics to add copy button after rendering route */
+const _origRenderLogistics=_orig_renderLogistics;
+function _orig_renderLogistics2(){
+  _orig_renderLogistics();
+  renderCopyRouteBtn();
+}
+
+/* Patch refreshDraft to also update presets + chain price loader */
+const _origRefreshDraft=_orig_refreshDraft;
+function refreshDraft(){
+  saveBasket();renderBasket();renderChain();renderCoverage();renderCapacity();
+  $('huntOut').innerHTML='<div class="empty" style="padding:12px">'+(basketIds().length?'re-hunt for the new basket':'draft a product, set a home system, hunt')+'</div>';
+  lastHunt=null;selectedSystemId=null;$('mapPanel').classList.remove('on');$('logiDeck').classList.remove('on');
+  $('splitPanel')&&$('splitPanel').classList.remove('on');
+  const ids=basketIds();
+  reportDashboard(ids.length?('drafting '+ids.map(i=>PI.recipe[i].name).join(' + ')):'drafting table clear',ids.length?'ok':'muted');
+  renderPresets();
+  setTimeout(ensureChainPriceLoader,100);
+  if(bfrVisible)renderBFR();
+}
+
+/* Patch liveRefresh to include colony clocks + BFR */
+const _origLiveRefresh=_orig_liveRefresh;
+function liveRefresh(){
+  chars=loadChars();
+  try{roles=JSON.parse(localStorage.getItem(ROLE_KEY)||'{}')||{};}catch(e){}
+  try{piSkills=JSON.parse(localStorage.getItem(SKILL_CACHE_KEY)||'{}')||{};}catch(e){}
+  try{colonyClocks=JSON.parse(localStorage.getItem(COLONY_CACHE_KEY)||'{}')||{};}catch(e){}
+  renderRoles();renderCapacity();
+  if(selectedSystemId)renderLogistics();
+  if(bfrVisible)renderBFR();
+}
+
+/* ============================================================
+   FEATURE 1: Auto-assign roles (pilot optimiser)
+   Tries all 3^N role assignments for visible pilots and picks
+   the combination that maximises total throughput lines across
+   the basket.  N<=12 is instant; warns and caps at 12.
+   ============================================================ */
+const ASSIGNABLE_ROLES=['Extractor','Factory','Full chain'];
+
+function evalRoleAssignment(assignment){
+  /* assignment: {id -> role string}. Returns total throughput lines. */
+  const ids_=basketIds();if(!ids_.length)return 0;
+  const rate=extractRate();
+  let fSlots=0,ePlanets=0,fullPlanets=0;
+  Object.keys(assignment).forEach(id=>{
+    const r=assignment[id],c=pilotCap(id);
+    if(r==='Factory')fSlots+=c.planets*c.slots;
+    else if(r==='Extractor')ePlanets+=c.planets;
+    else if(r==='Full chain')fullPlanets+=c.planets;
+  });
+  const wSum=ids_.reduce((a,i)=>a+(+basket[i]||1),0)||1;
+  let total=0;
+  ids_.forEach(tid=>{
+    const t=+tid,need=chainNeeds(t),share=(+basket[tid]||1)/wSum;
+    const fLines=need.slots>0?share*fSlots/need.slots:0;
+    const eLines=need.p0>0?share*ePlanets*rate/need.p0:Infinity;
+    const ppl=need.slots/SLOTS_BY_CCU[5]+need.p0/rate;
+    const fullLines=ppl>0?share*fullPlanets/ppl:0;
+    total+=Math.min(fLines,eLines)+fullLines;
+  });
+  return total;
+}
+
+function autoChalkRoles(){
+  const ids=visibleIds();
+  if(!ids.length){toast('No pilots visible — toggle pilots above','bad');return;}
+  if(!basketIds().length){toast('Draft a product first','bad');return;}
+  if(ids.length>12){toast('Too many pilots to brute-force (max 12 — exclude some above)','bad');return;}
+
+  const n=ids.length,r=ASSIGNABLE_ROLES.length;
+  let bestScore=-1,bestAssign={};
+
+  /* iterate all r^n combinations */
+  const total=Math.pow(r,n);
+  for(let combo=0;combo<total;combo++){
+    const assign={};
+    let c=combo;
+    for(let i=0;i<n;i++){assign[ids[i]]=ASSIGNABLE_ROLES[c%r];c=Math.floor(c/r);}
+    const score=evalRoleAssignment(assign);
+    if(score>bestScore){bestScore=score;bestAssign={...assign};}
+  }
+
+  /* build diff vs current */
+  const prev={};ids.forEach(id=>prev[id]=roles[id]||'—');
+  const changes=ids.filter(id=>bestAssign[id]!==(prev[id]==='—'?'—':prev[id]));
+
+  /* render preview */
+  const diff=$('autochalkDiff');
+  if(diff){
+    diff.style.display='';
+    const beforeScore=evalRoleAssignment(prev);
+    const gain=bestScore-beforeScore;
+    const gainFmt=gain>0.01?'<span class="gain">+'+gain.toFixed(2)+' lines</span>':
+                  gain<-0.01?'<span style="color:var(--red)">'+gain.toFixed(2)+' lines</span>':
+                  '<span class="same">no change</span>';
+    let rows=ids.map(id=>{
+      const was=prev[id]||'—',now=bestAssign[id];
+      const changed=was!==now;
+      return '<div style="'+(changed?'color:var(--gold-bright)':'color:var(--muted2)')+'">'+
+        esc((chars[id]&&chars[id].charName)||('Pilot '+id))+': '+esc(was)+
+        (changed?' → <b>'+esc(now)+'</b>':' (unchanged)')+'</div>';
+    }).join('');
+    diff.innerHTML='<div class="autochalk-diff card">'+
+      '<div style="margin-bottom:6px">Optimal assignment: '+bestScore.toFixed(2)+' total lines ('+gainFmt+')</div>'+
+      rows+
+      '<div style="margin-top:8px;display:flex;gap:8px">'+
+      '<button class="btn primary" id="autochalkApply">Apply</button>'+
+      '<button class="btn" id="autochalkDismiss">Dismiss</button></div></div>';
+    $('autochalkApply').onclick=()=>{
+      ids.forEach(id=>{roles[id]=bestAssign[id];});
+      try{localStorage.setItem(ROLE_KEY,JSON.stringify(roles));}catch(e){}
+      diff.style.display='none';
+      renderRoles();renderCapacity();if(selectedSystemId)renderLogistics();
+      toast('Roles applied');
+    };
+    $('autochalkDismiss').onclick=()=>{diff.style.display='none';};
+  }
+}
+
+$('autochalkBtn').addEventListener('click',autoChalkRoles);
+
+/* ============================================================
+   FEATURE 2: Pilot → stage assignment
+   A table below stageFlow in the logistics deck.
+   Rows = chain stages (per product in basket).
+   Columns = chalked pilots.
+   Each cell = dropdown: assign this pilot to this stage.
+   Stored in eve_suite_chains_pilot_assign.
+   Warns if the pilot's assigned system can't cover the P0 needed.
+   Shows per-pilot haul contribution in capacity band.
+   ============================================================ */
+const PILOT_ASSIGN_KEY='eve_suite_chains_pilot_assign';
+let pilotAssign={};
+try{pilotAssign=JSON.parse(localStorage.getItem(PILOT_ASSIGN_KEY)||'{}')||{};}catch(e){}
+function savePilotAssign(){try{localStorage.setItem(PILOT_ASSIGN_KEY,JSON.stringify(pilotAssign));}catch(e){}}
+
+/* stageKey: unique string per stage — "tid:stageIndex" */
+function stageKey(tid,stageIdx){return tid+':'+stageIdx;}
+
+function renderPilotAssign(stagesMap){
+  /* stagesMap: Array of {tid, stageIdx, label, prodName, pick (system pick obj)} */
+  const panel=$('assignPanel'),body=$('assignBody');
+  if(!panel||!body)return;
+  const pilots=visibleIds().filter(id=>roles[id]&&roles[id]!=='—');
+  if(!stagesMap||!stagesMap.length||!pilots.length){panel.style.display='none';return;}
+  panel.style.display='';
+
+  const ROMAN=['I','II','III','IV','V'];
+  /* table: rows = stages, cols = pilots */
+  const ths=pilots.map(id=>'<th>'+esc((chars[id]&&chars[id].charName)||('Pilot '+id))+'<br><span style="font-size:8px;color:var(--muted2)">'+esc(roles[id])+'</span></th>').join('');
+  const rows=stagesMap.map(s=>{
+    const key=stageKey(s.tid,s.stageIdx);
+    const cells=pilots.map(id=>{
+      const assigned=(pilotAssign[key]||[]).includes(id);
+      const sysId=s.pick&&s.pick.id;
+      /* check if pilot's role suits this stage */
+      const r=roles[id];
+      const stageIsP0=s.isP0;
+      const roleOk=(stageIsP0&&(r==='Extractor'||r==='Full chain'))||
+                   (!stageIsP0&&(r==='Factory'||r==='Full chain'));
+      const warn=assigned&&!roleOk?'Role mismatch for this stage':null;
+      const cb='<input type="checkbox" class="pa-cb" data-key="'+esc(key)+'" data-pid="'+id+'"'+(assigned?' checked':'')+
+        (roleOk?'':' style="accent-color:var(--amber)"')+'>'+
+        (warn?'<span class="assign-warn">'+esc(warn)+'</span>':'');
+      return '<td>'+cb+'</td>';
+    }).join('');
+    const stageLabel=(s.prodName?'<span style="color:var(--muted2);font-size:9px">'+esc(s.prodName)+'</span> ':'')+'Stage '+ROMAN[s.stageIdx]+' — '+esc(s.label);
+    const sysName=s.pick&&UNIVERSE.systems[s.pick.id]?UNIVERSE.systems[s.pick.id][0]:'?';
+    return '<tr><td><div>'+stageLabel+'</div><div style="font-size:9px;color:var(--muted2)">'+esc(sysName)+'</div></td>'+cells+'</tr>';
+  }).join('');
+
+  body.innerHTML='<table class="assign-table"><thead><tr><th>Stage</th>'+ths+'</tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div style="font-size:9.5px;margin-top:8px;color:var(--muted2)">Check pilots onto each stage. Extractors suit P0 stages; factories suit processing stages. Assignments are remembered and shown in the haul schedule below.</div>';
+
+  body.querySelectorAll('.pa-cb').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      const key=cb.dataset.key,pid=cb.dataset.pid;
+      if(!pilotAssign[key])pilotAssign[key]=[];
+      if(cb.checked){if(!pilotAssign[key].includes(pid))pilotAssign[key].push(pid);}
+      else{pilotAssign[key]=pilotAssign[key].filter(p=>p!==pid);}
+      savePilotAssign();
+      /* re-render haul section to show per-pilot breakdown */
+      renderPilotHaulBreakdown(stagesMap);
+    });
+  });
+
+  renderPilotHaulBreakdown(stagesMap);
+}
+
+function renderPilotHaulBreakdown(stagesMap){
+  /* inject per-pilot assignment summary below haulRows */
+  const haulEl=$('haulRows');if(!haulEl)return;
+  const old=haulEl.querySelector('.pa-breakdown');if(old)old.remove();
+
+  const assigned=stagesMap.filter(s=>(pilotAssign[stageKey(s.tid,s.stageIdx)]||[]).length>0);
+  if(!assigned.length)return;
+
+  const ROMAN=['I','II','III','IV','V'];
+  /* build pilot → stages list */
+  const byPilot={};
+  stagesMap.forEach(s=>{
+    const key=stageKey(s.tid,s.stageIdx);
+    (pilotAssign[key]||[]).forEach(pid=>{
+      if(!byPilot[pid])byPilot[pid]=[];
+      byPilot[pid].push(s);
+    });
+  });
+
+  if(!Object.keys(byPilot).length)return;
+
+  let html='<div class="pa-breakdown" style="margin-top:10px;border-top:1px solid var(--line2);padding-top:8px">'+
+    '<div style="font-size:8.5px;margin-bottom:6px">PILOT ASSIGNMENTS</div>';
+  Object.keys(byPilot).forEach(pid=>{
+    const nm=(chars[pid]&&chars[pid].charName)||('Pilot '+pid);
+    const stages=byPilot[pid];
+    const stageList=stages.map(s=>{
+      const sysName=s.pick&&UNIVERSE.systems[s.pick.id]?UNIVERSE.systems[s.pick.id][0]:'?';
+      return 'Stage '+ROMAN[s.stageIdx]+(s.prodName?' ('+s.prodName+')':'')+' @ '+sysName;
+    }).join(', ');
+    html+='<div class="buf-row card"><span style="white-space:nowrap">'+esc(nm)+'</span><span>'+esc(stageList)+'</span></div>';
+  });
+  html+='</div>';
+  haulEl.insertAdjacentHTML('beforeend',html);
+}
+
+/* ============================================================
+   FEATURE 4: Skill gap report
+   Per visible pilot: IC / CCU current level → next level delta,
+   translated to extra planets / slots, translated to delta
+   throughput lines for the current draft basket.
+   ============================================================ */
+function renderSkillGap(){
+  const section=$('skillgapSection'),body=$('skillgapBody');
+  if(!section||!body)return;
+  const ids=visibleIds();
+  if(!ids.length||!basketIds().length){section.style.display='none';return;}
+  section.style.display='';
+
+  /* compute reference: current throughput total */
+  const st=capacityState();
+  const currentLines=st?st.prods.reduce((a,p)=>a+(isFinite(p.lines)?p.lines:0),0):0;
+
+  const rate=extractRate();
+
+  body.innerHTML=ids.map(id=>{
+    const s=piSkills[id]||{};
+    const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
+    const role=roles[id]||'—';
+    const c=pilotCap(id);
+
+    if(s.err||!s.ts){
+      return '<div class="sg-pilot card"><div class="sg-name">'+esc(nm)+' <span class="hint">'+esc(role)+'</span></div>'+
+        '<div class="sg-nodata">'+(s.err?esc(s.err):'Skills not yet loaded — skill fetch runs on page load when pilots are visible.')+'</div></div>';
+    }
+
+    const ic=s.ic||0,ccu=s.ccu||0;
+    const rows=[];
+
+    /* IC: each level adds 1 planet */
+    if(ic<5){
+      const nextIC=ic+1;
+      const extraPlanets=1; /* IC V-1 → V always +1 */
+      /* delta throughput: add extraPlanets to this pilot's role contribution */
+      const delta=deltaFromExtraPlanets(id,role,extraPlanets,extraPlanets,0,rate,st);
+      rows.push({skill:'Interplanetary Consolidation',from:'Level '+roman(ic),to:'Level '+roman(nextIC),
+        now:c.planets+' planets',delta:'+'+extraPlanets+' planet'+(extraPlanets===1?'':'s'),
+        impact:delta>0.001?'+'+delta.toFixed(2)+' lines':null,
+        note:delta<=0.001?hintWhyNoDelta(id,role,st):''});
+    }else{
+      rows.push({skill:'Interplanetary Consolidation',from:'Level V (maxed)',to:null,now:c.planets+' planets',delta:null,impact:null,note:''});
+    }
+
+    /* CCU: each level adds slots per planet per SLOTS_BY_CCU step */
+    if(ccu<5){
+      const nextCCU=ccu+1;
+      const slotsNow=SLOTS_BY_CCU[Math.min(5,ccu)];
+      const slotsNext=SLOTS_BY_CCU[Math.min(5,nextCCU)];
+      const extraSlots=slotsNext-slotsNow;
+      const delta=deltaFromExtraPlanets(id,role,0,0,extraSlots,rate,st);
+      rows.push({skill:'Command Center Upgrades',from:'Level '+roman(ccu),to:'Level '+roman(nextCCU),
+        now:slotsNow+' slots/planet',delta:'+'+extraSlots+' slot'+(extraSlots===1?'':'s')+'/planet',
+        impact:delta>0.001?'+'+delta.toFixed(2)+' lines':null,
+        note:delta<=0.001?hintWhyNoDelta(id,role,st):''});
+    }else{
+      rows.push({skill:'Command Center Upgrades',from:'Level V (maxed)',to:null,now:SLOTS_BY_CCU[5]+' slots/planet',delta:null,impact:null,note:''});
+    }
+
+    const rowHtml=rows.map(r=>'<div class="sg-row">'+
+      '<span class="sg-skill">'+esc(r.skill)+'</span>'+
+      '<span class="sg-now">'+esc(r.now)+'</span>'+
+      (r.to?'<span class="sg-delta">'+(r.delta||'—')+' at '+esc(r.to)+'</span>':
+            '<span class="sg-delta same" style="color:var(--muted2)">maxed</span>')+
+      (r.impact?'<span class="sg-impact">→ '+esc(r.impact)+'</span>':
+       r.delta?'<span style="font-size:9px;color:var(--muted2)">'+esc(r.note)+'</span>':'<span></span>')+
+      '</div>').join('');
+
+    return '<div class="sg-pilot card"><div class="sg-name">'+esc(nm)+' <span class="hint">'+esc(role)+'</span></div>'+rowHtml+'</div>';
+  }).join('');
+}
+
+function deltaFromExtraPlanets(id,role,extraPlanets,extraP0planets,extraSlotsPerPlanet,rate,st){
+  /* compute how much total lines would increase if this pilot gained extraPlanets (for extractor)
+     or extraSlotsPerPlanet (for factory). Returns delta lines. */
+  if(!st||!basketIds().length)return 0;
+  const c=pilotCap(id);
+  const wSum=basketIds().reduce((a,i)=>a+(+basket[i]||1),0)||1;
+  let delta=0;
+  basketIds().forEach(tid=>{
+    const t=+tid,need=chainNeeds(t),share=(+basket[tid]||1)/wSum;
+    /* current contribution from this pilot alone */
+    let dF=0,dE=0;
+    if(role==='Factory'||role==='Full chain'){
+      const extraSlots=extraSlotsPerPlanet*c.planets+extraPlanets*(c.slots+extraSlotsPerPlanet);
+      dF=need.slots>0?share*extraSlots/need.slots:0;
+    }
+    if(role==='Extractor'||role==='Full chain'){
+      dE=need.p0>0?share*extraP0planets*rate/need.p0:0;
+    }
+    /* approximate: add the smaller of the two deltas (bottleneck-aware) */
+    delta+=Math.min(dF||dE,dE||dF)||Math.max(dF,dE)*0.5;
+  });
+  return delta;
+}
+
+function hintWhyNoDelta(id,role,st){
+  if(!st)return '';
+  if(role==='—'||!role)return 'Pilot not assigned a role — chalk a role to see impact.';
+  /* check if this pilot is on the non-bottleneck side */
+  const bound=st.prods.length?st.prods[0].bound:null;
+  if(role==='Extractor'&&bound==='extraction')return '';
+  if(role==='Factory'&&bound==='factory')return '';
+  if(role==='Extractor'&&bound==='factory')return 'Chain is factory-bound — extra extraction planets won\'t help until more factory capacity is added.';
+  if(role==='Factory'&&bound==='extraction')return 'Chain is extraction-bound — extra factory slots won\'t help until more extractors are added.';
+  return '';
+}
+
+/* wire skill gap toggle */
+(function(){
+  const tog=$('skillgapToggle'),body=$('skillgapBody');
+  if(!tog||!body)return;
+  tog.onclick=()=>{
+    const open=body.classList.toggle('on');
+    tog.classList.toggle('open',open);
+    if(open)renderSkillGap();
+  };
+})();
+
+/* Patch renderRoles to also refresh skill gap if open, and auto-chalk diff if needed */
+const _origRenderRolesForSkillGap=_orig_renderRoles2;
+function renderRoles(){
+  _orig_renderRoles2();
+  const body=$('skillgapBody');
+  if(body&&body.classList.contains('on'))renderSkillGap();
+}
+
+/* Patch renderLogistics to also render pilot assignment table */
+const _origRenderLogisticsForAssign=_orig_renderLogistics2;
+function renderLogistics(){
+  _orig_renderLogistics2();
+  /* build stagesMap from current basket + selected system */
+  if(!selectedSystemId||!basketIds().length){
+    const p=$('assignPanel');if(p)p.style.display='none';return;
+  }
+  const SYS=UNIVERSE.systems;
+  const nearDist=bfsFull(selectedSystemId);
+  const homeDist=lastHunt?lastHunt.dist:null;
+  const stagesMap=[];
+  basketIds().forEach(tid=>{
+    const t=+tid;
+    const stages=traceChain(t);
+    const prodName=basketIds().length>1?PI.recipe[t].name:null;
+    stages.forEach((s,i)=>{
+      let pick;
+      if(i===stages.length-1){
+        pick={id:selectedSystemId,anchored:true};
+      }else{
+        pick=bestSystemFor(s,selectedSystemId,nearDist);
+        if(pick&&homeDist)pick.jumps=homeDist[pick.id]??pick.jumps;
+      }
+      const isP0=!!(PI.p0pt[s]&&!PI.recipe[s]);
+      const label=isP0?(PI.names[s]||s)+' (raw)':PI.recipe[s].name;
+      stagesMap.push({tid,stageIdx:i,label,prodName,pick,isP0});
+    });
+  });
+  renderPilotAssign(stagesMap);
+}
+
 $('prodSearch').addEventListener('input',renderSugg);
 $('prodSearch').addEventListener('focus',renderSugg);
-window.onRosterChange=renderRoles;
+window.onRosterChange=()=>{renderRoles();refreshColonyClocks();};
 renderTierChips();renderRoles();renderBasket();renderChain();renderCoverage();renderCapacity();
+renderPresets();
+// Initial colony clock fetch (async, non-blocking)
+setTimeout(refreshColonyClocks,1500);
+
 { /* populate datalist lazily with common trade hubs + on first focus full index */
   const dl=$('sysDatalist');
   $('homeSys').addEventListener('focus',()=>{

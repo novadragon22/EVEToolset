@@ -2808,13 +2808,13 @@ html[data-theme="minmatar"] .thm-rail{color:#6a4f38;letter-spacing:.28em;padding
 html[data-theme="minmatar"] header{text-align:left;margin-top:12px;padding:24px 28px 20px;transform:rotate(-.6deg);
   background:repeating-linear-gradient(90deg,#241810 0 26px,#1c130c 26px 30px,#20160e 30px 52px),#1e150d;
   border:3px solid #3a2c1e;clip-path:polygon(0 8px,99.2% 0,100% calc(100% - 6px),.8% 100%)}
-html[data-theme="minmatar"] header::before{content:'';position:absolute;inset:0;pointer-events:none;
+html[data-theme="minmatar"] header::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(5px 5px at 14px 14px,#8a7058 50%,#3a2416 60%,transparent 64%),
     radial-gradient(5px 5px at calc(100% - 14px) 16px,#8a7058 50%,#3a2416 60%,transparent 64%),
     radial-gradient(5px 5px at 16px calc(100% - 14px),#8a7058 50%,#3a2416 60%,transparent 64%),
     radial-gradient(5px 5px at calc(100% - 16px) calc(100% - 12px),#8a7058 50%,#3a2416 60%,transparent 64%),
     radial-gradient(220px 70px at 88% 0%,rgba(200,106,58,.2),transparent 70%)}
-html[data-theme="minmatar"] header::after{content:'';position:absolute;top:-8px;right:14%;width:130px;height:26px;transform:rotate(4deg);
+html[data-theme="minmatar"] header::after{content:'';position:absolute;top:-8px;right:14%;width:130px;height:26px;transform:rotate(4deg);pointer-events:none;z-index:0;
   background:rgba(178,158,120,.32);clip-path:polygon(2% 18%,98% 0,100% 82%,96% 100%,3% 90%,0 40%);
   box-shadow:inset 0 0 14px rgba(0,0,0,.3)}
 html[data-theme="minmatar"] h1{font-family:'Teko',sans-serif;font-weight:600;font-size:44px;letter-spacing:.1em;color:#e8946a;
@@ -2832,9 +2832,9 @@ html[data-theme="minmatar"] .kcard:nth-child(1){transform:rotate(.5deg)}
 html[data-theme="minmatar"] .kcard:nth-child(2){border-style:solid;border-left:4px solid #5a4430}
 html[data-theme="minmatar"] .kcard:nth-child(3){transform:rotate(-.6deg)}
 html[data-theme="minmatar"] .kcard:nth-child(4){transform:rotate(.3deg);border-bottom:2px dashed #6a4a2e}
-html[data-theme="minmatar"] .kcard::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;
+html[data-theme="minmatar"] .kcard::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;z-index:0;
   background:radial-gradient(76px 48px at 100% 0%,rgba(160,80,30,.38),rgba(90,40,15,.16) 55%,transparent 75%)}
-html[data-theme="minmatar"] .kcard::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);
+html[data-theme="minmatar"] .kcard::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;z-index:0;
   background:linear-gradient(160deg,#2e2418,#221a10);border:1px solid #4a3a28;
   box-shadow:inset 6px 5px 0 -4px #8a7058,inset 26px 15px 0 -4px #8a7058}
 html[data-theme="minmatar"] .kcard .thm-d1{display:block;inset:0;opacity:.35;
@@ -2852,10 +2852,10 @@ html[data-theme="minmatar"] .panel{border:3px solid #3a2c1e;transform:rotate(-.3
     repeating-linear-gradient(-45deg,transparent 0 9px,rgba(138,120,100,.05) 9px 10px),#120c07;
   clip-path:polygon(.8% 7px,99.4% 0,100% calc(100% - 11px),1.6% 100%)}
 html[data-theme="minmatar"] .panel:nth-of-type(even){transform:rotate(.3deg)}
-html[data-theme="minmatar"] .panel > .thm-d1{display:block;top:-4px;left:9%;right:32%;height:11px;border-radius:7px;
+html[data-theme="minmatar"] .panel > .thm-d1{display:block;top:-4px;left:9%;right:32%;height:11px;border-radius:7px;z-index:0;pointer-events:none;
   background:linear-gradient(180deg,#5c4a3a,#2e241a);
   box-shadow:16px 24px 0 -2px #4a3a2a,-8px 46px 0 -3px #4a3a2a,0 2px 3px rgba(0,0,0,.6)}
-html[data-theme="minmatar"] .panel > .thm-d2{display:block;inset:0;pointer-events:none;
+html[data-theme="minmatar"] .panel > .thm-d2{display:block;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(4px 4px at 4px 14%,#8a7058 55%,transparent 56%),radial-gradient(4px 4px at 4px 44%,#8a7058 55%,transparent 56%),
     radial-gradient(4px 4px at 4px 74%,#8a7058 55%,transparent 56%),radial-gradient(4px 4px at calc(100% - 4px) 24%,#8a7058 55%,transparent 56%),
     radial-gradient(4px 4px at calc(100% - 4px) 58%,#8a7058 55%,transparent 56%),radial-gradient(4px 4px at calc(100% - 4px) 88%,#8a7058 55%,transparent 56%),
@@ -2920,6 +2920,9 @@ html[data-theme="minmatar"] ::-webkit-scrollbar{width:13px}
 html[data-theme="minmatar"] ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#8a5a34,#5a3a20);border:2px solid #140d08}
 html[data-theme="minmatar"] ::-webkit-scrollbar-track{background:repeating-linear-gradient(0deg,#140d08 0 8px,#170f0a 8px 16px)}
 html[data-theme="minmatar"] :focus-visible{outline:2px dashed #e8946a;outline-offset:2px}
+/* ensure card/tile/kcard content sits above decorative pseudo-elements */
+html[data-theme="minmatar"] .card:not(.bp-card) > *,html[data-theme="minmatar"] .tile > *,html[data-theme="minmatar"] .kcard > *{position:relative;z-index:1}
+
 /* DERIVED EXTRAS · minmatar — suite card/panel-head/textarea duplicates, values preview-exact */
 html[data-theme="minmatar"] .card:not(.bp-card){background:linear-gradient(150deg,#1c130c,#140e08 60%);border:2px solid #4a3624;border-top:2px dashed #6a4a2e}
 html[data-theme="minmatar"] .tile{background:linear-gradient(150deg,#1c130c,#140e08 60%);border:2px solid #4a3624;border-top:2px dashed #6a4a2e}
@@ -2931,14 +2934,14 @@ html[data-theme="minmatar"] .card:not(.bp-card):nth-child(3){transform:rotate(-.
 html[data-theme="minmatar"] .tile:nth-child(3){transform:rotate(-.6deg)}
 html[data-theme="minmatar"] .card:not(.bp-card):nth-child(4){transform:rotate(.3deg);border-bottom:2px dashed #6a4a2e}
 html[data-theme="minmatar"] .tile:nth-child(4){transform:rotate(.3deg);border-bottom:2px dashed #6a4a2e}
-html[data-theme="minmatar"] .card:not(.bp-card)::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;
+html[data-theme="minmatar"] .card:not(.bp-card)::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;z-index:0;
   background:radial-gradient(76px 48px at 100% 0%,rgba(160,80,30,.38),rgba(90,40,15,.16) 55%,transparent 75%)}
-html[data-theme="minmatar"] .tile::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;
+html[data-theme="minmatar"] .tile::before{content:'';position:absolute;top:0;right:0;width:70px;height:48px;pointer-events:none;z-index:0;
   background:radial-gradient(76px 48px at 100% 0%,rgba(160,80,30,.38),rgba(90,40,15,.16) 55%,transparent 75%)}
-html[data-theme="minmatar"] .card:not(.bp-card)::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);
+html[data-theme="minmatar"] .card:not(.bp-card)::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;z-index:0;
   background:linear-gradient(160deg,#2e2418,#221a10);border:1px solid #4a3a28;
   box-shadow:inset 6px 5px 0 -4px #8a7058,inset 26px 15px 0 -4px #8a7058}
-html[data-theme="minmatar"] .tile::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);
+html[data-theme="minmatar"] .tile::after{content:'';position:absolute;left:-6px;bottom:14px;width:34px;height:22px;transform:rotate(-3deg);pointer-events:none;z-index:0;
   background:linear-gradient(160deg,#2e2418,#221a10);border:1px solid #4a3a28;
   box-shadow:inset 6px 5px 0 -4px #8a7058,inset 26px 15px 0 -4px #8a7058}
 html[data-theme="minmatar"] .card:not(.bp-card) .thm-d1{display:block;inset:0;opacity:.35;
