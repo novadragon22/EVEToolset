@@ -2010,7 +2010,6 @@ function _lr_base(){
 const ASSIGNABLE_ROLES=['Extractor','Factory','Full chain'];
 
 function evalRoleAssignment(assignment){
-  /* assignment: {id -> role string}. Returns total throughput lines. */
   const ids_=basketIds();if(!ids_.length)return 0;
   const rate=extractRate();
   let fSlots=0,ePlanets=0,fullPlanets=0;
@@ -2033,30 +2032,89 @@ function evalRoleAssignment(assignment){
   return total;
 }
 
+/* Extractor planets needed to fully feed a given factory slot count */
+function planetsToFeedSlots(fSlots){
+  const ids_=basketIds();if(!ids_.length)return 0;
+  const rate=extractRate();
+  const wSum=ids_.reduce((a,i)=>a+(+basket[i]||1),0)||1;
+  let p0needed=0;
+  ids_.forEach(tid=>{
+    const t=+tid,need=chainNeeds(t),share=(+basket[tid]||1)/wSum;
+    const lines=need.slots>0?share*fSlots/need.slots:0;
+    p0needed+=lines*need.p0;
+  });
+  return rate>0?p0needed/rate:0;
+}
+
 function autoChalkRoles(){
   const ids=visibleIds();
   if(!ids.length){toast('No pilots visible — toggle pilots above','bad');return;}
   if(!basketIds().length){toast('Draft a product first','bad');return;}
   if(ids.length>12){toast('Too many pilots to brute-force (max 12 — exclude some above)','bad');return;}
 
-  const n=ids.length,r=ASSIGNABLE_ROLES.length;
+  /* Pilots already chalked Factory are anchored — locked in place.
+     The solver assigns free pilots to maximise throughput given that
+     the anchored factory pilots must be kept fully fed first. */
+  const anchoredFactory=ids.filter(id=>roles[id]==='Factory');
+  const free=ids.filter(id=>!anchoredFactory.includes(id));
+
   let bestScore=-1,bestAssign={};
 
-  /* iterate all r^n combinations */
-  const total=Math.pow(r,n);
-  for(let combo=0;combo<total;combo++){
-    const assign={};
-    let c=combo;
-    for(let i=0;i<n;i++){assign[ids[i]]=ASSIGNABLE_ROLES[c%r];c=Math.floor(c/r);}
-    const score=evalRoleAssignment(assign);
-    if(score>bestScore){bestScore=score;bestAssign={...assign};}
+  if(anchoredFactory.length===0){
+    /* No anchored pilots — pure brute-force over all roles */
+    const n=ids.length,r=ASSIGNABLE_ROLES.length;
+    const total_=Math.pow(r,n);
+    for(let combo=0;combo<total_;combo++){
+      const assign={};let c=combo;
+      for(let i=0;i<n;i++){assign[ids[i]]=ASSIGNABLE_ROLES[c%r];c=Math.floor(c/r);}
+      const score=evalRoleAssignment(assign);
+      if(score>bestScore){bestScore=score;bestAssign={...assign};}
+    }
+  } else {
+    /* Anchored factory pilots locked. Compute how many extractor planets
+       their slots need to be 100% utilised. */
+    const anchoredFSlots=anchoredFactory.reduce((a,id)=>{
+      const c=pilotCap(id);return a+c.planets*c.slots;
+    },0);
+    const planetsNeeded=planetsToFeedSlots(anchoredFSlots);
+
+    /* Score free pilots with a feed-first weighting:
+       if extraction is still below what the factory pilots need,
+       penalise by the shortfall so solver fills extraction before
+       adding more factory or maximising generic throughput. */
+    function scoreWithAnchor(freeAssign){
+      const full={};
+      anchoredFactory.forEach(id=>{full[id]='Factory';});
+      Object.assign(full,freeAssign);
+      const base=evalRoleAssignment(full);
+      let ePlanets=0;
+      ids.forEach(id=>{
+        const r=full[id],c=pilotCap(id);
+        if(r==='Extractor'||r==='Full chain')ePlanets+=c.planets;
+      });
+      /* penalty proportional to how far below the needed extraction we are */
+      const deficit=Math.max(0,planetsNeeded-ePlanets);
+      return base-deficit*0.5;
+    }
+
+    const n=free.length,r=ASSIGNABLE_ROLES.length;
+    const total_=Math.pow(r,n);
+    for(let combo=0;combo<total_;combo++){
+      const freeAssign={};let c=combo;
+      for(let i=0;i<n;i++){freeAssign[free[i]]=ASSIGNABLE_ROLES[c%r];c=Math.floor(c/r);}
+      const score=scoreWithAnchor(freeAssign);
+      if(score>bestScore){
+        bestScore=score;
+        bestAssign={};
+        anchoredFactory.forEach(id=>{bestAssign[id]='Factory';});
+        Object.assign(bestAssign,freeAssign);
+      }
+    }
+    bestScore=evalRoleAssignment(bestAssign);
   }
 
-  /* build diff vs current */
   const prev={};ids.forEach(id=>prev[id]=roles[id]||'—');
-  const changes=ids.filter(id=>bestAssign[id]!==(prev[id]==='—'?'—':prev[id]));
 
-  /* render preview */
   const diff=$('autochalkDiff');
   if(diff){
     diff.style.display='';
@@ -2065,14 +2123,19 @@ function autoChalkRoles(){
     const gainFmt=gain>0.01?'<span class="gain">+'+gain.toFixed(2)+' lines</span>':
                   gain<-0.01?'<span style="color:var(--red)">'+gain.toFixed(2)+' lines</span>':
                   '<span class="same">no change</span>';
-    let rows=ids.map(id=>{
+    const modeNote=anchoredFactory.length
+      ?'<div style="font-size:9px;color:var(--cyan);margin-bottom:6px">'+
+        anchoredFactory.map(id=>esc((chars[id]&&chars[id].charName)||('Pilot '+id))).join(', ')+
+        ' anchored as Factory · remaining pilots assigned to keep their slots fully fed</div>'
+      :'';
+    const rows=ids.map(id=>{
       const was=prev[id]||'—',now=bestAssign[id];
-      const changed=was!==now;
-      return '<div style="'+(changed?'color:var(--gold-bright)':'color:var(--muted2)')+'">'+
+      const changed=was!==now,anchored=anchoredFactory.includes(id);
+      return '<div style="'+(anchored?'color:var(--cyan)':changed?'color:var(--gold-bright)':'color:var(--muted2)')+'">' +
         esc((chars[id]&&chars[id].charName)||('Pilot '+id))+': '+esc(was)+
-        (changed?' → <b>'+esc(now)+'</b>':' (unchanged)')+'</div>';
+        (anchored?' (anchored)':changed?' → <b>'+esc(now)+'</b>':' (unchanged)')+'</div>';
     }).join('');
-    diff.innerHTML='<div class="autochalk-diff card">'+
+    diff.innerHTML='<div class="autochalk-diff card">'+modeNote+
       '<div style="margin-bottom:6px">Optimal assignment: '+bestScore.toFixed(2)+' total lines ('+gainFmt+')</div>'+
       rows+
       '<div style="margin-top:8px;display:flex;gap:8px">'+
