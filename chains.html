@@ -361,25 +361,6 @@ td .reg{font-size:9px}
   <div id="bfrControls" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;margin-bottom:8px"></div>
   <div id="bfrBody"></div>
 </div>
-<div class="logideck panel" id="logiDeck">
-  <h2>Colony logistics — <span id="logiSysName"></span></h2>
-  <span class="c">Production and transfer routing for the selected system, carried over from the original PI Planner: each stage of the chain is scored to a real system (the selected system anchors the final stage), hauls are sized against your hauler's infrastructure hold, and the route is sorted nearest-first from home.</span>
-  <div class="logihead">
-    <span class="selsys card" id="logiSysCard"></span>
-    <div><label>HAULER</label><select id="haulShipSel"></select></div>
-    <div><label>M³ INFRA HOLD — reference value, adjust to match your fit</label><input type="number" id="haulCapacityInput" min="1"></div>
-  </div>
-  <div id="stageFlow"></div>
-  <div class="assign-panel" id="assignPanel" style="display:none">
-    <h3>PILOT → STAGE ASSIGNMENT</h3>
-    <div id="assignBody"></div>
-  </div>
-  <div class="logigrid">
-    <div><div class="lbl2" style="font-size:8.5px;margin-bottom:6px" id="haulLbl">HAUL CADENCE &amp; TRIPS</div><div class="haulrows" id="haulRows"></div></div>
-    <div class="routebox card"><div class="lbl2" id="haulShipLbl">ROUTE OPTIMISER</div><div id="logiRoute"></div></div>
-  </div>
-</div>
-
 <div class="panel" id="makePanel" style="display:none">
   <div class="mkwrap">
     <h2 style="font-size:11.5px;margin:0 0 10px">What should I make? <span class="hint" style="font-weight:400">· profit ranking</span></h2>
@@ -418,6 +399,25 @@ td .reg{font-size:9px}
       <i><span class="dot" style="background:#6dc86d"></span>&gt;12h</i>
       <i><span class="dot" style="background:rgba(122,184,200,.35)"></span>now</i>
     </div>
+  </div>
+</div>
+
+<div class="logideck panel" id="logiDeck">
+  <h2>Colony logistics — <span id="logiSysName"></span></h2>
+  <span class="c">Production and transfer routing for the selected system, carried over from the original PI Planner: each stage of the chain is scored to a real system (the selected system anchors the final stage), hauls are sized against your hauler's infrastructure hold, and the route is sorted nearest-first from home.</span>
+  <div class="logihead">
+    <span class="selsys card" id="logiSysCard"></span>
+    <div><label>HAULER</label><select id="haulShipSel"></select></div>
+    <div><label>M³ INFRA HOLD — reference value, adjust to match your fit</label><input type="number" id="haulCapacityInput" min="1"></div>
+  </div>
+  <div id="stageFlow"></div>
+  <div class="assign-panel" id="assignPanel" style="display:none">
+    <h3>PILOT → STAGE ASSIGNMENT</h3>
+    <div id="assignBody"></div>
+  </div>
+  <div class="logigrid">
+    <div><div class="lbl2" style="font-size:8.5px;margin-bottom:6px" id="haulLbl">HAUL CADENCE &amp; TRIPS</div><div class="haulrows" id="haulRows"></div></div>
+    <div class="routebox card"><div class="lbl2" id="haulShipLbl">ROUTE OPTIMISER</div><div id="logiRoute"></div></div>
   </div>
 </div>
 </div>
@@ -949,11 +949,33 @@ function renderUniverseMap(){
 }
 
 /* ---- chain trace + stage scoring (carried over from pi.html) ---- */
+/* traceChain returns stages ordered P0 → target, one entry per unique
+   product in the full BOM, grouped by tier.  Earlier single-path walk
+   only followed r.in[0] and silently dropped every other branch. */
 function traceChain(t){
-  const stages=[];let cur=String(t);
-  while(true){stages.unshift(cur);const r=PI.recipe[cur];if(!r||!r.in||!r.in.length)break;
-    cur=String(r.in[0][0]);
-    if(PI.p0pt[cur]&&!PI.recipe[cur]){stages.unshift(cur);break;}}
+  const acc=bomExpand(+t,1);
+  /* collect all unique type IDs in the chain, keyed by tier */
+  const byTier={};
+  /* P0 raw materials */
+  Object.keys(acc.p0).forEach(p=>{(byTier[0]=byTier[0]||[]).push(p);});
+  /* processed intermediates + target */
+  Object.keys(acc.steps).forEach(p=>{
+    const ti=PI.tier[p]||0;
+    (byTier[ti]=byTier[ti]||[]).push(p);
+  });
+  /* flatten in ascending tier order: P0 first, target last */
+  const stages=[];
+  const tierNums=Object.keys(byTier).map(Number).sort((a,b)=>a-b);
+  tierNums.forEach(ti=>{
+    /* within a tier, stable order (by qty desc so heaviest first) */
+    const list=byTier[ti];
+    list.sort((a,b)=>{
+      const qa=ti===0?acc.p0[a]:acc.steps[a];
+      const qb=ti===0?acc.p0[b]:acc.steps[b];
+      return qb-qa;
+    });
+    list.forEach(p=>stages.push({id:p,tier:ti}));
+  });
   return stages;
 }
 function p0NeedsFor(prodId){
@@ -1177,50 +1199,85 @@ function _orig_renderLogistics(){
   let flowHtml='',haulHtml='';
   targets.forEach(tid=>{
     const t=+tid,qty=basket[tid]||10;
-    const stages=traceChain(t);
-    const picks=stages.map((s,i)=>{
-      if(i===stages.length-1){ // final stage anchors on the selected system (pi.html behaviour)
-        const have=selSys[5]||{};let covered=0;
-        unionP0.forEach(p=>{if((PI.p0pt[p]||[]).some(c=>have[c]))covered++;});
-        return {id:selectedSystemId,covered,total:unionP0.length||1,jumps:homeDist?(homeDist[selectedSystemId]??null):null,anchored:true};
-      }
-      const pick=bestSystemFor(s,selectedSystemId,nearDist);
-      if(pick&&homeDist)pick.jumps=homeDist[pick.id]??pick.jumps;
-      return pick;
+    const acc=bomExpand(t,1);
+    /* group all products in this chain by tier */
+    const byTier={};
+    Object.keys(acc.p0).forEach(p=>{(byTier[0]=byTier[0]||[]).push(String(p));});
+    Object.keys(acc.steps).forEach(p=>{const ti=PI.tier[p]||0;(byTier[ti]=byTier[ti]||[]).push(String(p));});
+    const tierNums=Object.keys(byTier).map(Number).sort((a,b)=>a-b);
+
+    /* score each unique product to a system */
+    const pickCache={};
+    tierNums.forEach(ti=>{
+      (byTier[ti]||[]).forEach(pid=>{
+        if(String(ti)===String(PI.tier[t])){
+          const have=selSys[5]||{};let covered=0;
+          unionP0.forEach(p=>{if((PI.p0pt[p]||[]).some(c=>have[c]))covered++;});
+          pickCache[pid]={id:selectedSystemId,covered,total:unionP0.length||1,
+            jumps:homeDist?(homeDist[selectedSystemId]??null):null,anchored:true};
+        } else {
+          const pick=bestSystemFor(pid,selectedSystemId,nearDist);
+          if(pick&&homeDist)pick.jumps=homeDist[pick.id]??pick.jumps;
+          pickCache[pid]=pick;
+        }
+        const pk=pickCache[pid];
+        if(pk)routeStops.set(pk.id,{sysName:SYS[pk.id][0],jumps:(pk.jumps!==Infinity?pk.jumps:null)});
+      });
     });
+
+    /* stage flow — one column per tier, all products in that tier stacked */
     if(targets.length>1)flowHtml+='<div class="ct-prodhead" style="margin-top:8px">'+esc(PI.recipe[t].name)+' \u00d7'+qty+'</div>';
-    flowHtml+='<div class="stageflow">'+stages.map((s,i)=>{
-      const pick=picks[i];
-      const label=PI.p0pt[s]&&!PI.recipe[s]?(PI.names[s]||s)+' (raw)':PI.recipe[s].name;
-      const isP4stage=isP4(s);
-      const p4FactoryOk=!isP4stage||(pick&&hasP4FactoryPlanet(SYS[pick.id]));
-      const card='<div class="stagecard card'+(pick&&pick.anchored?' anchored':'')+'">'+
-        '<div class="roman">STAGE '+(ROMAN[i]||i+1)+(pick&&pick.anchored?' · SELECTED':'')+'</div>'+
-        '<div class="st-prod">'+esc(label)+'</div>'+
-        (isP4stage?'<div class="st-meta" style="color:var(--amber)">Advanced facility · Temperate/Barren only'+(pick&&!p4FactoryOk?' · ⚠ no T/B planet here':'')+'</div>':'')+
-        '<div class="st-sys">'+(pick?esc(SYS[pick.id][0]):'no system found')+'</div>'+
-        (pick?'<div class="st-meta">'+pick.covered+'/'+pick.total+' planet types'+(pick.jumps!=null&&pick.jumps!==Infinity?' · '+pick.jumps+'j from home':'')+'</div>':'')+
+    flowHtml+='<div class="stageflow">';
+    tierNums.forEach((ti,col)=>{
+      const prods=byTier[ti]||[];
+      const tierPicks=prods.map(p=>pickCache[p]).filter(Boolean);
+      const repPick=tierPicks[0]||null;
+      const tierSysSet=new Map();
+      prods.forEach(pid=>{const pk=pickCache[pid];if(pk)tierSysSet.set(pk.id,SYS[pk.id][0]);});
+      const tierSysNames=[...tierSysSet.values()];
+      const hasP4here=prods.some(pid=>isP4(pid));
+      const p4ok=!hasP4here||(repPick&&hasP4FactoryPlanet(SYS[repPick.id]));
+      flowHtml+='<div class="stagecard card'+(repPick&&repPick.anchored?' anchored':'')+'">'+
+        '<div class="roman">P'+ti+(repPick&&repPick.anchored?' \u00b7 TARGET':'')+
+        (hasP4here?' \u00b7 <span style="color:var(--amber)">Adv. facility</span>':'')+'</div>'+
+        prods.map(pid=>{
+          const nm=ti===0?(PI.names[pid]||pid):(PI.recipe[pid]?PI.recipe[pid].name:pid);
+          return '<div class="st-prod">'+esc(nm)+(ti===0?' (raw)':'')+'</div>';
+        }).join('')+
+        '<div class="st-sys">'+esc(tierSysNames.join(', ')||'no system found')+'</div>'+
+        (repPick&&repPick.jumps!=null&&repPick.jumps!==Infinity?'<div class="st-meta">'+repPick.jumps+'j from home</div>':'')+
+        (hasP4here&&!p4ok?'<div class="st-meta" style="color:var(--amber)">\u26a0 no T/B planet for Advanced facility</div>':'')+
         '</div>';
-      if(pick)routeStops.set(pick.id,{sysName:SYS[pick.id][0],jumps:(pick.jumps!==Infinity?pick.jumps:null)});
-      return card+(i<stages.length-1?'<div class="stagelink">\u2192</div>':'');
-    }).join('')+'</div>';
-    /* haul cadence + trips (verbatim maths from pi.html) */
+      if(col<tierNums.length-1)flowHtml+='<div class="stagelink">\u2192</div>';
+    });
+    flowHtml+='</div>';
+
+    /* haul cadence — one row per tier boundary */
     let rows='';
-    for(let i=0;i<stages.length-1;i++){const a=stages[i],b=stages[i+1];
-      const ra=PI.recipe[a],rb=PI.recipe[b];
-      const ctA=ra?ra.ct:1800,ctB=rb?rb.ct:1800;
+    for(let ci=0;ci<tierNums.length-1;ci++){
+      const tiA=tierNums[ci],tiB=tierNums[ci+1];
+      const prodsA=byTier[tiA]||[],prodsB=byTier[tiB]||[];
+      const ctA=Math.max(...prodsA.map(p=>PI.recipe[p]?PI.recipe[p].ct:1800));
+      const ctB=Math.max(...prodsB.map(p=>PI.recipe[p]?PI.recipe[p].ct:3600));
       const cadence=Math.max(ctA,ctB);
-      const qtyPerCadence=ra?ra.out*Math.max(1,cadence/ctA):1;
-      const tierForVol=PI.tier[a]!=null?PI.tier[a]:(PI.tier[b]!=null?PI.tier[b]:1);
-      const volPerUnit=PI_VOL[a]!=null?PI_VOL[a]:(REF_VOLUME_BY_TIER[tierForVol]!=null?REF_VOLUME_BY_TIER[tierForVol]:6);
-      const totalM3=qtyPerCadence*volPerUnit;
+      let totalM3=0;
+      prodsA.forEach(pid=>{
+        const r=PI.recipe[pid];
+        const out=r?r.out*Math.max(1,cadence/r.ct):1;
+        const vol=PI_VOL[pid]!=null?PI_VOL[pid]:(REF_VOLUME_BY_TIER[tiA]||0.38);
+        totalM3+=out*vol;
+      });
       const trips=Math.max(1,Math.ceil(totalM3/haulCapacity));
       totalTripsAll+=trips;
-      rows+='<div class="buf-row card"><span>'+ROMAN[i]+' \u2192 '+ROMAN[i+1]+'</span>'+
-        '<span><b>'+fmtHrs(cadence)+'</b> haul cadence · '+(PI.p0pt[a]&&!PI.recipe[a]?'raw':esc(PI.recipe[a].name))+' \u2192 '+esc(PI.recipe[b]?PI.recipe[b].name:b)+', matched to the slower stage\u2019s cycle · ~'+Math.round(totalM3).toLocaleString()+' m\u00b3 \u2248 <b>'+trips+'</b> trip'+(trips===1?'':'s')+'</span></div>';
+      const fromNames=prodsA.map(p=>tiA===0?(PI.names[p]||p):(PI.recipe[p]?PI.recipe[p].name:p)).join(', ');
+      const toNames=prodsB.map(p=>PI.recipe[p]?PI.recipe[p].name:p).join(', ');
+      rows+='<div class="buf-row card">'+
+        '<span>P'+tiA+' \u2192 P'+tiB+'</span>'+
+        '<span><b>'+fmtHrs(cadence)+'</b> haul cadence \u00b7 '+esc(fromNames)+' \u2192 '+esc(toNames)+
+        ' \u00b7 ~'+Math.round(totalM3).toLocaleString()+' m\u00b3 \u2248 <b>'+trips+'</b> trip'+(trips===1?'':'s')+'</span></div>';
     }
     haulHtml+=(targets.length>1?'<div class="ct-prodhead" style="margin:8px 0 2px">'+esc(PI.recipe[t].name)+'</div>':'')+
-      (rows||'<div class="buf-row card"><span>Single-stage chain — no hauls needed.</span></div>');
+      (rows||'<div class="buf-row card"><span>Single-stage chain \u2014 no hauls needed.</span></div>');
   });
   $('stageFlow').innerHTML=flowHtml;
   /* export volume — computed from the chalked roster's supported lines */
@@ -2044,98 +2101,80 @@ $('autochalkBtn').addEventListener('click',autoChalkRoles);
    Warns if the pilot's assigned system can't cover the P0 needed.
    Shows per-pilot haul contribution in capacity band.
    ============================================================ */
-const PILOT_ASSIGN_KEY='eve_suite_chains_pilot_assign';
-let pilotAssign={};
-try{pilotAssign=JSON.parse(localStorage.getItem(PILOT_ASSIGN_KEY)||'{}')||{};}catch(e){}
-function savePilotAssign(){try{localStorage.setItem(PILOT_ASSIGN_KEY,JSON.stringify(pilotAssign));}catch(e){}}
 
-/* stageKey: unique string per stage — "tid:stageIndex" */
-function stageKey(tid,stageIdx){return tid+':'+stageIdx;}
 
 function renderPilotAssign(stagesMap){
-  /* stagesMap: Array of {tid, stageIdx, label, prodName, pick (system pick obj)} */
   const panel=$('assignPanel'),body=$('assignBody');
   if(!panel||!body)return;
   const pilots=visibleIds().filter(id=>roles[id]&&roles[id]!=='—');
-  if(!stagesMap||!stagesMap.length||!pilots.length){panel.style.display='none';return;}
+  if(!pilots.length){panel.style.display='none';return;}
   panel.style.display='';
 
-  const ROMAN=['I','II','III','IV','V'];
-  /* table: rows = stages, cols = pilots */
-  const ths=pilots.map(id=>'<th>'+esc((chars[id]&&chars[id].charName)||('Pilot '+id))+'<br><span style="font-size:8px;color:var(--muted2)">'+esc(roles[id])+'</span></th>').join('');
-  const rows=stagesMap.map(s=>{
-    const key=stageKey(s.tid,s.stageIdx);
-    const cells=pilots.map(id=>{
-      const assigned=(pilotAssign[key]||[]).includes(id);
-      const sysId=s.pick&&s.pick.id;
-      /* check if pilot's role suits this stage */
-      const r=roles[id];
-      const stageIsP0=s.isP0;
-      const roleOk=(stageIsP0&&(r==='Extractor'||r==='Full chain'))||
-                   (!stageIsP0&&(r==='Factory'||r==='Full chain'));
-      const warn=assigned&&!roleOk?'Role mismatch for this stage':null;
-      const cb='<input type="checkbox" class="pa-cb" data-key="'+esc(key)+'" data-pid="'+id+'"'+(assigned?' checked':'')+
-        (roleOk?'':' style="accent-color:var(--amber)"')+'>'+
-        (warn?'<span class="assign-warn">'+esc(warn)+'</span>':'');
-      return '<td>'+cb+'</td>';
-    }).join('');
-    const stageLabel=(s.prodName?'<span style="color:var(--muted2);font-size:9px">'+esc(s.prodName)+'</span> ':'')+'Stage '+ROMAN[s.stageIdx]+' — '+esc(s.label);
-    const sysName=s.pick&&UNIVERSE.systems[s.pick.id]?UNIVERSE.systems[s.pick.id][0]:'?';
-    return '<tr><td><div>'+stageLabel+'</div><div style="font-size:9px;color:var(--muted2)">'+esc(sysName)+'</div></td>'+cells+'</tr>';
-  }).join('');
-
-  body.innerHTML='<table class="assign-table"><thead><tr><th>Stage</th>'+ths+'</tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div style="font-size:9.5px;margin-top:8px;color:var(--muted2)">Check pilots onto each stage. Extractors suit P0 stages; factories suit processing stages. Assignments are remembered and shown in the haul schedule below.</div>';
-
-  body.querySelectorAll('.pa-cb').forEach(cb=>{
-    cb.addEventListener('change',()=>{
-      const key=cb.dataset.key,pid=cb.dataset.pid;
-      if(!pilotAssign[key])pilotAssign[key]=[];
-      if(cb.checked){if(!pilotAssign[key].includes(pid))pilotAssign[key].push(pid);}
-      else{pilotAssign[key]=pilotAssign[key].filter(p=>p!==pid);}
-      savePilotAssign();
-      /* re-render haul section to show per-pilot breakdown */
-      renderPilotHaulBreakdown(stagesMap);
-    });
+  /* read-only mirror of the chalkboard — pilots grouped by role,
+     with a note on which stage type each role covers */
+  const byRole={};
+  pilots.forEach(id=>{
+    const r=roles[id];
+    (byRole[r]=byRole[r]||[]).push(id);
   });
 
-  renderPilotHaulBreakdown(stagesMap);
-}
+  const roleStageNote={
+    'Extractor':'P0 raw extraction stages',
+    'Factory':'P1–P4 processing stages',
+    'Full chain':'all stages'
+  };
 
-function renderPilotHaulBreakdown(stagesMap){
-  /* inject per-pilot assignment summary below haulRows */
-  const haulEl=$('haulRows');if(!haulEl)return;
-  const old=haulEl.querySelector('.pa-breakdown');if(old)old.remove();
-
-  const assigned=stagesMap.filter(s=>(pilotAssign[stageKey(s.tid,s.stageIdx)]||[]).length>0);
-  if(!assigned.length)return;
-
-  const ROMAN=['I','II','III','IV','V'];
-  /* build pilot → stages list */
-  const byPilot={};
-  stagesMap.forEach(s=>{
-    const key=stageKey(s.tid,s.stageIdx);
-    (pilotAssign[key]||[]).forEach(pid=>{
-      if(!byPilot[pid])byPilot[pid]=[];
-      byPilot[pid].push(s);
-    });
-  });
-
-  if(!Object.keys(byPilot).length)return;
-
-  let html='<div class="pa-breakdown" style="margin-top:10px;border-top:1px solid var(--line2);padding-top:8px">'+
-    '<div style="font-size:8.5px;margin-bottom:6px">PILOT ASSIGNMENTS</div>';
-  Object.keys(byPilot).forEach(pid=>{
-    const nm=(chars[pid]&&chars[pid].charName)||('Pilot '+pid);
-    const stages=byPilot[pid];
-    const stageList=stages.map(s=>{
-      const sysName=s.pick&&UNIVERSE.systems[s.pick.id]?UNIVERSE.systems[s.pick.id][0]:'?';
-      return 'Stage '+ROMAN[s.stageIdx]+(s.prodName?' ('+s.prodName+')':'')+' @ '+sysName;
-    }).join(', ');
-    html+='<div class="buf-row card"><span style="white-space:nowrap">'+esc(nm)+'</span><span>'+esc(stageList)+'</span></div>';
+  let html='<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:4px">';
+  Object.keys(byRole).sort().forEach(role=>{
+    const ids=byRole[role];
+    const note=roleStageNote[role]||'';
+    html+='<div style="min-width:160px">'+
+      '<div style="font-size:8.5px;margin-bottom:5px;color:var(--muted2)">'+esc(role.toUpperCase())+
+      (note?' · <span style="color:var(--muted2)">'+esc(note)+'</span>':'')+'</div>'+
+      ids.map(id=>{
+        const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
+        const stale=staleMap[id];
+        return '<div class="rolepill card" style="cursor:default;margin-bottom:4px">'+
+          '<span>'+esc(nm)+(stale?'<span class="stale-badge">⚠ stale</span>':'')+colonyClock(id)+'</span>'+
+          '<span class="r r-'+ROLES.indexOf(role)+'">'+esc(role)+'</span>'+
+          '</div>';
+      }).join('')+
+      '</div>';
   });
   html+='</div>';
-  haulEl.insertAdjacentHTML('beforeend',html);
+
+  if(!stagesMap||!stagesMap.length){
+    body.innerHTML=html;return;
+  }
+
+  /* show which tier-level stages each role type covers, derived from stagesMap */
+  const tiersByRole={Extractor:new Set(),Factory:new Set(),'Full chain':new Set()};
+  stagesMap.forEach(s=>{
+    const role=s.isP0?'Extractor':'Factory';
+    tiersByRole[role].add('P'+s.tier);
+    tiersByRole['Full chain'].add('P'+s.tier);
+  });
+  const stageNote=r=>{const t=tiersByRole[r];return t&&t.size?'covers '+[...t].sort().join(', '):'';};
+
+  html='<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:4px">';
+  Object.keys(byRole).sort().forEach(role=>{
+    const ids=byRole[role];
+    const note=stageNote(role)||roleStageNote[role]||'';
+    html+='<div style="min-width:160px">'+
+      '<div style="font-size:8.5px;margin-bottom:5px;color:var(--muted2)">'+esc(role.toUpperCase())+
+      (note?' · <span style="color:var(--muted2)">'+esc(note)+'</span>':'')+'</div>'+
+      ids.map(id=>{
+        const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
+        const stale=staleMap[id];
+        return '<div class="rolepill card" style="cursor:default;margin-bottom:4px">'+
+          '<span>'+esc(nm)+(stale?'<span class="stale-badge">⚠ stale</span>':'')+colonyClock(id)+'</span>'+
+          '<span class="r r-'+ROLES.indexOf(role)+'">'+esc(role)+'</span>'+
+          '</div>';
+      }).join('')+
+      '</div>';
+  });
+  html+='</div><div style="font-size:9px;color:var(--muted2);margin-top:8px">Roles are set in the Pilot chalkboard above. Extractors cover P0 raw stages; factories cover processing stages; full chain pilots cover both.</div>';
+  body.innerHTML=html;
 }
 
 /* ============================================================
@@ -2270,33 +2309,42 @@ function _rr_stale_base(){
 
 /* Patch renderLogistics to also render pilot assignment table */
 const _origRenderLogisticsForAssign=_orig_renderLogistics2;
-function renderLogistics(){
-  _orig_renderLogistics2();
-  /* build stagesMap from current basket + selected system */
-  if(!selectedSystemId||!basketIds().length){
-    const p=$('assignPanel');if(p)p.style.display='none';return;
-  }
-  const SYS=UNIVERSE.systems;
+/* ---- shared stagesMap builder ---- */
+function buildStagesMap(){
+  if(!selectedSystemId||!basketIds().length)return null;
   const nearDist=bfsFull(selectedSystemId);
   const homeDist=lastHunt?lastHunt.dist:null;
   const stagesMap=[];
   basketIds().forEach(tid=>{
     const t=+tid;
-    const stages=traceChain(t);
+    const acc=bomExpand(t,1);
+    const byTier={};
+    Object.keys(acc.p0).forEach(p=>{(byTier[0]=byTier[0]||[]).push(String(p));});
+    Object.keys(acc.steps).forEach(p=>{const ti=PI.tier[p]||0;(byTier[ti]=byTier[ti]||[]).push(String(p));});
+    const tierNums=Object.keys(byTier).map(Number).sort((a,b)=>a-b);
     const prodName=basketIds().length>1?PI.recipe[t].name:null;
-    stages.forEach((s,i)=>{
-      let pick;
-      if(i===stages.length-1){
-        pick={id:selectedSystemId,anchored:true};
-      }else{
-        pick=bestSystemFor(s,selectedSystemId,nearDist);
-        if(pick&&homeDist)pick.jumps=homeDist[pick.id]??pick.jumps;
-      }
-      const isP0=!!(PI.p0pt[s]&&!PI.recipe[s]);
-      const label=isP0?(PI.names[s]||s)+' (raw)':PI.recipe[s].name;
-      stagesMap.push({tid,stageIdx:i,label,prodName,pick,isP0});
+    tierNums.forEach((ti,stageIdx)=>{
+      (byTier[ti]||[]).forEach(pid=>{
+        let pick;
+        if(ti===PI.tier[t]){
+          pick={id:selectedSystemId,anchored:true};
+        }else{
+          pick=bestSystemFor(pid,selectedSystemId,nearDist);
+          if(pick&&homeDist)pick.jumps=homeDist[pick.id]??pick.jumps;
+        }
+        const isP0=ti===0;
+        const label=isP0?(PI.names[pid]||pid):(PI.recipe[pid]?PI.recipe[pid].name:pid);
+        stagesMap.push({tid,stageIdx,label,prodName,pick,isP0,tier:ti,pid});
+      });
     });
   });
+  return stagesMap;
+}
+
+function renderLogistics(){
+  _orig_renderLogistics2();
+  const stagesMap=buildStagesMap();
+  if(!stagesMap){const p=$('assignPanel');if(p)p.style.display='none';return;}
   renderPilotAssign(stagesMap);
 }
 
@@ -2357,6 +2405,10 @@ function renderRoles(){
     const nameSpan=pill.querySelector('span');
     if(nameSpan)nameSpan.appendChild(badge);
   });
+  /* sync the pilot assignment panel — rebuilt from current roles[] on every chalkboard change */
+  const stagesMap=buildStagesMap();
+  if(stagesMap)renderPilotAssign(stagesMap);
+  else{const p=$('assignPanel');if(p)p.style.display='none';}
 }
 
 /* ============================================================
