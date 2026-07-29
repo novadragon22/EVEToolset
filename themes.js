@@ -29,7 +29,24 @@
   var SCALE_MIN = 50, SCALE_MAX = 200, SCALE_DEF = 100;
   function clampScale(v) { v = parseInt(v, 10); return isNaN(v) ? SCALE_DEF : Math.min(SCALE_MAX, Math.max(SCALE_MIN, v)); }
   function readScale() { try { return clampScale(localStorage.getItem(SCALE_KEY)); } catch(e) { return SCALE_DEF; } }
-  function applyScale(v) { document.documentElement.style.fontSize = v + '%'; }
+  function applyScale(v) {
+    var f = v / 100;
+    /* zoom scales everything — including px font-sizes, paddings, SVGs — uniformly.
+       fontSize on <html> only affects em/rem units and was silently ignored by all
+       the suite's px-based layouts. We clear the old fontSize override too so it
+       doesn't fight the zoom. */
+    try { document.documentElement.style.fontSize = ''; } catch(e) {}
+    try {
+      if (document.body) {
+        document.body.style.zoom = f;
+      } else {
+        /* body not ready yet — defer until DOMContentLoaded */
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.style.zoom = f;
+        }, { once: true });
+      }
+    } catch(e) {}
+  }
   applyScale(readScale());
 
   function injectScaleSlider(container, inline) {

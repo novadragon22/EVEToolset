@@ -357,7 +357,7 @@ function drawBelt(){
     if(i%Math.ceil(dayIndex.length/9)===0){ctx.fillStyle=col('var(--muted2)');ctx.fillText(d.slice(5),x-4,H-8);}
   });
   cv.onmousemove=ev=>{
-    const r=cv.getBoundingClientRect();const mx=ev.clientX-r.left;
+    const r=cv.getBoundingClientRect();const _z=parseFloat(document.body.style.zoom)||1;const mx=(ev.clientX/_z)-(r.left/_z);
     const hit=(cv._bars||[]).find(b=>mx>=b.x&&mx<=b.x+b.w+3);
     const tip=$('beltTip');if(!tip)return;
     if(hit&&hit.tot>0){tip.style.display='block';tip.style.left=Math.min(mx+14,W-160)+'px';tip.style.top='18px';

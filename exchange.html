@@ -308,7 +308,7 @@ function drawHist(){
   ctx.fillStyle=c('--muted2');
   for(let i=0;i<data.length;i+=Math.ceil(data.length/8))ctx.fillText(data[i].date.slice(2,7),x(i)-12,H-6);
   cv.onmousemove=ev=>{
-    const r=cv.getBoundingClientRect();const mx=ev.clientX-r.left;
+    const r=cv.getBoundingClientRect();const _z=parseFloat(document.body.style.zoom)||1;const mx=(ev.clientX/_z)-(r.left/_z);
     const i=Math.round((mx-padL)/(plotW/(data.length-1||1)));
     const tip=$('histTip');if(!tip)return;
     if(i>=0&&i<data.length){const d=data[i];

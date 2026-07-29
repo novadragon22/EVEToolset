@@ -877,8 +877,14 @@ function renderUniverseMap(){
 /* ---- map interaction (zoom / pan / hover / click-select — from pi.html) ---- */
 {
   const c=$('uniCanvas');
+  /* canvas mouse helpers: clientX/Y are viewport pixels; rect coords are
+     layout pixels scaled by body zoom. Divide client coords by zoom to match. */
+  function canvasMouse(e){
+    const z=bodyZoom(),rect=c.getBoundingClientRect();
+    return {mx:e.clientX/z-rect.left/z, my:e.clientY/z-rect.top/z};
+  }
   c.addEventListener('mousemove',e=>{
-    const rect=c.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    const {mx,my}=canvasMouse(e);
     let best=null,bestD=64;
     for(const p of _pts){const d=(p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my);if(d<bestD){bestD=d;best=p;}}
     const tip=$('uniTip');
@@ -891,9 +897,9 @@ function renderUniverseMap(){
   window.addEventListener('resize',()=>renderUniverseMap());
   c.addEventListener('wheel',e=>{
     e.preventDefault();
-    const rect=c.getBoundingClientRect();
-    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
-    const cx=rect.width/2,cy=rect.height/2;
+    const {mx,my}=canvasMouse(e);
+    const rect=c.getBoundingClientRect();const z=bodyZoom();
+    const cx=rect.width/z/2,cy=rect.height/z/2;
     const factor=e.deltaY<0?1.15:1/1.15;
     const newZoom=Math.max(0.5,Math.min(30,mapZoom*factor));
     mapPanX=mx-cx-(newZoom/mapZoom)*(mx-cx-mapPanX);
@@ -902,19 +908,23 @@ function renderUniverseMap(){
     renderUniverseMap();
   },{passive:false});
   let dragging=false,lastX=0,lastY=0,dragMoved=0;
-  c.addEventListener('mousedown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;dragMoved=0;c.style.cursor='grabbing';});
+  c.addEventListener('mousedown',e=>{
+    const z=bodyZoom();
+    dragging=true;lastX=e.clientX/z;lastY=e.clientY/z;dragMoved=0;c.style.cursor='grabbing';
+  });
   window.addEventListener('mousemove',e=>{
     if(!dragging)return;
-    mapPanX+=e.clientX-lastX;mapPanY+=e.clientY-lastY;
-    dragMoved+=Math.abs(e.clientX-lastX)+Math.abs(e.clientY-lastY);
-    lastX=e.clientX;lastY=e.clientY;
+    const z=bodyZoom(),cx=e.clientX/z,cy=e.clientY/z;
+    mapPanX+=cx-lastX;mapPanY+=cy-lastY;
+    dragMoved+=Math.abs(cx-lastX)+Math.abs(cy-lastY);
+    lastX=cx;lastY=cy;
     renderUniverseMap();
   });
   window.addEventListener('mouseup',e=>{
     if(!dragging)return;
     dragging=false;c.style.cursor='grab';
     if(dragMoved<4){
-      const rect=c.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+      const {mx,my}=canvasMouse(e);
       let best=null,bestD=100;
       for(const p of _pts){if(!p.isResult)continue;const d=(p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my);if(d<bestD){bestD=d;best=p;}}
       if(best)selectSystem(String(best.id));
@@ -1223,13 +1233,23 @@ function _orig_renderRoles(){
   const counts={};ids.forEach(id=>{const r=roles[id]||'—';counts[r]=(counts[r]||0)+1;});
   $('roleSum').textContent='Chalked: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
 }
+/* ---- zoom-aware coordinate helper --------------------------------
+   body.style.zoom scales layout pixels; clientX/Y and position:fixed
+   coords are in viewport (unzoomed) pixels. Divide rect values by the
+   current zoom factor when mixing the two coordinate spaces.            */
+function bodyZoom(){try{return parseFloat(document.body.style.zoom)||1;}catch(e){return 1;}}
+function zoomRect(el){
+  const r=el.getBoundingClientRect(),z=bodyZoom();
+  return {left:r.left/z,top:r.top/z,right:r.right/z,bottom:r.bottom/z,
+          width:r.width/z,height:r.height/z};
+}
 /* The role menu mounts on document.body with fixed positioning: faction
    themes clip-path/restyle .card elements, which cropped a menu nested
    inside the pill into invisibility. A body-mounted menu is immune to any
    theme's clipping, overflow or stacking contexts. */
 function openRoleMenu(pill,id){
   closeRoleMenus();
-  const rect=pill.getBoundingClientRect();
+  const rect=zoomRect(pill);
   const m=document.createElement('div');m.className='rolemenu';
   m.dataset.for=id;
   m.style.cssText='position:fixed;z-index:9999;left:'+Math.round(rect.left)+'px;top:'+Math.round(rect.bottom+4)+'px;min-width:'+Math.max(130,Math.round(rect.width))+'px';
