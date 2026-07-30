@@ -33,8 +33,7 @@ h1{font-size:23px;margin:0}
 h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .subline{font-size:12px;margin-top:6px;max-width:680px}
 .tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
-.workbench{display:grid;grid-template-columns:390px 1fr 260px;gap:20px;align-items:start}
-@media (max-width:1280px){.workbench{grid-template-columns:390px 1fr}}
+.workbench{display:grid;grid-template-columns:390px 1fr;gap:20px;align-items:start}
 @media (max-width:1020px){.workbench{grid-template-columns:1fr}}
 /* left: chain drafting desk */
 .desk{padding:16px}
@@ -182,24 +181,18 @@ td .reg{font-size:9px}
 .assign-sel{font-size:10.5px;padding:3px 6px;background:var(--bg2);border:1px solid var(--line2);color:var(--fg);width:100%;min-width:120px}
 .assign-warn{font-size:9px;color:var(--amber);display:block;margin-top:2px}
 .assign-contrib{font-size:9px;color:var(--cyan);display:block;margin-top:2px}
-/* skill gap report */
-.skillgap-section{margin-top:14px;border-top:1px solid var(--line2);padding-top:10px}
-.skillgap-toggle{font-size:9.5px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
-.skillgap-toggle .arr{display:inline-block;transition:transform .15s}
-.skillgap-toggle.open .arr{transform:rotate(90deg)}
-.skillgap-body{margin-top:8px;display:none}
-.skillgap-body.on{display:block}
-.sg-pilot{padding:8px 10px;margin-top:5px;font-size:10.5px}
-.sg-pilot .sg-name{font-size:11px;margin-bottom:4px}
-.sg-row{display:flex;gap:10px;align-items:baseline;font-size:10px;padding:2px 0}
-.sg-row .sg-skill{color:var(--muted2);min-width:180px}
-.sg-row .sg-now{min-width:90px}
-.sg-row .sg-delta{color:var(--green);min-width:100px}
-.sg-row .sg-impact{color:var(--cyan)}
-.sg-nodata{font-size:10px;color:var(--muted2);padding:4px 0}
-
 /* stale pilot warning */
-.stale-badge{font-size:8px;padding:1px 5px;vertical-align:middle;margin-left:5px;background:rgba(220,160,40,.18);color:#d4a040;border:1px solid rgba(220,160,40,.4)}
+.skillup-badge{font-size:8px;padding:1px 5px;vertical-align:middle;margin-left:5px;background:rgba(122,184,200,.12);color:var(--cyan);border:1px solid rgba(122,184,200,.3);cursor:pointer}
+.skillup-badge:hover{background:rgba(122,184,200,.22)}
+/* skill popover */
+.skillup-pop{position:fixed;z-index:9999;min-width:220px;max-width:280px;padding:10px 12px;font-size:9.5px;line-height:1.6;box-shadow:0 4px 20px rgba(0,0,0,.6)}
+.skillup-pop h4{font-size:9px;margin:0 0 7px;letter-spacing:.06em;color:var(--muted2)}
+.skillup-pop .sk-row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.skillup-pop .sk-row:last-child{border-bottom:none}
+.skillup-pop .sk-name{color:var(--muted2);white-space:nowrap;font-size:9px}
+.skillup-pop .sk-now{white-space:nowrap}
+.skillup-pop .sk-gain{color:var(--green);white-space:nowrap}
+.skillup-pop .sk-maxed{color:var(--muted2);font-style:italic}font-size:8px;padding:1px 5px;vertical-align:middle;margin-left:5px;background:rgba(220,160,40,.18);color:#d4a040;border:1px solid rgba(220,160,40,.4)}
 .stale-banner{font-size:10px;padding:7px 11px;margin-top:8px;border-left:3px solid #d4a040;background:rgba(220,160,40,.07)}
 /* chain comparison */
 .compare-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
@@ -274,34 +267,6 @@ td .reg{font-size:9px}
 .route-summary{font-size:10px;margin-top:9px;line-height:1.6;padding-top:8px}
 
 /* skill upskill sidebar */
-.skillpanel{padding:14px;position:sticky;top:16px}
-.skillpanel h2{font-size:10px;margin:0 0 10px;letter-spacing:.06em}
-.sp-pilot{padding:8px 9px;margin-bottom:8px;font-size:10px}
-.sp-pilot .sp-name{font-size:10.5px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
-.sp-pilot .sp-role{font-size:8.5px;color:var(--muted2)}
-.sp-skill-row{display:flex;align-items:center;gap:6px;margin-top:4px}
-.sp-skill-label{font-size:8.5px;color:var(--muted2);min-width:32px}
-.sp-block{margin-top:7px;padding-top:6px;border-top:1px solid rgba(255,255,255,.05)}
-.sp-block-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
-.sp-stat-row{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:3px}
-.sp-stat-label{font-size:8.5px;color:var(--muted2);white-space:nowrap}
-.sp-stat-val{font-size:9.5px;text-align:right}
-.sp-stat-val.gain{color:var(--green)}
-.sp-stat-val.flat{color:var(--muted2)}
-.sp-stat-val.maxed{color:var(--muted2);font-style:italic}
-.sp-lv{font-size:8.5px;color:var(--muted2);white-space:nowrap}
-.sp-lv.maxed{color:var(--cyan)}
-.sp-pips{display:flex;gap:2px;margin-bottom:5px}
-.sp-pip{width:10px;height:10px;border-radius:2px;border:1px solid var(--line2);background:rgba(255,255,255,.04)}
-.sp-pip.filled{background:var(--cyan);border-color:var(--cyan);opacity:.75}
-.sp-pip.next{background:transparent;border-color:var(--gold-dim);border-style:dashed}
-.sp-impact{font-size:9px;margin-left:auto;white-space:nowrap}
-.sp-impact.gain{color:var(--green)}
-.sp-impact.flat{color:var(--muted2)}
-.sp-impact.maxed{color:var(--muted2);font-style:italic}
-.sp-nodata{font-size:9px;color:var(--muted2);padding:2px 0}
-.sp-empty{font-size:10px;color:var(--muted2);padding:8px 0}
-.sp-bottleneck{font-size:8.5px;padding:5px 8px;margin-top:4px;border-left:2px solid var(--amber);color:var(--amber);background:rgba(212,160,64,.06)}
 /* what-if pilot simulator */
 .cb-whatif-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px solid var(--line2);font-size:10px}
 .cb-whatif-bar label{font-size:8.5px;color:var(--muted2)}
@@ -390,10 +355,6 @@ td .reg{font-size:9px}
     </div>
   </div>
 
-  <aside class="skillpanel panel">
-    <h2>PILOT SKILL GAPS <span id="skillSidebarRefresh" style="font-size:8.5px;color:var(--cyan);cursor:pointer;font-weight:400;margin-left:8px" title="Re-fetch skills from ESI now">↻ refresh</span></h2>
-    <div id="skillSidebar"><div class="sp-empty">Chalk pilots and draft a product to see upskilling impact.</div></div>
-  </aside>
 
 </div>
 
@@ -430,10 +391,6 @@ td .reg{font-size:9px}
   </div>
   <div id="autochalkDiff" style="display:none"></div>
   <div id="staleBanner" style="display:none"></div>
-  <div class="skillgap-section" id="skillgapSection" style="display:none">
-    <span class="skillgap-toggle" id="skillgapToggle"><span class="arr">▶</span> Skill gap report</span>
-    <div class="skillgap-body" id="skillgapBody"></div>
-  </div>
   <div class="expiry-timeline" id="expiryTimeline">
     <div class="expiry-tl-head">
       <h3>Extractor head expiry — next 48 h</h3>
@@ -1597,15 +1554,13 @@ function renderWhatIfSection(band,baseLinesTotal){
     const ic=+band.querySelector('#wiIc').value;
     const ccu=+band.querySelector('#wiCcu').value;
     whatIfPilots.push({id:'hyp_'+(++whatIfSeq),role,ic,ccu});
-    renderCapacity();renderSkillSidebar();
-  };
+    renderCapacity();  };
   const clrBtn=band.querySelector('#wiClear');
-  if(clrBtn)clrBtn.onclick=()=>{whatIfPilots=[];renderCapacity();renderSkillSidebar();};
+  if(clrBtn)clrBtn.onclick=()=>{whatIfPilots=[];renderCapacity();};
   band.querySelectorAll('.hyp-remove[data-hypid]').forEach(btn=>{
     btn.onclick=()=>{
       whatIfPilots=whatIfPilots.filter(p=>p.id!==btn.dataset.hypid);
-      renderCapacity();renderSkillSidebar();
-    };
+      renderCapacity();    };
   });
 }
 
@@ -1660,7 +1615,7 @@ function renderCapacity(){
 
   renderWhatIfSection(band,baseLinesTotal);
 }
-loadPiSkills().then(ch=>{if(ch){renderCapacity();renderSkillSidebar();}});
+loadPiSkills().then(ch=>{if(ch){renderCapacity();}});
 /* ---- live refresh: no page reloads ---------------------------------
    Every 60s (only while the tab is visible) re-read shared state and
    re-render; ESI refetches happen only when a dataset's own TTL lapses
@@ -1706,8 +1661,7 @@ function loadPreset(name){
   (p.basket||[]).forEach(([id,qty])=>{basket[id]=qty;});
   target=basketIds().length?+basketIds()[basketIds().length-1]:null;
   activePreset=name;
-  saveBasket();renderPresets();refreshDraft();renderSkillSidebar();
-  toast('Preset "'+name+'" loaded');
+  saveBasket();renderPresets();refreshDraft();  toast('Preset "'+name+'" loaded');
 }
 function saveCurrentAsPreset(name){
   if(!name.trim())return;
@@ -2077,6 +2031,59 @@ function colonyClock(id){
 }
 // Override renderRoles to add clock badges
 const _origRenderRoles=_orig_renderRoles;
+function skillupBadge(id){
+  const s=piSkills[id]||{};
+  if(!s.ts||s.err)return '';
+  /* any PI skill below V? */
+  const allMax=(s.ic||0)>=5&&(s.ccu||0)>=5&&(s.plan||0)>=5&&(s.adv||0)>=5&&(s.rs||0)>=5;
+  if(allMax)return '';
+  return '<span class="skillup-badge" data-skillup="'+id+'" title="PI skills — click to review">⬆ skills</span>';
+}
+
+function showSkillupPop(id,anchorEl){
+  /* remove any existing popover */
+  document.querySelectorAll('.skillup-pop').forEach(p=>p.remove());
+  const s=piSkills[id]||{};
+  if(!s.ts||s.err)return;
+  const PLAN_ACC_=[0,20,40,60,80,100];
+  const rows=[
+    {name:'IC',  full:'Interplanetary Consolidation', lv:s.ic||0,  max:5, now:(1+(s.ic||0))+' planets',     next:'+1 planet'},
+    {name:'CCU', full:'Command Center Upgrades',       lv:s.ccu||0, max:5, now:SLOTS_BY_CCU[Math.min(5,s.ccu||0)]+' slots/planet', next:'+'+(SLOTS_BY_CCU[Math.min(5,(s.ccu||0)+1)]-SLOTS_BY_CCU[Math.min(5,s.ccu||0)])+' slots/planet'},
+    {name:'Plan',full:'Planetology',                   lv:s.plan||0,max:5, now:PLAN_ACC_[s.plan||0]+'% survey',next:'+'+(PLAN_ACC_[(s.plan||0)+1]-PLAN_ACC_[s.plan||0])+'% survey'},
+    {name:'AdvP',full:'Advanced Planetology',          lv:s.adv||0, max:5, now:PLAN_ACC_[s.adv||0]+'% adv',  next:'+'+(PLAN_ACC_[(s.adv||0)+1]-PLAN_ACC_[s.adv||0])+'% adv', locked:(s.plan||0)<4},
+    {name:'RS',  full:'Remote Sensing',                lv:s.rs||0,  max:5, now:RS_RANGE_[s.rs||0]>0?RS_RANGE_[s.rs||0]+' ly':'in-sys', next:RS_RANGE_[Math.min(5,(s.rs||0)+1)]+' ly'},
+  ];
+  const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
+  const html='<h4>'+esc(nm)+' · PI SKILLS</h4>'+
+    rows.map(r=>{
+      const maxed=r.lv>=r.max;
+      const locked=r.locked&&!maxed;
+      return '<div class="sk-row">'+
+        '<span class="sk-name" title="'+esc(r.full)+'">'+esc(r.name)+'</span>'+
+        '<span class="sk-now">'+roman(r.lv)+(r.lv>=r.max?' ★':'')+'</span>'+
+        '<span class="sk-now">'+esc(r.now)+'</span>'+
+        (maxed?'<span class="sk-maxed">maxed</span>':
+         locked?'<span class="sk-maxed">locked</span>':
+         '<span class="sk-gain">→ '+esc(r.next)+'</span>')+
+        '</div>';
+    }).join('');
+  const pop=document.createElement('div');
+  pop.className='skillup-pop card';
+  pop.innerHTML=html;
+  document.body.appendChild(pop);
+  /* position anchored to badge */
+  const rect=anchorEl.getBoundingClientRect();
+  const z=parseFloat(document.body.style.zoom)||1;
+  const left=rect.left/z, top=rect.bottom/z+4;
+  pop.style.left=Math.min(left,window.innerWidth/z-290)+'px';
+  pop.style.top=top+'px';
+  /* close on outside click */
+  setTimeout(()=>{
+    function away(e){if(!pop.contains(e.target)){pop.remove();document.removeEventListener('click',away);}}
+    document.addEventListener('click',away);
+  },0);
+}
+
 function _orig_renderRoles2(){
   const row=$('roleRow');
   const ids=visibleIds();
@@ -2085,8 +2092,13 @@ function _orig_renderRoles2(){
     const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
     const r=roles[id]||'—';
     const badge=(r==='Extractor'||r==='Full chain')?colonyClock(id):'';
-    return '<div class="rolepill card" data-id="'+id+'"><span>'+esc(nm)+badge+'</span><span class="r r-'+ROLES.indexOf(r)+'">'+esc(r)+'</span></div>';
+    const skillBadge=skillupBadge(id);
+    return '<div class="rolepill card" data-id="'+id+'"><span>'+esc(nm)+badge+skillBadge+'</span><span class="r r-'+ROLES.indexOf(r)+'">'+esc(r)+'</span></div>';
   }).join('');
+  /* wire skill-up badge clicks */
+  row.querySelectorAll('.skillup-badge[data-skillup]').forEach(badge=>{
+    badge.onclick=e=>{e.stopPropagation();showSkillupPop(badge.dataset.skillup,badge);};
+  });
   const counts={};ids.forEach(id=>{const r=roles[id]||'—';counts[r]=(counts[r]||0)+1;});
   $('roleSum').textContent='Chalked: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
 }
@@ -2432,318 +2444,16 @@ function renderPilotAssign(stagesMap){
    translated to extra planets / slots, translated to delta
    throughput lines for the current draft basket.
    ============================================================ */
-function renderSkillGap(){
-  const section=$('skillgapSection'),body=$('skillgapBody');
-  if(!section||!body)return;
-  const ids=visibleIds();
-  if(!ids.length||!basketIds().length){section.style.display='none';return;}
-  section.style.display='';
-
-  /* compute reference: current throughput total */
-  const st=capacityState();
-  const currentLines=st?st.prods.reduce((a,p)=>a+(isFinite(p.lines)?p.lines:0),0):0;
-
-  const rate=extractRate();
-
-  body.innerHTML=ids.map(id=>{
-    const s=piSkills[id]||{};
-    const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
-    const role=roles[id]||'—';
-    const c=pilotCap(id);
-
-    if(s.err||!s.ts){
-      return '<div class="sg-pilot card"><div class="sg-name">'+esc(nm)+' <span class="hint">'+esc(role)+'</span></div>'+
-        '<div class="sg-nodata">'+(s.err?esc(s.err):'Skills not yet loaded — skill fetch runs on page load when pilots are visible.')+'</div></div>';
-    }
-
-    const ic=s.ic||0,ccu=s.ccu||0,plan=s.plan||0,adv=s.adv||0,rs=s.rs||0;
-    const rows=[];
-
-    /* IC */
-    if(ic<5){
-      const delta=deltaFromExtraPlanets(id,role,1,1,0,rate,st);
-      rows.push({skill:'Interplanetary Consolidation',from:'Level '+roman(ic),to:'Level '+roman(ic+1),
-        now:c.planets+' planets',delta:'+1 planet',
-        impact:delta>0.001?'+'+delta.toFixed(2)+' lines':null,note:delta<=0.001?hintWhyNoDelta(id,role,st):''});
-    }else{
-      rows.push({skill:'Interplanetary Consolidation',from:'Level V (maxed)',to:null,now:c.planets+' planets',delta:null,impact:null,note:''});
-    }
-
-    /* CCU */
-    if(ccu<5){
-      const slotsNow=SLOTS_BY_CCU[Math.min(5,ccu)],slotsNext=SLOTS_BY_CCU[Math.min(5,ccu+1)],extraSlots=slotsNext-slotsNow;
-      const delta=deltaFromExtraPlanets(id,role,0,0,extraSlots,rate,st);
-      rows.push({skill:'Command Center Upgrades',from:'Level '+roman(ccu),to:'Level '+roman(ccu+1),
-        now:slotsNow+' slots/planet',delta:'+'+extraSlots+' slot'+(extraSlots===1?'':'s')+'/planet',
-        impact:delta>0.001?'+'+delta.toFixed(2)+' lines':null,note:delta<=0.001?hintWhyNoDelta(id,role,st):''});
-    }else{
-      rows.push({skill:'Command Center Upgrades',from:'Level V (maxed)',to:null,now:SLOTS_BY_CCU[5]+' slots/planet',delta:null,impact:null,note:''});
-    }
-
-    /* Planetology */
-    if(plan<5){
-      rows.push({skill:'Planetology',from:'Level '+roman(plan),to:'Level '+roman(plan+1),
-        now:PLAN_ACC[plan]+'% survey accuracy',delta:'+'+(PLAN_ACC[plan+1]-PLAN_ACC[plan])+'% accuracy',
-        impact:null,note:'Better resource peak visibility \u2014 fewer wasted extractor cycles'});
-    }else{
-      rows.push({skill:'Planetology',from:'Level V (maxed)',to:null,now:'100% survey accuracy',delta:null,impact:null,note:''});
-    }
-
-    /* Advanced Planetology */
-    if(plan<4){
-      rows.push({skill:'Advanced Planetology',from:'Locked',to:null,now:'requires Planetology IV',delta:null,impact:null,note:''});
-    }else if(adv<5){
-      rows.push({skill:'Advanced Planetology',from:'Level '+roman(adv),to:'Level '+roman(adv+1),
-        now:ADV_ACC_[adv]+'% adv. accuracy',delta:'+'+(ADV_ACC_[adv+1]-ADV_ACC_[adv])+'% accuracy',
-        impact:null,note:'Finer resource zone resolution on scanner'});
-    }else{
-      rows.push({skill:'Advanced Planetology',from:'Level V (maxed)',to:null,now:'100% adv. accuracy',delta:null,impact:null,note:''});
-    }
-
-    /* Remote Sensing */
-    const RS_RANGE_=[0,1,2,3.5,5,7];
-    if(rs<5){
-      rows.push({skill:'Remote Sensing',from:'Level '+roman(rs),to:'Level '+roman(rs+1),
-        now:rs>0?RS_RANGE_[rs]+' ly range':'in-system only',
-        delta:RS_RANGE_[rs+1]+' ly range',
-        impact:null,note:'Survey planets remotely without travelling to the system'});
-    }else{
-      rows.push({skill:'Remote Sensing',from:'Level V (maxed)',to:null,now:RS_RANGE_[5]+' ly range \u2014 maxed',delta:null,impact:null,note:''});
-    }
-
-    const rowHtml=rows.map(r=>'<div class="sg-row">'+
-      '<span class="sg-skill">'+esc(r.skill)+'</span>'+
-      '<span class="sg-now">'+esc(r.now)+'</span>'+
-      (r.to?'<span class="sg-delta">'+(r.delta||'—')+' at '+esc(r.to)+'</span>':
-            '<span class="sg-delta same" style="color:var(--muted2)">maxed</span>')+
-      (r.impact?'<span class="sg-impact">→ '+esc(r.impact)+'</span>':
-       r.delta?'<span style="font-size:9px;color:var(--muted2)">'+esc(r.note)+'</span>':'<span></span>')+
-      '</div>').join('');
-
-    return '<div class="sg-pilot card"><div class="sg-name">'+esc(nm)+' <span class="hint">'+esc(role)+'</span></div>'+rowHtml+'</div>';
-  }).join('');
-}
-
-function deltaFromExtraPlanets(id,role,extraPlanets,extraP0planets,extraSlotsPerPlanet,rate,st){
-  /* compute how much total lines would increase if this pilot gained extraPlanets (for extractor)
-     or extraSlotsPerPlanet (for factory). Returns delta lines. */
-  if(!st||!basketIds().length)return 0;
-  const c=pilotCap(id);
-  const wSum=basketIds().reduce((a,i)=>a+(+basket[i]||1),0)||1;
-  let delta=0;
-  basketIds().forEach(tid=>{
-    const t=+tid,need=chainNeeds(t),share=(+basket[tid]||1)/wSum;
-    /* current contribution from this pilot alone */
-    let dF=0,dE=0;
-    if(role==='Factory'||role==='Full chain'){
-      const extraSlots=extraSlotsPerPlanet*c.planets+extraPlanets*(c.slots+extraSlotsPerPlanet);
-      dF=need.slots>0?share*extraSlots/need.slots:0;
-    }
-    if(role==='Extractor'||role==='Full chain'){
-      dE=need.p0>0?share*extraP0planets*rate/need.p0:0;
-    }
-    /* approximate: add the smaller of the two deltas (bottleneck-aware) */
-    delta+=Math.min(dF||dE,dE||dF)||Math.max(dF,dE)*0.5;
-  });
-  return delta;
-}
-
-function hintWhyNoDelta(id,role,st){
-  if(!st)return '';
-  if(role==='—'||!role)return 'Pilot not assigned a role — chalk a role to see impact.';
-  /* check if this pilot is on the non-bottleneck side */
-  const bound=st.prods.length?st.prods[0].bound:null;
-  if(role==='Extractor'&&bound==='extraction')return '';
-  if(role==='Factory'&&bound==='factory')return '';
-  if(role==='Extractor'&&bound==='factory')return 'Chain is factory-bound — extra extraction planets won\'t help until more factory capacity is added.';
-  if(role==='Factory'&&bound==='extraction')return 'Chain is extraction-bound — extra factory slots won\'t help until more extractors are added.';
-  return '';
-}
-
 /* ============================================================
    SKILL UPSKILL SIDEBAR — always-visible right-edge panel
    Shows each chalked pilot's IC/CCU level, next level gain,
    and the throughput delta for the current draft basket.
    ============================================================ */
-function pips(level,maxLevel,nextLevel){
-  let html='<span class="sp-pips">';
-  for(let i=1;i<=maxLevel;i++){
-    const filled=i<=level,isNext=i===nextLevel;
-    html+='<span class="sp-pip'+(filled?' filled':isNext?' next':'')+'"></span>';
-  }
-  return html+'</span>';
-}
-
-function renderSkillSidebar(){
-  const el=$('skillSidebar');if(!el)return;
-  const ids=visibleIds();
-  if(!ids.length){
-    el.innerHTML='<div class="sp-empty">Chalk pilots to see planet capacity.</div>';
-    return;
-  }
-  const st=capacityState();
-  const rate=extractRate();
-  const bound=st&&st.prods.length?st.prods[0].bound:null;
-  const hasDraft=basketIds().length>0;
-
-  /* Planetology survey accuracy bonus per level (cumulative %) */
-  const PLAN_ACC=[0,20,40,60,80,100];
-
-  function statRow(label,val){return '<div class="sp-stat-row"><span class="sp-stat-label">'+esc(label)+'</span><span class="sp-stat-val">'+val+'</span></div>';}
-  function gainRow(label,val){return '<div class="sp-stat-row"><span class="sp-stat-label">'+esc(label)+'</span><span class="sp-stat-val gain">'+val+'</span></div>';}
-  function maxRow(label){return '<div class="sp-stat-row"><span class="sp-stat-label">'+esc(label)+'</span><span class="sp-stat-val maxed">none \u2014 maxed</span></div>';}
-  function noteRow(txt){return '<div class="sp-stat-row"><span class="sp-stat-label">Effect</span><span class="sp-stat-val flat" style="font-size:8.5px">'+esc(txt)+'</span></div>';}
-  function lockedRow(txt){return '<div class="sp-stat-row"><span class="sp-stat-label">Locked</span><span class="sp-stat-val flat">'+esc(txt)+'</span></div>';}
-  function thrRow(delta){
-    return delta>0.001
-      ?'<div class="sp-stat-row"><span class="sp-stat-label">Throughput at cap</span><span class="sp-stat-val gain">+'+delta.toFixed(2)+' lines</span></div>'
-      :hasDraft?'<div class="sp-stat-row"><span class="sp-stat-label">Throughput at cap</span><span class="sp-stat-val flat">no impact at current roster</span></div>':'';
-  }
-  function blockHead(label,level,maxed){
-    return '<div class="sp-block-head">'+
-      '<span class="sp-skill-label">'+esc(label)+' '+roman(level)+'</span>'+
-      (maxed?'<span class="sp-lv maxed">\u2605 maxed</span>':'<span class="sp-lv">\u2192 '+roman(level+1)+'</span>')+
-    '</div>';
-  }
-
-  el.innerHTML=ids.map(id=>{
-    const s=piSkills[id]||{};
-    const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
-    const role=roles[id]||'\u2014';
-    const c=pilotCap(id);
-
-    if(s.err||!s.ts){
-      return '<div class="sp-pilot card">'+
-        '<div class="sp-name"><span>'+esc(nm)+'</span><span class="sp-role">'+esc(role)+'</span></div>'+
-        '<div class="sp-nodata">'+(s.err?esc(s.err):'Skills loading\u2026')+'</div></div>';
-    }
-
-    const ic=s.ic||0, ccu=s.ccu||0, plan=s.plan||0, adv=s.adv||0, rs=s.rs||0;
-
-    /* IC */
-    const planetsNow=c.planets, planetsAtCap=6, planetsGainable=planetsAtCap-planetsNow, icMaxed=ic>=5;
-    let icDelta=0;
-    if(hasDraft&&!icMaxed)icDelta=deltaFromExtraPlanets(id,role,planetsGainable,planetsGainable,0,rate,st);
-
-    /* CCU */
-    const slotsNow=SLOTS_BY_CCU[Math.min(5,ccu)], slotsAtCap=SLOTS_BY_CCU[5];
-    const slotsNextLv=ccu<5?SLOTS_BY_CCU[Math.min(5,ccu+1)]:slotsNow;
-    const slotsGainNextLv=slotsNextLv-slotsNow, ccuMaxed=ccu>=5;
-    const totalSlotsNow=planetsNow*slotsNow, totalSlotsAtCap=planetsAtCap*slotsAtCap;
-    let ccuDelta=0;
-    if(hasDraft&&!ccuMaxed)ccuDelta=deltaFromExtraPlanets(id,role,0,0,slotsGainNextLv,rate,st);
-
-    /* Planetology */
-    const planMaxed=plan>=5;
-    const planAccNow=PLAN_ACC[plan], planAccNext=plan<5?PLAN_ACC[plan+1]:planAccNow;
-
-    /* Advanced Planetology */
-    const advMaxed=adv>=5, advUnlocked=plan>=4;
-    const advAccNow=ADV_ACC_[adv], advAccNext=adv<5?ADV_ACC_[adv+1]:advAccNow;
-    const totalAccNow=planAccNow+advAccNow, totalAccAtCap=PLAN_ACC[5]+ADV_ACC_[5];
-
-    /* Remote Sensing */
-    const rsMaxed=rs>=5;
-    const rsRangeNow=RS_RANGE_[rs], rsRangeNext=rs<5?RS_RANGE_[rs+1]:RS_RANGE_[rs];
-
-    /* bottleneck note */
-    let bottleneckHtml='';
-    if(hasDraft&&!icMaxed&&!ccuMaxed&&icDelta<=0.001&&ccuDelta<=0.001&&role!=='\u2014'){
-      const msg=bound==='factory'&&role==='Extractor'
-        ?'chain is factory-bound \u2014 extra planets won\u2019t help until more factory slots are added'
-        :bound==='extraction'&&role==='Factory'
-        ?'chain is extraction-bound \u2014 extra factory slots won\u2019t help until more extractors are added':'';
-      if(msg)bottleneckHtml='<div class="sp-bottleneck">\u26a0 '+esc(msg)+'</div>';
-    }
-
-    /* IC block */
-    const icBlock='<div class="sp-block">'+
-      blockHead('Interplanetary Consolidation',ic,icMaxed)+
-      pips(ic,5,icMaxed?null:ic+1)+
-      statRow('Planets now',String(planetsNow))+
-      (icMaxed?maxRow('Gainable')
-        :gainRow('Next level gain','+1 \u2192 '+(planetsNow+1)+' planets')+
-         gainRow('Gainable to IC V','+'+planetsGainable+' \u2192 '+planetsAtCap+' planets')+
-         (hasDraft?thrRow(icDelta):'')
-      )+'</div>';
-
-    /* CCU block */
-    const ccuBlock='<div class="sp-block">'+
-      blockHead('Command Center Upgrades',ccu,ccuMaxed)+
-      pips(ccu,5,ccuMaxed?null:ccu+1)+
-      statRow('Slots/planet now',String(slotsNow))+
-      statRow('Total factory slots',String(totalSlotsNow))+
-      (ccuMaxed&&icMaxed?maxRow('Gainable')
-        :gainRow('Gainable to V/V','+'+(totalSlotsAtCap-totalSlotsNow)+' \u2192 '+totalSlotsAtCap+' slots')+
-         (!ccuMaxed
-           ?gainRow('Next CCU gain','+'+slotsGainNextLv+'/planet \u2192 '+(planetsNow*(slotsNow+slotsGainNextLv))+' total')+
-            (hasDraft?thrRow(ccuDelta):'')
-           :'')
-      )+'</div>';
-
-    /* Planetology block */
-    const planBlock='<div class="sp-block">'+
-      blockHead('Planetology',plan,planMaxed)+
-      pips(plan,5,planMaxed?null:plan+1)+
-      statRow('Survey accuracy now',planAccNow+'%')+
-      (planMaxed?maxRow('Gainable')
-        :gainRow('Next level gain','+'+(planAccNext-planAccNow)+'% \u2192 '+planAccNext+'%')+
-         gainRow('Gainable to V','+'+(PLAN_ACC[5]-planAccNow)+'% \u2192 '+PLAN_ACC[5]+'%')
-      )+
-      noteRow('Improves resource peak visibility on scanner \u2014 fewer wasted extractor head cycles')+
-      '</div>';
-
-    /* Advanced Planetology block */
-    const advBlock='<div class="sp-block">'+
-      blockHead('Advanced Planetology',adv,advMaxed)+
-      pips(adv,5,advMaxed?null:adv+1)+
-      (!advUnlocked
-        ?lockedRow('requires Planetology IV')
-        :statRow('Adv. accuracy now',advAccNow+'%')+
-         statRow('Combined accuracy',totalAccNow+'% total')+
-         (advMaxed?maxRow('Gainable')
-           :gainRow('Next level gain','+'+(advAccNext-advAccNow)+'% \u2192 '+(totalAccNow+(advAccNext-advAccNow))+'% combined')+
-            gainRow('Gainable to Adv V','\u2192 '+totalAccAtCap+'% combined max')
-         )+
-         noteRow('Finer survey granularity \u2014 pinpoints resource-rich zones more precisely')
-      )+'</div>';
-
-    /* Remote Sensing block */
-    const rsBlock='<div class="sp-block">'+
-      blockHead('Remote Sensing',rs,rsMaxed)+
-      pips(rs,5,rsMaxed?null:rs+1)+
-      statRow('Scan range now',rsRangeNow>0?rsRangeNow+' ly':'in-system only')+
-      (rsMaxed?maxRow('Gainable')
-        :gainRow('Next level range',rsRangeNext+' ly')+
-         gainRow('Range at RS V',RS_RANGE_[5]+' ly \u2014 scan most systems remotely')
-      )+
-      noteRow('Survey extraction planets without travelling to the system')+
-      '</div>';
-
-    return '<div class="sp-pilot card">'+
-      '<div class="sp-name"><span>'+esc(nm)+'</span><span class="sp-role">'+esc(role)+'</span></div>'+
-      icBlock+ccuBlock+planBlock+advBlock+rsBlock+bottleneckHtml+
-      '</div>';
-  }).join('');
-}
-
-/* wire skill gap toggle */
-(function(){
-  const tog=$('skillgapToggle'),body=$('skillgapBody');
-  if(!tog||!body)return;
-  tog.onclick=()=>{
-    const open=body.classList.toggle('on');
-    tog.classList.toggle('open',open);
-    if(open)renderSkillGap();
-  };
-})();
 
 /* Patch renderRoles to also refresh skill gap if open, and auto-chalk diff if needed */
 const _origRenderRolesForSkillGap=_orig_renderRoles2;
 function _rr_stale_base(){
   _orig_renderRoles2();
-  const body=$('skillgapBody');
-  if(body&&body.classList.contains('on'))renderSkillGap();
 }
 
 /* Patch renderLogistics to also render pilot assignment table */
@@ -2848,8 +2558,7 @@ function renderRoles(){
   const stagesMap=buildStagesMap();
   if(stagesMap)renderPilotAssign(stagesMap);
   else{const p=$('assignPanel');if(p)p.style.display='none';}
-  renderSkillSidebar();
-}
+  }
 
 /* ============================================================
    FEATURE 2: Chain comparison — Draft A vs Draft B
@@ -3165,21 +2874,7 @@ $('prodSearch').addEventListener('input',renderSugg);
 $('prodSearch').addEventListener('focus',renderSugg);
 window.onRosterChange=()=>{renderRoles();refreshColonyClocks();};
 renderTierChips();renderRoles();renderBasket();renderChain();renderCoverage();renderCapacity();
-renderPresets();renderSkillSidebar();
-/* wire skill sidebar refresh button */
-(function(){
-  const btn=$('skillSidebarRefresh');
-  if(!btn)return;
-  btn.onclick=async()=>{
-    btn.textContent='fetching…';btn.style.color='var(--muted2)';
-    /* bust cache for all visible pilots */
-    visibleIds().forEach(id=>{if(piSkills[id])piSkills[id].ts=0;});
-    await loadPiSkills();
-    renderCapacity();renderSkillSidebar();
-    btn.textContent='↻ refresh';btn.style.color='var(--cyan)';
-  };
-})();
-// Initial: stale check + colony clocks (async, non-blocking)
+renderPresets();// Initial: stale check + colony clocks (async, non-blocking)
 setTimeout(()=>{checkStalePilots();refreshColonyClocks();},1500);
 
 
