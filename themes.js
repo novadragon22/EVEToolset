@@ -59,7 +59,7 @@
     lbl.className = 'scale-lbl';
     var slider = document.createElement('input');
     slider.type = 'range';
-    slider.min = SCALE_MIN; slider.max = SCALE_MAX; slider.step = 5;
+    slider.min = SCALE_MIN; slider.max = SCALE_MAX; slider.step = 10;
     var cur = readScale();
     slider.value = cur;
     lbl.textContent = cur + '%';
