@@ -593,7 +593,7 @@ function renderQueueModal(charName,qWith,qWithout,effWith,effWithout,
   }
 
   function copyText(queue){
-    return queue.map((e,i)=>(i+1)+'. '+e.name+' '+['','I','II','III','IV','V'][e.level]).join('\n');
+    return queue.map(e=>e.name+' '+e.level).join('\n');
   }
 
   const deltaMs=(tWithout-tWith)*1000;
