@@ -391,7 +391,7 @@ td .reg{font-size:9px}
   </div>
 
   <aside class="skillpanel panel">
-    <h2>PILOT SKILL GAPS</h2>
+    <h2>PILOT SKILL GAPS <span id="skillSidebarRefresh" style="font-size:8.5px;color:var(--cyan);cursor:pointer;font-weight:400;margin-left:8px" title="Re-fetch skills from ESI now">↻ refresh</span></h2>
     <div id="skillSidebar"><div class="sp-empty">Chalk pilots and draft a product to see upskilling impact.</div></div>
   </aside>
 
@@ -1424,31 +1424,58 @@ function extractRate(){const v=+(localStorage.getItem(EXTRACT_RATE_KEY)||'');ret
 let piSkills={};try{piSkills=JSON.parse(localStorage.getItem(SKILL_CACHE_KEY)||'{}')||{};}catch(e){}
 let capOvr={};try{capOvr=JSON.parse(localStorage.getItem(CAP_OVR_KEY)||'{}')||{};}catch(e){}
 function saveCapOvr(){try{localStorage.setItem(CAP_OVR_KEY,JSON.stringify(capOvr));}catch(e){}}
-async function ensureSkillNames(ids){
-  const need=ids.filter(i=>!nameCache[i]);
-  for(let i=0;i<need.length;i+=900){
-    try{(await esiPost('/universe/names/',need.slice(i,i+900).map(Number))).forEach(n=>{nameCache[n.id]=n.name;});}catch(e){}
-  }
-  saveNameCache();
-}
+/* PI skill type IDs — hardcoded from SDE, no name resolution needed */
+const SKILL_IC=2495;    /* Interplanetary Consolidation — planets accessible */
+const SKILL_CCU=2505;   /* Command Center Upgrades — facility slots per planet */
+const SKILL_PLAN=2496;  /* Planetology — resource survey accuracy */
+const SKILL_ADV=12735;  /* Advanced Planetology — further survey accuracy */
+const SKILL_RS=12736;   /* Remote Sensing — scan planets from range */
+/* lookup tables used in skill gap displays */
+const ADV_ACC_=[0,20,40,60,80,100];
+const RS_RANGE_=[0,1,2,3.5,5,7];
+
 async function loadPiSkills(){
   const lim=pLimit(3);let changed=false;
   await Promise.all(visibleIds().map(id=>lim(async()=>{
     const c=piSkills[id];
-    if(c&&c.ts&&now()-c.ts<43200000)return;
+    if(c&&c.ts&&now()-c.ts<43200000)return; /* 12h cache */
     const tok=await getTok(id);
-    if(!tok){piSkills[id]={err:'no token',ts:now()};changed=true;return;}
+    if(!tok){
+      if(!c||(c.err&&now()-c.ts>300000)){piSkills[id]={err:'no token — re-add pilot',ts:now()};changed=true;}
+      return;
+    }
     try{
       const sk=await esiGet('/characters/'+id+'/skills/',tok.access);
-      const list=(sk&&sk.skills)||[];
-      await ensureSkillNames(list.map(s=>s.skill_id));
-      const lvl=nm=>{const f=list.find(s=>nameCache[s.skill_id]===nm);return f?(f.active_skill_level!=null?f.active_skill_level:f.trained_skill_level)||0:0;};
-      piSkills[id]={ic:lvl('Interplanetary Consolidation'),ccu:lvl('Command Center Upgrades'),adv:lvl('Advanced Planetology'),ts:now()};
-    }catch(e){piSkills[id]={err:e.status===403?'no skills scope \u2014 remove & re-add pilot':'ESI '+(e.status||'error'),ts:now()};}
+      const list=(sk&&Array.isArray(sk.skills))?sk.skills:[];
+      if(!list.length&&(!sk||!sk.skills)){
+        piSkills[id]={err:'ESI returned no skills — check character scope',ts:now()};
+        changed=true;return;
+      }
+      const lvl=typeId=>{
+        const f=list.find(s=>s.skill_id===typeId);
+        /* trained_skill_level is authoritative for PI (no active modifiers) */
+        return f?(f.trained_skill_level||0):0;
+      };
+      piSkills[id]={
+        ic:lvl(SKILL_IC),
+        ccu:lvl(SKILL_CCU),
+        plan:lvl(SKILL_PLAN),
+        adv:lvl(SKILL_ADV),
+        rs:lvl(SKILL_RS),
+        ts:now(),
+        totalSp:sk.total_sp||null
+      };
+    }catch(e){
+      const status=e&&e.status;
+      const msg=status===403?'missing esi-skills scope — remove & re-add pilot':
+                status===401?'token expired — re-add pilot':
+                'ESI error '+(status||'(network)');
+      piSkills[id]={err:msg,ts:now()};
+    }
     changed=true;
   })));
-  if(changed){try{localStorage.setItem(SKILL_CACHE_KEY,JSON.stringify(piSkills));}catch(e){}}
-  return changed;
+  if(changed){try{localStorage.setItem(SKILL_CACHE_KEY,JSON.stringify(piSkills));}catch(e){}return true;}
+  return false;
 }
 function pilotCap(id){
   const s=piSkills[id]||{},o=capOvr[id]||{};
@@ -2429,36 +2456,59 @@ function renderSkillGap(){
         '<div class="sg-nodata">'+(s.err?esc(s.err):'Skills not yet loaded — skill fetch runs on page load when pilots are visible.')+'</div></div>';
     }
 
-    const ic=s.ic||0,ccu=s.ccu||0;
+    const ic=s.ic||0,ccu=s.ccu||0,plan=s.plan||0,adv=s.adv||0,rs=s.rs||0;
     const rows=[];
 
-    /* IC: each level adds 1 planet */
+    /* IC */
     if(ic<5){
-      const nextIC=ic+1;
-      const extraPlanets=1; /* IC V-1 → V always +1 */
-      /* delta throughput: add extraPlanets to this pilot's role contribution */
-      const delta=deltaFromExtraPlanets(id,role,extraPlanets,extraPlanets,0,rate,st);
-      rows.push({skill:'Interplanetary Consolidation',from:'Level '+roman(ic),to:'Level '+roman(nextIC),
-        now:c.planets+' planets',delta:'+'+extraPlanets+' planet'+(extraPlanets===1?'':'s'),
-        impact:delta>0.001?'+'+delta.toFixed(2)+' lines':null,
-        note:delta<=0.001?hintWhyNoDelta(id,role,st):''});
+      const delta=deltaFromExtraPlanets(id,role,1,1,0,rate,st);
+      rows.push({skill:'Interplanetary Consolidation',from:'Level '+roman(ic),to:'Level '+roman(ic+1),
+        now:c.planets+' planets',delta:'+1 planet',
+        impact:delta>0.001?'+'+delta.toFixed(2)+' lines':null,note:delta<=0.001?hintWhyNoDelta(id,role,st):''});
     }else{
       rows.push({skill:'Interplanetary Consolidation',from:'Level V (maxed)',to:null,now:c.planets+' planets',delta:null,impact:null,note:''});
     }
 
-    /* CCU: each level adds slots per planet per SLOTS_BY_CCU step */
+    /* CCU */
     if(ccu<5){
-      const nextCCU=ccu+1;
-      const slotsNow=SLOTS_BY_CCU[Math.min(5,ccu)];
-      const slotsNext=SLOTS_BY_CCU[Math.min(5,nextCCU)];
-      const extraSlots=slotsNext-slotsNow;
+      const slotsNow=SLOTS_BY_CCU[Math.min(5,ccu)],slotsNext=SLOTS_BY_CCU[Math.min(5,ccu+1)],extraSlots=slotsNext-slotsNow;
       const delta=deltaFromExtraPlanets(id,role,0,0,extraSlots,rate,st);
-      rows.push({skill:'Command Center Upgrades',from:'Level '+roman(ccu),to:'Level '+roman(nextCCU),
+      rows.push({skill:'Command Center Upgrades',from:'Level '+roman(ccu),to:'Level '+roman(ccu+1),
         now:slotsNow+' slots/planet',delta:'+'+extraSlots+' slot'+(extraSlots===1?'':'s')+'/planet',
-        impact:delta>0.001?'+'+delta.toFixed(2)+' lines':null,
-        note:delta<=0.001?hintWhyNoDelta(id,role,st):''});
+        impact:delta>0.001?'+'+delta.toFixed(2)+' lines':null,note:delta<=0.001?hintWhyNoDelta(id,role,st):''});
     }else{
       rows.push({skill:'Command Center Upgrades',from:'Level V (maxed)',to:null,now:SLOTS_BY_CCU[5]+' slots/planet',delta:null,impact:null,note:''});
+    }
+
+    /* Planetology */
+    if(plan<5){
+      rows.push({skill:'Planetology',from:'Level '+roman(plan),to:'Level '+roman(plan+1),
+        now:PLAN_ACC[plan]+'% survey accuracy',delta:'+'+(PLAN_ACC[plan+1]-PLAN_ACC[plan])+'% accuracy',
+        impact:null,note:'Better resource peak visibility \u2014 fewer wasted extractor cycles'});
+    }else{
+      rows.push({skill:'Planetology',from:'Level V (maxed)',to:null,now:'100% survey accuracy',delta:null,impact:null,note:''});
+    }
+
+    /* Advanced Planetology */
+    if(plan<4){
+      rows.push({skill:'Advanced Planetology',from:'Locked',to:null,now:'requires Planetology IV',delta:null,impact:null,note:''});
+    }else if(adv<5){
+      rows.push({skill:'Advanced Planetology',from:'Level '+roman(adv),to:'Level '+roman(adv+1),
+        now:ADV_ACC_[adv]+'% adv. accuracy',delta:'+'+(ADV_ACC_[adv+1]-ADV_ACC_[adv])+'% accuracy',
+        impact:null,note:'Finer resource zone resolution on scanner'});
+    }else{
+      rows.push({skill:'Advanced Planetology',from:'Level V (maxed)',to:null,now:'100% adv. accuracy',delta:null,impact:null,note:''});
+    }
+
+    /* Remote Sensing */
+    const RS_RANGE_=[0,1,2,3.5,5,7];
+    if(rs<5){
+      rows.push({skill:'Remote Sensing',from:'Level '+roman(rs),to:'Level '+roman(rs+1),
+        now:rs>0?RS_RANGE_[rs]+' ly range':'in-system only',
+        delta:RS_RANGE_[rs+1]+' ly range',
+        impact:null,note:'Survey planets remotely without travelling to the system'});
+    }else{
+      rows.push({skill:'Remote Sensing',from:'Level V (maxed)',to:null,now:RS_RANGE_[5]+' ly range \u2014 maxed',delta:null,impact:null,note:''});
     }
 
     const rowHtml=rows.map(r=>'<div class="sg-row">'+
@@ -2536,6 +2586,26 @@ function renderSkillSidebar(){
   const bound=st&&st.prods.length?st.prods[0].bound:null;
   const hasDraft=basketIds().length>0;
 
+  /* Planetology survey accuracy bonus per level (cumulative %) */
+  const PLAN_ACC=[0,20,40,60,80,100];
+
+  function statRow(label,val){return '<div class="sp-stat-row"><span class="sp-stat-label">'+esc(label)+'</span><span class="sp-stat-val">'+val+'</span></div>';}
+  function gainRow(label,val){return '<div class="sp-stat-row"><span class="sp-stat-label">'+esc(label)+'</span><span class="sp-stat-val gain">'+val+'</span></div>';}
+  function maxRow(label){return '<div class="sp-stat-row"><span class="sp-stat-label">'+esc(label)+'</span><span class="sp-stat-val maxed">none \u2014 maxed</span></div>';}
+  function noteRow(txt){return '<div class="sp-stat-row"><span class="sp-stat-label">Effect</span><span class="sp-stat-val flat" style="font-size:8.5px">'+esc(txt)+'</span></div>';}
+  function lockedRow(txt){return '<div class="sp-stat-row"><span class="sp-stat-label">Locked</span><span class="sp-stat-val flat">'+esc(txt)+'</span></div>';}
+  function thrRow(delta){
+    return delta>0.001
+      ?'<div class="sp-stat-row"><span class="sp-stat-label">Throughput at cap</span><span class="sp-stat-val gain">+'+delta.toFixed(2)+' lines</span></div>'
+      :hasDraft?'<div class="sp-stat-row"><span class="sp-stat-label">Throughput at cap</span><span class="sp-stat-val flat">no impact at current roster</span></div>':'';
+  }
+  function blockHead(label,level,maxed){
+    return '<div class="sp-block-head">'+
+      '<span class="sp-skill-label">'+esc(label)+' '+roman(level)+'</span>'+
+      (maxed?'<span class="sp-lv maxed">\u2605 maxed</span>':'<span class="sp-lv">\u2192 '+roman(level+1)+'</span>')+
+    '</div>';
+  }
+
   el.innerHTML=ids.map(id=>{
     const s=piSkills[id]||{};
     const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
@@ -2548,28 +2618,33 @@ function renderSkillSidebar(){
         '<div class="sp-nodata">'+(s.err?esc(s.err):'Skills loading\u2026')+'</div></div>';
     }
 
-    const ic=s.ic||0,ccu=s.ccu||0;
-    const planetsNow=c.planets;                         // IC I=2 II=3 III=4 IV=5 V=6
-    const planetsAtCap=6;
-    const planetsGainable=planetsAtCap-planetsNow;
-    const icMaxed=ic>=5;
+    const ic=s.ic||0, ccu=s.ccu||0, plan=s.plan||0, adv=s.adv||0, rs=s.rs||0;
 
-    const slotsNow=SLOTS_BY_CCU[Math.min(5,ccu)];       // slots per planet
-    const slotsAtCap=SLOTS_BY_CCU[5];                   // 19 at CCU V
+    /* IC */
+    const planetsNow=c.planets, planetsAtCap=6, planetsGainable=planetsAtCap-planetsNow, icMaxed=ic>=5;
+    let icDelta=0;
+    if(hasDraft&&!icMaxed)icDelta=deltaFromExtraPlanets(id,role,planetsGainable,planetsGainable,0,rate,st);
+
+    /* CCU */
+    const slotsNow=SLOTS_BY_CCU[Math.min(5,ccu)], slotsAtCap=SLOTS_BY_CCU[5];
     const slotsNextLv=ccu<5?SLOTS_BY_CCU[Math.min(5,ccu+1)]:slotsNow;
-    const slotsGainNextLv=slotsNextLv-slotsNow;
-    const ccuMaxed=ccu>=5;
+    const slotsGainNextLv=slotsNextLv-slotsNow, ccuMaxed=ccu>=5;
+    const totalSlotsNow=planetsNow*slotsNow, totalSlotsAtCap=planetsAtCap*slotsAtCap;
+    let ccuDelta=0;
+    if(hasDraft&&!ccuMaxed)ccuDelta=deltaFromExtraPlanets(id,role,0,0,slotsGainNextLv,rate,st);
 
-    const totalSlotsNow=planetsNow*slotsNow;
-    const totalSlotsAtCap=planetsAtCap*slotsAtCap;
-    const totalSlotsGainable=totalSlotsAtCap-totalSlotsNow;
+    /* Planetology */
+    const planMaxed=plan>=5;
+    const planAccNow=PLAN_ACC[plan], planAccNext=plan<5?PLAN_ACC[plan+1]:planAccNow;
 
-    /* throughput deltas — only meaningful with a draft */
-    let icDelta=0,ccuDelta=0;
-    if(hasDraft){
-      if(!icMaxed)icDelta=deltaFromExtraPlanets(id,role,planetsGainable,planetsGainable,0,rate,st);
-      if(!ccuMaxed)ccuDelta=deltaFromExtraPlanets(id,role,0,0,slotsGainNextLv,rate,st);
-    }
+    /* Advanced Planetology */
+    const advMaxed=adv>=5, advUnlocked=plan>=4;
+    const advAccNow=ADV_ACC_[adv], advAccNext=adv<5?ADV_ACC_[adv+1]:advAccNow;
+    const totalAccNow=planAccNow+advAccNow, totalAccAtCap=PLAN_ACC[5]+ADV_ACC_[5];
+
+    /* Remote Sensing */
+    const rsMaxed=rs>=5;
+    const rsRangeNow=RS_RANGE_[rs], rsRangeNext=rs<5?RS_RANGE_[rs+1]:RS_RANGE_[rs];
 
     /* bottleneck note */
     let bottleneckHtml='';
@@ -2577,78 +2652,77 @@ function renderSkillSidebar(){
       const msg=bound==='factory'&&role==='Extractor'
         ?'chain is factory-bound \u2014 extra planets won\u2019t help until more factory slots are added'
         :bound==='extraction'&&role==='Factory'
-        ?'chain is extraction-bound \u2014 extra factory slots won\u2019t help until more extractors are added'
-        :'';
+        ?'chain is extraction-bound \u2014 extra factory slots won\u2019t help until more extractors are added':'';
       if(msg)bottleneckHtml='<div class="sp-bottleneck">\u26a0 '+esc(msg)+'</div>';
     }
 
-    /* ── IC block ── */
-    const icBlock=
-      '<div class="sp-block">'+
-        '<div class="sp-block-head">'+
-          '<span class="sp-skill-label">Interplanetary Consolidation '+roman(ic)+'</span>'+
-          (icMaxed?'<span class="sp-lv maxed">\u2605 maxed</span>':'<span class="sp-lv">\u2192 '+roman(ic+1)+'</span>')+
-        '</div>'+
-        pips(ic,5,icMaxed?null:ic+1)+
-        '<div class="sp-stat-row">'+
-          '<span class="sp-stat-label">Planets now</span>'+
-          '<span class="sp-stat-val">'+planetsNow+'</span>'+
-        '</div>'+
-        (icMaxed
-          ?'<div class="sp-stat-row"><span class="sp-stat-label">Gainable</span><span class="sp-stat-val maxed">none \u2014 capped</span></div>'
-          :'<div class="sp-stat-row">'+
-              '<span class="sp-stat-label">Gainable to IC V</span>'+
-              '<span class="sp-stat-val gain">+'+planetsGainable+' \u2192 '+planetsAtCap+' planets</span>'+
-            '</div>'+
-            '<div class="sp-stat-row">'+
-              '<span class="sp-stat-label">Next level gain</span>'+
-              '<span class="sp-stat-val gain">+1 \u2192 '+(planetsNow+1)+' planets</span>'+
-            '</div>'+
-            (hasDraft&&icDelta>0.001
-              ?'<div class="sp-stat-row"><span class="sp-stat-label">Throughput at cap</span><span class="sp-stat-val gain">+'+icDelta.toFixed(2)+' lines</span></div>'
-              :hasDraft&&bottleneckHtml===''
-                ?'<div class="sp-stat-row"><span class="sp-stat-label">Throughput at cap</span><span class="sp-stat-val flat">no impact at current roster</span></div>'
-                :'')
-        )+
+    /* IC block */
+    const icBlock='<div class="sp-block">'+
+      blockHead('Interplanetary Consolidation',ic,icMaxed)+
+      pips(ic,5,icMaxed?null:ic+1)+
+      statRow('Planets now',String(planetsNow))+
+      (icMaxed?maxRow('Gainable')
+        :gainRow('Next level gain','+1 \u2192 '+(planetsNow+1)+' planets')+
+         gainRow('Gainable to IC V','+'+planetsGainable+' \u2192 '+planetsAtCap+' planets')+
+         (hasDraft?thrRow(icDelta):'')
+      )+'</div>';
+
+    /* CCU block */
+    const ccuBlock='<div class="sp-block">'+
+      blockHead('Command Center Upgrades',ccu,ccuMaxed)+
+      pips(ccu,5,ccuMaxed?null:ccu+1)+
+      statRow('Slots/planet now',String(slotsNow))+
+      statRow('Total factory slots',String(totalSlotsNow))+
+      (ccuMaxed&&icMaxed?maxRow('Gainable')
+        :gainRow('Gainable to V/V','+'+(totalSlotsAtCap-totalSlotsNow)+' \u2192 '+totalSlotsAtCap+' slots')+
+         (!ccuMaxed
+           ?gainRow('Next CCU gain','+'+slotsGainNextLv+'/planet \u2192 '+(planetsNow*(slotsNow+slotsGainNextLv))+' total')+
+            (hasDraft?thrRow(ccuDelta):'')
+           :'')
+      )+'</div>';
+
+    /* Planetology block */
+    const planBlock='<div class="sp-block">'+
+      blockHead('Planetology',plan,planMaxed)+
+      pips(plan,5,planMaxed?null:plan+1)+
+      statRow('Survey accuracy now',planAccNow+'%')+
+      (planMaxed?maxRow('Gainable')
+        :gainRow('Next level gain','+'+(planAccNext-planAccNow)+'% \u2192 '+planAccNext+'%')+
+         gainRow('Gainable to V','+'+(PLAN_ACC[5]-planAccNow)+'% \u2192 '+PLAN_ACC[5]+'%')
+      )+
+      noteRow('Improves resource peak visibility on scanner \u2014 fewer wasted extractor head cycles')+
       '</div>';
 
-    /* ── CCU block ── */
-    const ccuBlock=
-      '<div class="sp-block">'+
-        '<div class="sp-block-head">'+
-          '<span class="sp-skill-label">Command Center Upgrades '+roman(ccu)+'</span>'+
-          (ccuMaxed?'<span class="sp-lv maxed">\u2605 maxed</span>':'<span class="sp-lv">\u2192 '+roman(ccu+1)+'</span>')+
-        '</div>'+
-        pips(ccu,5,ccuMaxed?null:ccu+1)+
-        '<div class="sp-stat-row">'+
-          '<span class="sp-stat-label">Slots/planet now</span>'+
-          '<span class="sp-stat-val">'+slotsNow+'</span>'+
-        '</div>'+
-        '<div class="sp-stat-row">'+
-          '<span class="sp-stat-label">Total factory slots</span>'+
-          '<span class="sp-stat-val">'+totalSlotsNow+'</span>'+
-        '</div>'+
-        (ccuMaxed&&icMaxed
-          ?'<div class="sp-stat-row"><span class="sp-stat-label">Gainable</span><span class="sp-stat-val maxed">none \u2014 both maxed</span></div>'
-          :'<div class="sp-stat-row">'+
-              '<span class="sp-stat-label">Gainable to V/V</span>'+
-              '<span class="sp-stat-val gain">+'+totalSlotsGainable+' \u2192 '+totalSlotsAtCap+' slots</span>'+
-            '</div>'+
-            (!ccuMaxed
-              ?'<div class="sp-stat-row">'+
-                  '<span class="sp-stat-label">Next CCU gain</span>'+
-                  '<span class="sp-stat-val gain">+'+slotsGainNextLv+'/planet \u2192 '+(planetsNow*(slotsNow+slotsGainNextLv))+' total</span>'+
-                '</div>'+
-                (hasDraft&&ccuDelta>0.001
-                  ?'<div class="sp-stat-row"><span class="sp-stat-label">Next CCU uplift</span><span class="sp-stat-val gain">+'+ccuDelta.toFixed(2)+' lines</span></div>'
-                  :'')
-              :'')
-        )+
+    /* Advanced Planetology block */
+    const advBlock='<div class="sp-block">'+
+      blockHead('Advanced Planetology',adv,advMaxed)+
+      pips(adv,5,advMaxed?null:adv+1)+
+      (!advUnlocked
+        ?lockedRow('requires Planetology IV')
+        :statRow('Adv. accuracy now',advAccNow+'%')+
+         statRow('Combined accuracy',totalAccNow+'% total')+
+         (advMaxed?maxRow('Gainable')
+           :gainRow('Next level gain','+'+(advAccNext-advAccNow)+'% \u2192 '+(totalAccNow+(advAccNext-advAccNow))+'% combined')+
+            gainRow('Gainable to Adv V','\u2192 '+totalAccAtCap+'% combined max')
+         )+
+         noteRow('Finer survey granularity \u2014 pinpoints resource-rich zones more precisely')
+      )+'</div>';
+
+    /* Remote Sensing block */
+    const rsBlock='<div class="sp-block">'+
+      blockHead('Remote Sensing',rs,rsMaxed)+
+      pips(rs,5,rsMaxed?null:rs+1)+
+      statRow('Scan range now',rsRangeNow>0?rsRangeNow+' ly':'in-system only')+
+      (rsMaxed?maxRow('Gainable')
+        :gainRow('Next level range',rsRangeNext+' ly')+
+         gainRow('Range at RS V',RS_RANGE_[5]+' ly \u2014 scan most systems remotely')
+      )+
+      noteRow('Survey extraction planets without travelling to the system')+
       '</div>';
 
     return '<div class="sp-pilot card">'+
       '<div class="sp-name"><span>'+esc(nm)+'</span><span class="sp-role">'+esc(role)+'</span></div>'+
-      icBlock+ccuBlock+bottleneckHtml+
+      icBlock+ccuBlock+planBlock+advBlock+rsBlock+bottleneckHtml+
       '</div>';
   }).join('');
 }
@@ -3092,6 +3166,19 @@ $('prodSearch').addEventListener('focus',renderSugg);
 window.onRosterChange=()=>{renderRoles();refreshColonyClocks();};
 renderTierChips();renderRoles();renderBasket();renderChain();renderCoverage();renderCapacity();
 renderPresets();renderSkillSidebar();
+/* wire skill sidebar refresh button */
+(function(){
+  const btn=$('skillSidebarRefresh');
+  if(!btn)return;
+  btn.onclick=async()=>{
+    btn.textContent='fetching…';btn.style.color='var(--muted2)';
+    /* bust cache for all visible pilots */
+    visibleIds().forEach(id=>{if(piSkills[id])piSkills[id].ts=0;});
+    await loadPiSkills();
+    renderCapacity();renderSkillSidebar();
+    btn.textContent='↻ refresh';btn.style.color='var(--cyan)';
+  };
+})();
 // Initial: stale check + colony clocks (async, non-blocking)
 setTimeout(()=>{checkStalePilots();refreshColonyClocks();},1500);
 
