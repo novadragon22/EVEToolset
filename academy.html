@@ -426,18 +426,65 @@ function effAttrs(baseAttrs, implantBonuses){
   return eff;
 }
 
-// Sort queue to maximise SP/hour: group by attribute pair, put fastest-draining pair first
-function optimiseOrder(queue, effA){
-  // Each entry: rate = (pri_attr + sec_attr/2) per minute = SP/min
-  // We want to drain skills that use the best attribute pairs first
-  // Simple heuristic: sort by SP/sec DESC (higher SP/sec = trains faster relative to time)
-  return queue.slice().sort((a,b)=>{
-    const ra=(effA[a.pri]||20)+( effA[a.sec]||20)/2;
-    const rb=(effA[b.pri]||20)+(effA[b.sec]||20)/2;
-    // higher rate = trains faster per SP, prefer those
-    if(rb!==ra) return rb-ra;
-    return a.rank-b.rank; // lower rank = less SP needed, done sooner
-  });
+// Greedy shortest-first scheduler that respects live prerequisites.
+// At each step, finds every skill level whose prerequisites are satisfied
+// by the CURRENT simulated state (already trained + already scheduled),
+// then picks the one with the shortest training time.
+// This means a skill only becomes a candidate once you actually have the
+// prereq levels trained — matching how the EVE client works.
+function optimiseOrder(queue, effA, currentLevels){
+  const byKey={};
+  queue.forEach(e=>{ byKey[e.skillId+':'+e.level]=e; });
+
+  // Training seconds for an entry given sim state
+  function entrySec(e, sim){
+    const curSP=spForLevel(e.rank, sim[e.skillId]||0);
+    const tgtSP=spForLevel(e.rank, e.level);
+    const needed=Math.max(0,tgtSP-curSP);
+    return trainSec(needed, effA[e.pri]||20, effA[e.sec]||20);
+  }
+
+  // Is every prerequisite for this skill level satisfied by sim?
+  function prereqsMet(e, sim){
+    // must have trained the previous level already
+    if(e.level>1 && (sim[e.skillId]||0)<e.level-1) return false;
+    // all dogma prereqs must be at or above required level in sim
+    const d=skillDogmaCache[e.skillId];
+    if(d){
+      for(const [pid,plv] of (d.req||[])){
+        if((sim[pid]||0)<plv) return false;
+      }
+    }
+    return true;
+  }
+
+  const sim={...(currentLevels||{})};
+  const remaining=new Set(Object.keys(byKey));
+  const result=[];
+
+  while(remaining.size>0){
+    // Collect every skill level unlocked right now
+    const ready=[];
+    remaining.forEach(k=>{
+      if(prereqsMet(byKey[k], sim)) ready.push(byKey[k]);
+    });
+    if(!ready.length) break; // nothing unlockable — stop
+
+    // Pick shortest training time; tie-break on rank then level
+    ready.sort((a,b)=>{
+      const ta=entrySec(a,sim), tb=entrySec(b,sim);
+      if(ta!==tb) return ta-tb;
+      if(a.rank!==b.rank) return a.rank-b.rank;
+      return a.level-b.level;
+    });
+
+    const pick=ready[0];
+    const key=pick.skillId+':'+pick.level;
+    result.push(pick);
+    remaining.delete(key);
+    sim[pick.skillId]=pick.level; // advance sim so next level can unlock
+  }
+  return result;
 }
 
 /* ---- modal state ---- */
@@ -535,8 +582,8 @@ async function openQueueModal(charId){
     const qWithout=buildQueue(targets,curLevels,skillDogmaCache,QCAP);
 
     // Optimise each queue for its own attr set
-    const qWithOpt=optimiseOrder(qWith,effWith);
-    const qWithoutOpt=optimiseOrder(qWithout,effWithout);
+    const qWithOpt=optimiseOrder(qWith,effWith,curLevels);
+    const qWithoutOpt=optimiseOrder(qWithout,effWithout,curLevels);
 
     const tWith=queueTime(qWithOpt,effWith,curLevels);
     const tWithout=queueTime(qWithoutOpt,effWithout,curLevels);
