@@ -302,6 +302,17 @@ td .reg{font-size:9px}
 .sp-nodata{font-size:9px;color:var(--muted2);padding:2px 0}
 .sp-empty{font-size:10px;color:var(--muted2);padding:8px 0}
 .sp-bottleneck{font-size:8.5px;padding:5px 8px;margin-top:4px;border-left:2px solid var(--amber);color:var(--amber);background:rgba(212,160,64,.06)}
+/* what-if pilot simulator */
+.cb-whatif-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px solid var(--line2);font-size:10px}
+.cb-whatif-bar label{font-size:8.5px;color:var(--muted2)}
+.cb-whatif-bar select,.cb-whatif-bar input[type=number]{font-size:10px;padding:2px 5px;background:var(--bg2);border:1px solid var(--line2);color:var(--fg);width:auto}
+.cb-hyp{display:flex;align-items:center;gap:8px;padding:5px 9px;margin-top:5px;border:1px dashed var(--gold-dim);background:rgba(201,168,104,.05);font-size:10px}
+.cb-hyp .hyp-name{color:var(--gold-dim);font-size:9.5px;white-space:nowrap}
+.cb-hyp .hyp-contrib{color:var(--muted2);font-size:9.5px}
+.cb-hyp .hyp-delta{font-size:9.5px}
+.cb-hyp .hyp-remove{cursor:pointer;color:var(--muted2);font-size:13px;padding:0 3px;margin-left:auto;line-height:1}
+.cb-hyp .hyp-remove:hover{color:var(--red)}
+.cb-hyp-section-label{font-size:8px;color:var(--gold-dim);letter-spacing:.06em;margin-top:8px}
 
 </style>
 <link rel="stylesheet" href="themes.css">
@@ -1477,38 +1488,150 @@ function capacityState(){
   });
   return {prods,pilots,rate,fSlots,ePlanets,fullPlanets};
 }
+/* ============================================================
+   FEATURE 16: What-if pilot simulator
+   ============================================================ */
+let whatIfPilots=[];
+let whatIfSeq=0;
+
+function whatIfPilotCap(p){
+  return {planets:1+(p.ic||0),slots:SLOTS_BY_CCU[Math.min(5,p.ccu||0)],known:true,err:null,adv:0};
+}
+
+function capacityStateWithWhatIf(){
+  const ids=basketIds();if(!ids.length)return null;
+  const rate=extractRate();
+  let fSlots=0,ePlanets=0,fullPlanets=0;const pilots=[];
+  visibleIds().forEach(id=>{
+    const r=roles[id],c=pilotCap(id);
+    if(r==='Factory')fSlots+=c.planets*c.slots;
+    else if(r==='Extractor')ePlanets+=c.planets;
+    else if(r==='Full chain')fullPlanets+=c.planets;
+    pilots.push({id,nm:(chars[id]&&chars[id].charName)||('Pilot '+id),r:r||'\u2014',c,hyp:false});
+  });
+  whatIfPilots.forEach(p=>{
+    const c=whatIfPilotCap(p);
+    if(p.role==='Factory')fSlots+=c.planets*c.slots;
+    else if(p.role==='Extractor')ePlanets+=c.planets;
+    else if(p.role==='Full chain')fullPlanets+=c.planets;
+    pilots.push({id:p.id,nm:p.role+' (hypothetical)',r:p.role,c,hyp:true,hypRef:p});
+  });
+  const wSum=ids.reduce((a,i)=>a+(+basket[i]||1),0)||1;
+  const prods=ids.map(tid=>{
+    const t=+tid,need=chainNeeds(t),share=(+basket[tid]||1)/wSum;
+    const fLines=need.slots>0?share*fSlots/need.slots:0;
+    const eLines=need.p0>0?share*ePlanets*rate/need.p0:Infinity;
+    const ppl=need.slots/SLOTS_BY_CCU[5]+need.p0/rate;
+    const fullLines=ppl>0?share*fullPlanets/ppl:0;
+    const lines=Math.min(fLines,eLines)+fullLines;
+    const bound=fLines<=eLines?'factory':'extraction';
+    const util=(fLines&&eLines&&isFinite(eLines))?Math.round(100*Math.min(fLines,eLines)/Math.max(fLines,eLines)):null;
+    return {t,name:PI.recipe[t].name,share,lines,rate:lines*need.ph,bound,util,need};
+  });
+  return {prods,pilots,rate,fSlots,ePlanets,fullPlanets};
+}
+
+function renderWhatIfSection(band,baseLinesTotal){
+  const roleOpts=ASSIGNABLE_ROLES.map(r=>'<option>'+r+'</option>').join('');
+  const icOpts=[1,2,3,4,5].map(v=>'<option value="'+v+'"'+(v===3?' selected':'')+'>IC '+roman(v)+' ('+(1+v)+' planets)</option>').join('');
+  const ccuOpts=[1,2,3,4,5].map(v=>'<option value="'+v+'"'+(v===3?' selected':'')+'>CCU '+roman(v)+' ('+SLOTS_BY_CCU[Math.min(5,v)]+' slots)</option>').join('');
+  let hypHtml='';
+  if(whatIfPilots.length){
+    hypHtml='<div class="cb-hyp-section-label">HYPOTHETICAL PILOTS</div>';
+    whatIfPilots.forEach(p=>{
+      const c=whatIfPilotCap(p);
+      let contrib='';
+      if(p.role==='Factory')contrib=(c.planets*c.slots)+' factory slots';
+      else if(p.role==='Extractor')contrib=fmtInt(c.planets*extractRate())+' P0/hr';
+      else if(p.role==='Full chain')contrib=c.planets+' planets self-sufficient';
+      hypHtml+='<div class="cb-hyp">'+
+        '<span class="hyp-name">'+esc(p.role)+'</span>'+
+        '<span class="hyp-contrib">IC '+roman(p.ic)+' · CCU '+roman(p.ccu)+' · '+esc(contrib)+'</span>'+
+        '<span class="hyp-remove" data-hypid="'+p.id+'">×</span></div>';
+    });
+  }
+  const bar='<div class="cb-whatif-bar">'+
+    '<label>+ hypothetical pilot</label>'+
+    '<select id="wiRole">'+roleOpts+'</select>'+
+    '<select id="wiIc">'+icOpts+'</select>'+
+    '<select id="wiCcu">'+ccuOpts+'</select>'+
+    '<button class="btn" id="wiAdd" style="font-size:9.5px;padding:3px 10px">Add</button>'+
+    (whatIfPilots.length?'<button class="btn" id="wiClear" style="font-size:9.5px;padding:3px 10px;color:var(--muted2)">Clear all</button>':'')+
+    '</div>'+hypHtml;
+  const existing=band.querySelector('.cb-whatif-mount');
+  if(existing)existing.remove();
+  const mount=document.createElement('div');
+  mount.className='cb-whatif-mount';
+  mount.innerHTML=bar;
+  band.appendChild(mount);
+  const addBtn=band.querySelector('#wiAdd');
+  if(addBtn)addBtn.onclick=()=>{
+    const role=band.querySelector('#wiRole').value;
+    const ic=+band.querySelector('#wiIc').value;
+    const ccu=+band.querySelector('#wiCcu').value;
+    whatIfPilots.push({id:'hyp_'+(++whatIfSeq),role,ic,ccu});
+    renderCapacity();renderSkillSidebar();
+  };
+  const clrBtn=band.querySelector('#wiClear');
+  if(clrBtn)clrBtn.onclick=()=>{whatIfPilots=[];renderCapacity();renderSkillSidebar();};
+  band.querySelectorAll('.hyp-remove[data-hypid]').forEach(btn=>{
+    btn.onclick=()=>{
+      whatIfPilots=whatIfPilots.filter(p=>p.id!==btn.dataset.hypid);
+      renderCapacity();renderSkillSidebar();
+    };
+  });
+}
+
 function renderCapacity(){
   const band=$('capBand');if(!band)return;
-  const st=capacityState();
+  const st=capacityStateWithWhatIf();
   if(!st){band.style.display='none';return;}
   band.style.display='';
+
+  /* baseline without hypotheticals for delta */
+  const stBase=capacityState();
+  const baseLinesTotal=stBase?stBase.prods.reduce((a,p)=>a+(isFinite(p.lines)?p.lines:0),0):0;
+  const newLinesTotal=st.prods.reduce((a,p)=>a+(isFinite(p.lines)?p.lines:0),0);
+  const delta=newLinesTotal-baseLinesTotal;
+
   const rows=st.prods.map(p=>'<div class="cb-row"><span class="cb-big">'+esc(p.name)+' '+
-    (p.lines>0&&isFinite(p.lines)?(Math.round(p.rate*10)/10)+' / hr':'\u2014')+'</span>'+
-    (p.lines>0&&isFinite(p.lines)?'<span class="cb-sub">'+fmtInt(Math.round(p.rate*24))+' / day \u00b7 '+fmtInt(Math.round(p.rate*168))+' / week</span>'+
-    '<span class="cb-chip">'+p.bound+'-bound'+(p.util!=null?' \u00b7 other side at '+p.util+'%':'')+'</span>'+
-    '<span class="cb-sub">'+(Math.round(p.lines*10)/10)+' lines \u00b7 share '+Math.round(p.share*100)+'%</span>'
+    (p.lines>0&&isFinite(p.lines)?(Math.round(p.rate*10)/10)+' / hr':'—')+'</span>'+
+    (p.lines>0&&isFinite(p.lines)?'<span class="cb-sub">'+fmtInt(Math.round(p.rate*24))+' / day · '+fmtInt(Math.round(p.rate*168))+' / week</span>'+
+    '<span class="cb-chip">'+p.bound+'-bound'+(p.util!=null?' · other side at '+p.util+'%':'')+'</span>'+
+    '<span class="cb-sub">'+(Math.round(p.lines*10)/10)+' lines · share '+Math.round(p.share*100)+'%</span>'
     :'<span class="cb-sub">chalk pilots below to compute throughput</span>')+'</div>').join('');
-  const pl=st.pilots.map(p=>{
+
+  const deltaBanner=whatIfPilots.length
+    ?delta>0.001
+      ?'<div style="font-size:9.5px;padding:5px 9px;margin-top:6px;background:rgba(201,168,104,.08);border-left:2px solid var(--gold-dim);color:var(--gold-bright)">▲ +'+delta.toFixed(2)+' lines with '+whatIfPilots.length+' hypothetical pilot'+(whatIfPilots.length===1?'':'s')+' — click × to remove</div>'
+      :'<div style="font-size:9.5px;padding:5px 9px;margin-top:6px;background:rgba(212,160,64,.06);border-left:2px solid var(--amber);color:var(--amber)">⚠ hypothetical pilot adds no throughput — chain is still bottlenecked on the other side</div>'
+    :'';
+
+  const pl=st.pilots.filter(p=>!p.hyp).map(p=>{
     const c=p.c;let contrib='';
-    if(p.r==='Factory')contrib='\u2192 '+(c.planets*c.slots)+' slots';
-    else if(p.r==='Extractor')contrib='\u2192 '+fmtInt(c.planets*st.rate)+' P0/hr';
-    else if(p.r==='Full chain')contrib='\u2192 self-sufficient lines';
-    return '<span class="cb-pline" data-id="'+p.id+'" style="cursor:pointer" title="click to override planets/slots">'+esc(p.nm)+' \u00b7 '+esc(p.r)+
-      (c.known?' \u00b7 IC '+roman(Math.max(0,c.planets-1))+' \u2192 '+c.planets+' planets \u00b7 '+c.slots+' slots/planet':
-       ' \u00b7 '+(c.err?esc(c.err)+' \u2014 using defaults':'skills loading\u2026'))+
+    if(p.r==='Factory')contrib='→ '+(c.planets*c.slots)+' slots';
+    else if(p.r==='Extractor')contrib='→ '+fmtInt(c.planets*st.rate)+' P0/hr';
+    else if(p.r==='Full chain')contrib='→ self-sufficient lines';
+    return '<span class="cb-pline" data-id="'+p.id+'" style="cursor:pointer" title="click to override planets/slots">'+esc(p.nm)+' · '+esc(p.r)+
+      (c.known?' · IC '+roman(Math.max(0,c.planets-1))+' → '+c.planets+' planets · '+c.slots+' slots/planet':
+       ' · '+(c.err?esc(c.err)+' — using defaults':'skills loading…'))+
       (contrib?' '+contrib:'')+'</span>';
   }).join('<br>');
-  band.innerHTML='<div class="cb-rows">'+rows+'</div>'+
-    '<div class="cb-note cb-rate">extractors at full heads, max output \u00b7 avg <input type="number" min="1" id="extRate" value="'+st.rate+'"> P0/hr per extractor planet (reference \u2014 override to match your colonies)</div>'+
+
+  band.innerHTML='<div class="cb-rows">'+rows+'</div>'+deltaBanner+
+    '<div class="cb-note cb-rate">extractors at full heads, max output · avg <input type="number" min="1" id="extRate" value="'+st.rate+'"> P0/hr per extractor planet (reference — override to match your colonies)</div>'+
     '<div class="cb-pilots">'+pl+'</div>';
+
   const inp=$('extRate');
   if(inp)inp.addEventListener('change',()=>{try{localStorage.setItem(EXTRACT_RATE_KEY,String(Math.max(1,+inp.value||EXTRACTOR_P0_HR_DEFAULT)));}catch(e){}renderCapacity();if(selectedSystemId)renderLogistics();});
   band.querySelectorAll('.cb-pline').forEach(el=>{el.onclick=()=>{
     const id=el.dataset.id,c=pilotCap(id);
     const p=prompt('Planets committed to this draft for this pilot:',c.planets);if(p==null)return;
-    const s=prompt('Factory slots per planet (reference \u2014 adjust to your builds):',c.slots);if(s==null)return;
+    const s=prompt('Factory slots per planet (reference — adjust to your builds):',c.slots);if(s==null)return;
     capOvr[id]={planets:Math.max(0,+p||0),slots:Math.max(1,+s||c.slots)};saveCapOvr();renderCapacity();if(selectedSystemId)renderLogistics();
   };});
+
+  renderWhatIfSection(band,baseLinesTotal);
 }
 loadPiSkills().then(ch=>{if(ch){renderCapacity();renderSkillSidebar();}});
 /* ---- live refresh: no page reloads ---------------------------------
