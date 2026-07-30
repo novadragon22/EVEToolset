@@ -23,15 +23,15 @@ h1 .diamond{margin:0 13px;transform:translateY(-3px)}
 .stage{flex:1;position:relative;min-height:0}
 .constellation-links{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
 .constellation{position:absolute;inset:0}
-.tool-star{position:absolute;width:190px;text-align:center;cursor:pointer;transform:translate(-50%,-50%);transition:transform .25s}
+.tool-star{position:absolute;width:130px;text-align:center;cursor:pointer;transform:translate(-50%,-50%);transition:transform .25s}
 .tool-star:hover{transform:translate(-50%,-50%) scale(1.05)}
-.star-core{width:160px;height:160px;margin:0 auto 10px;position:relative}
-.star-core::after{content:'';position:absolute;inset:-20px;opacity:.25}
+.star-core{width:90px;height:90px;margin:0 auto 8px;position:relative}
+.star-core::after{content:'';position:absolute;inset:-12px;opacity:.25}
 .star-core.sig-pi::before{content:'';position:absolute;inset:-32px;opacity:.3}
 .star-core.sig-industry::before{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:17px;height:27px}
 .rivet{position:absolute;width:7px;height:7px}
-.tool-star .nm{font-size:12px}
-.tool-star .tag{font-size:8.5px;margin-top:2px}
+.tool-star .nm{font-size:11px}
+.tool-star .tag{font-size:7.5px;margin-top:2px}
 .tool-star .dash-row{margin-top:6px;display:flex;justify-content:center}
 .launch-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:9px;text-align:center}
 .title-block{position:absolute;top:14px;left:50%;transform:translateX(-50%);text-align:center;z-index:2;pointer-events:none}
@@ -137,13 +137,13 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 .pilot-chip{width:22px;height:22px}
 </style>
 <style>
-.constellation.compact .tool-star{width:152px}
-.constellation.compact .star-core{width:104px;height:104px;margin-bottom:8px}
-.constellation.compact .star-core::after{inset:-13px}
-.constellation.compact .star-core.sig-pi::before{inset:-22px}
-.constellation.compact .tool-star .nm{font-size:11px}
-.constellation.compact .tool-star .tag{font-size:8px}
-.constellation.compact .dash-badge{font-size:10px}
+.constellation.compact .tool-star{width:120px}
+.constellation.compact .star-core{width:80px;height:80px;margin-bottom:6px}
+.constellation.compact .star-core::after{inset:-10px}
+.constellation.compact .star-core.sig-pi::before{inset:-16px}
+.constellation.compact .tool-star .nm{font-size:10px}
+.constellation.compact .tool-star .tag{font-size:7.5px}
+.constellation.compact .dash-badge{font-size:9px;padding:3px 7px}
 .star-core.sig-overview::before{content:'';position:absolute;inset:8px;opacity:.35}
 .star-core.sig-market::before{content:'';position:absolute;left:14%;right:14%;bottom:-9px;height:2px;opacity:.7}
 .star-core.sig-wallet::before{content:'';position:absolute;inset:14px;opacity:.3}
@@ -490,15 +490,25 @@ function dashBadge(key){
    Bottom-left  INDUSTRIAL   industry · colonies · chains · mining · moons
    Bottom-right MARKET       exchange · treasury · holdings · contracts
    ──────────────────────────────────────────────────────────────────── */
+/* ── Constellation layout  (four functional clusters) ────────────────
+   Top-left     COMMAND      briefing · academy · clones
+   Top-right    LOGISTICS    citadel · hangar · lanes
+   Bottom-left  INDUSTRIAL   industry · colonies · chains · mining · moons
+   Bottom-right MARKET       exchange · treasury · holdings · contracts
+
+   Clusters spread from their corners toward the centre so cross-cluster
+   bridge lines cross meaningful distance and read as a connected map.
+   [top%, left%]
+   ──────────────────────────────────────────────────────────────────── */
 const STAR_POS={
   /* COMMAND — top-left */
-  briefing:[14,18],  academy:[26,10],  clones:[26,28],
+  briefing:[22,22],  academy:[13,13],  clones:[13,32],
   /* LOGISTICS — top-right */
-  citadel:[14,72],   hangar:[26,84],   lanes:[26,62],
+  citadel:[22,78],   hangar:[13,87],   lanes:[13,68],
   /* INDUSTRIAL — bottom-left */
-  industry:[60,12],  colonies:[72,24], chains:[60,30],  mining:[72,10],  moons:[84,20],
+  industry:[52,26],  colonies:[65,17], chains:[40,17],  mining:[78,13],  moons:[65,35],
   /* MARKET — bottom-right */
-  exchange:[60,70],  treasury:[72,82], holdings:[84,68], contracts:[60,88]
+  exchange:[52,74],  treasury:[65,83], holdings:[40,83], contracts:[78,87]
 };
 const STAR_LINKS=[
   /* command intra */
@@ -506,19 +516,20 @@ const STAR_LINKS=[
   /* logistics intra */
   ['citadel','hangar'],['citadel','lanes'],['hangar','lanes'],
   /* industrial intra */
-  ['industry','colonies'],['industry','chains'],['colonies','chains'],
-  ['colonies','mining'],['mining','moons'],['moons','industry'],
+  ['industry','colonies'],['industry','chains'],['industry','moons'],
+  ['colonies','mining'],['chains','colonies'],['moons','mining'],
   /* market intra */
   ['exchange','treasury'],['treasury','holdings'],['holdings','contracts'],['contracts','exchange'],
-  /* cross-cluster bridges */
-  ['briefing','industry'],   /* command -> industrial */
-  ['briefing','citadel'],    /* command -> logistics  */
-  ['clones','lanes'],        /* command -> logistics  */
-  ['industry','exchange'],   /* industrial -> market  */
-  ['mining','exchange'],     /* industrial -> market  */
+  /* cross-cluster bridges — connect the closest node from each cluster */
+  ['briefing','industry'],   /* command  -> industrial  (centre span) */
+  ['briefing','citadel'],    /* command  -> logistics   (centre span) */
+  ['clones','lanes'],        /* command  -> logistics   */
+  ['academy','chains'],      /* command  -> industrial  */
+  ['industry','exchange'],   /* industrial -> market    (centre span) */
   ['moons','citadel'],       /* industrial -> logistics */
-  ['citadel','holdings'],    /* logistics -> market   */
-  ['lanes','contracts']      /* logistics -> market   */
+  ['citadel','holdings'],    /* logistics -> market     (centre span) */
+  ['lanes','exchange'],      /* logistics -> market     */
+  ['clones','contracts']     /* command  -> market      (diagonal) */
 ];
 const STAR_ACCENT={ industry:'#e8a850', colonies:'#4ac89a', lanes:'#4a90c4', hangar:'#c86a3a', citadel:'#9ad84a',
   briefing:'#e8d296', exchange:'#d8a24a', treasury:'#6ad86a', academy:'#a48ad6', holdings:'#7ab8c8',
@@ -596,7 +607,7 @@ document.querySelectorAll('.theme-swatch').forEach(b=>b.onclick=()=>setTheme(b.d
 setTheme(document.documentElement.dataset.theme||'default');
 </script>
 
-<div class="theme-picker" id="themePicker">
+<div class="theme-picker topbar themes" id="themePicker">
   <button class="theme-swatch" data-theme="default" title="Default" style="--sw:#8a94a0"></button>
   <button class="theme-swatch" data-theme="amarr" title="Amarr" style="--sw:#c9a868"></button>
   <button class="theme-swatch" data-theme="caldari" title="Caldari" style="--sw:#4a90c4"></button>
