@@ -53,6 +53,9 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .mchip .mt{font-size:9px;margin-top:2px}
 .mchip .ms{font-size:10.5px;margin-top:5px}
 .mchip .md{font-size:9.5px;margin-top:2px}.mchip .md.ok{color:var(--c-ok,#4caf82)}.mchip .md.warn{color:var(--c-warn,#e0a030)}
+.mchip .ne-btn{margin-top:7px;padding:4px 10px;font-size:9.5px;border:none;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:600;transition:background .2s,color .2s}
+.mchip .ne-btn.needs{background:#c0392b;color:#fff}
+.mchip .ne-btn.started{background:#27ae60;color:#fff;cursor:default}
 /* arrivals calendar */
 .calpanel{margin-bottom:24px}
 .calpanel .panel-hd2{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
@@ -276,6 +279,7 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
 const REFINERY_TYPES={35835:'Athanor',35836:'Tatara'};
 const PLAN_KEY='eve_extraction_plans_v1', EXCLUDE_KEY='eve_extraction_exclude_v1';
 let refineries=[];    // {name,type,typeId,system,constellation,sec,corp, start,arrive,decay}
+const needsExtractionSet=new Set(); // sids flagged by operator as extraction started
 let extractionPlans=[]; let optFilter={constellation:'all'}; let excludeKeywords=[];
 try{extractionPlans=JSON.parse(localStorage.getItem(PLAN_KEY)||'[]')||[];}catch(e){}
 let excludeRaw='';try{excludeRaw=JSON.parse(localStorage.getItem(EXCLUDE_KEY)||'""')||'';}catch(e){try{excludeRaw=localStorage.getItem(EXCLUDE_KEY)||'';}catch(e2){}}
@@ -295,7 +299,7 @@ async function loadAll(){
   if(noPilotsGuard('out'))return;
   const btn=$('loadBtn');btn.disabled=true;
   $('out').innerHTML='<div class="empty"><span class="spin"></span>Sighting the moons…</div>';
-  refineries=[];const errs=[];const doneCorps=new Set();
+  refineries=[];needsExtractionSet.clear();const errs=[];const doneCorps=new Set();
   for(const id of visibleIds()){
     try{
       const s=await getTok(id);
@@ -395,11 +399,13 @@ function nextCycleDate(r){
   while(d<today)d=addDays(d,cycleDays);
   return d; /* returns the target chunk arrival date */
 }
-function phaseChip(r){
-  const st=statusOf(r);
+function phaseChip(r,displaySt){
+  const st=displaySt||statusOf(r);
   const sec=r.sec!=null?r.sec.toFixed(1):'?';
+  const flagged=needsExtractionSet.has(r.sid);
   let line,sub='';
-  if(st==='extracting'){line='Chunk lands in '+fmtDur(Date.parse(r.arrive)-now());
+  if(st==='extracting'&&!flagged){
+    line='Chunk lands in '+fmtDur(Date.parse(r.arrive)-now());
     if(!isExcluded(r.name,r.system)){
       const scheduled=nextCycleDate(r);
       const actualDay=dateKey(new Date(r.arrive));
@@ -407,8 +413,10 @@ function phaseChip(r){
       if(schedDay&&actualDay===schedDay){sub='on schedule';}
       else if(schedDay){sub='off schedule — expected '+dayLabel(scheduled);}
     }
-    if(!sub&&r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';}
-  else{
+    if(!sub&&r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';
+  } else if(flagged){
+    line='Extraction started — awaiting ESI confirmation';
+  } else {
     line='No extraction scheduled';
     if(!isExcluded(r.name,r.system)){
       const nd=nextCycleDate(r);
@@ -417,12 +425,15 @@ function phaseChip(r){
       sub='excluded from cycle';
     }
   }
-  return '<div class="mchip card st-'+st+'">'+
+  const btnHtml=flagged
+    ?'<button class="ne-btn started" disabled data-sid="'+r.sid+'">✓ Extraction Started</button>'
+    :(st==='idle'?'<button class="ne-btn needs" data-sid="'+r.sid+'">Needs Extraction</button>':'');
+  return '<div class="mchip card st-'+st+'" data-sid="'+r.sid+'">'+
     '<span class="mimg-wrap"><img class="mimg" src="https://images.evetech.net/types/'+r.typeId+'/render?size=64" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'+
     '<span class="phase ph-'+st+'"></span></span>'+
     '<div><div class="mn">'+esc(r.name)+'</div>'+
     '<div class="mt">'+esc(r.type)+' · '+sec+' '+esc(r.system)+' · '+esc(r.constellation||'')+'</div>'+
-    '<div class="ms">'+line+'</div>'+(sub?'<div class="md'+(sub==='on schedule'?' ok':sub.startsWith('off')?' warn':'')+'">'+esc(sub)+'</div>':'')+'</div></div>';
+    '<div class="ms">'+line+'</div>'+(sub?'<div class="md'+(sub==='on schedule'?' ok':sub.startsWith('off')?' warn':'')+'">'+esc(sub)+'</div>':'')+(btnHtml?'<div>'+btnHtml+'</div>':'')+'</div></div>';
 }
 
 function render(errs){
@@ -432,16 +443,35 @@ function render(errs){
     reportDashboard('no refineries readable','muted');return;
   }
   const lanes={extracting:[],ready:[],idle:[]};
-  refineries.forEach(r=>lanes[statusOf(r)].push(r));
-  lanes.extracting.sort((a,b)=>Date.parse(a.arrive)-Date.parse(b.arrive));
+  refineries.filter(r=>!isExcluded(r.name,r.system)).forEach(r=>{
+    const st=statusOf(r);
+    // flagged-idle cards display in extracting lane
+    if(st==='idle'&&needsExtractionSet.has(r.sid))lanes.extracting.push({r,displaySt:'idle'});
+    else lanes[st].push({r,displaySt:st});
+  });
+  lanes.extracting.sort((a,b)=>{
+    // real extractions sort by arrive time; flagged-idle go to end
+    const aTime=a.r.arrive?Date.parse(a.r.arrive):Infinity;
+    const bTime=b.r.arrive?Date.parse(b.r.arrive):Infinity;
+    return aTime-bTime;
+  });
+  const chipOf=({r,displaySt})=>phaseChip(r,displaySt);
   const lane=(key,title,desc,list)=>'<div class="swim panel '+key+'"><div class="swim-hd"><h2>'+title+'</h2>'+
     '<span class="cnt">'+list.length+'</span><span class="desc">'+desc+'</span></div>'+
-    (list.length?'<div class="moonchips">'+list.map(phaseChip).join('')+'</div>'
+    (list.length?'<div class="moonchips">'+list.map(chipOf).join('')+'</div>'
       :'<div class="empty" style="padding:14px">none</div>')+'</div>';
   $('out').innerHTML=errHtml+'<div class="lanes3">'+
     lane('extracting','Extracting','chunks inbound, soonest first',lanes.extracting)+
     lane('idle','Idle','no extraction scheduled — dead time',lanes.idle)+
     '</div>';
+  // wire up "Needs Extraction" buttons
+  $('out').querySelectorAll('.ne-btn.needs').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const sid=+btn.dataset.sid;
+      needsExtractionSet.add(sid);
+      render();
+    });
+  });
   $('calPanel').style.display='';$('optGrid').style.display='';
   refreshOptFilters();renderCalendar();renderPlanList();
   reportDashboard(lanes.extracting.length+' extracting'+(lanes.idle.length?' · '+lanes.idle.length+' idle!':''),
@@ -499,6 +529,7 @@ $('optWindow').addEventListener('input',renderCalendar);
 $('optExclude').value=excludeRaw;
 $('optExclude').addEventListener('input',e=>{excludeKeywords=parseExclude(e.target.value);
   try{localStorage.setItem(EXCLUDE_KEY,JSON.stringify(e.target.value));}catch(err){}
+  if(refineries.length)render();
   renderCalendar();renderPlanList();});
 $('genPatternBtn').onclick=()=>{
   const today=startOfDay(now());
