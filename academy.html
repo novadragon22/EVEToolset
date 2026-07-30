@@ -364,43 +364,110 @@ async function fetchSkillDogma(typeIds){
   saveDogmaCache();
 }
 
-// Resolve full prereq tree for a set of target skill+level pairs given current levels
-// Returns ordered list of {skillId, level, isPrereq} to train
-function buildQueue(targets, currentLevels, dogma, cap){
-  const queue=[];
-  const queued=new Set(); // 'skillId:level' already added
-  const trained={...currentLevels}; // sim: skill->level after queue
+// Resolve full prereq tree for a set of target skill+level pairs given current levels.
+// Phase 1: collect all required entries (prereqs + targets) in dependency order.
+// Phase 2: reorder into level-groups (all lvl-1 together, then lvl-2, etc.) sorted
+//          shortest-first within each group, while keeping each group's prereqs
+//          satisfied by inserting them just before the group that needs them.
+function buildQueue(targets, currentLevels, dogma, effA, cap){
+  // --- Phase 1: dependency walk, collect everything needed ---
+  const allEntries=[];
+  const queued=new Set();
+  const trained={...currentLevels};
 
   function needSkill(skillId, targetLevel){
     const d=dogma[skillId]; if(!d) return;
     const curLv=trained[skillId]||0;
     if(curLv>=targetLevel) return;
-    // ensure prereqs first
     (d.req||[]).forEach(([pid,plv])=>needSkill(pid,plv));
-    // add all intermediate levels we need
     for(let lv=curLv+1;lv<=targetLevel;lv++){
       const key=skillId+':'+lv;
       if(!queued.has(key)){
         queued.add(key);
-        queue.push({skillId,level:lv,name:d.name,rank:d.rank,pri:d.pri,sec:d.sec,isPrereq:false});
+        allEntries.push({skillId,level:lv,name:d.name,rank:d.rank,pri:d.pri,sec:d.sec});
         trained[skillId]=lv;
       }
     }
   }
-
   targets.forEach(([sid,lv])=>needSkill(sid,lv));
 
-  // mark prereqs (entries not in the original targets set)
+  // Mark which entries are prereqs (not in the top-level target set)
   const targetSet=new Set(targets.map(([s,l])=>s+':'+l));
-  queue.forEach(e=>{
-    if(!targetSet.has(e.skillId+':'+e.level)){
-      // check if any level of this skill is in targets
-      const inTgt=targets.some(([s])=>s===e.skillId);
-      e.isPrereq=!inTgt;
-    }
+  const targetSkills=new Set(targets.map(([s])=>s));
+  allEntries.forEach(e=>{
+    e.isPrereq=!targetSet.has(e.skillId+':'+e.level)&&!targetSkills.has(e.skillId);
   });
 
-  return queue.slice(0,cap||50);
+  // --- Phase 2: group by level, sort shortest-first within each group ---
+  // Training time helper
+  function tSec(e, sim){
+    const curSP=spForLevel(e.rank, sim[e.skillId]||0);
+    const needed=Math.max(0,spForLevel(e.rank,e.level)-curSP);
+    return trainSec(needed, effA[e.pri]||20, effA[e.sec]||20);
+  }
+
+  // Separate out prereqs (may be needed at any level) vs primary targets
+  const byLevel={};
+  const prereqEntries=[];
+  allEntries.forEach(e=>{
+    if(e.isPrereq){ prereqEntries.push(e); return; }
+    const lv=e.level;
+    if(!byLevel[lv]) byLevel[lv]=[];
+    byLevel[lv].push(e);
+  });
+
+  // Build final queue: for each level group 1→5, insert any prereqs whose
+  // skillId is first needed by this group, then the group sorted shortest-first.
+  const result=[];
+  const placed=new Set();
+  const sim2={...currentLevels};
+
+  // Track which level group first needs each prereq skill
+  // A prereq for skillId S is needed before the first occurrence of S in any group
+  function firstGroupNeedingPrereq(prereq){
+    for(let lv=1;lv<=5;lv++){
+      const grp=byLevel[lv]||[];
+      for(const e of grp){
+        const d=dogma[e.skillId];
+        if(d&&(d.req||[]).some(([pid])=>pid===prereq.skillId)) return lv;
+        // also needed if it's a lower level of a skill in this group
+        if(e.skillId===prereq.skillId) return lv;
+      }
+    }
+    return 6; // not needed by any group — put at end
+  }
+
+  const prereqsByGroup={};
+  prereqEntries.forEach(p=>{
+    const g=firstGroupNeedingPrereq(p);
+    if(!prereqsByGroup[g]) prereqsByGroup[g]=[];
+    prereqsByGroup[g].push(p);
+  });
+
+  for(let lv=1;lv<=5;lv++){
+    // Insert prereqs needed by this group, sorted shortest-first
+    const pre=prereqsByGroup[lv]||[];
+    pre.sort((a,b)=>tSec(a,sim2)-tSec(b,sim2));
+    pre.forEach(e=>{
+      const k=e.skillId+':'+e.level;
+      if(!placed.has(k)){ result.push(e); placed.add(k); sim2[e.skillId]=e.level; }
+    });
+
+    // Sort this level's skills shortest-first
+    const grp=(byLevel[lv]||[]).slice().sort((a,b)=>tSec(a,sim2)-tSec(b,sim2));
+    grp.forEach(e=>{
+      const k=e.skillId+':'+e.level;
+      if(!placed.has(k)){ result.push(e); placed.add(k); sim2[e.skillId]=e.level; }
+    });
+  }
+
+  // Any remaining (shouldn't happen but safety net)
+  allEntries.forEach(e=>{
+    const k=e.skillId+':'+e.level;
+    if(!placed.has(k)){ result.push(e); placed.add(k); }
+  });
+
+  return result.slice(0,cap||50);
 }
 
 // Compute total training time for a queue given effective attrs object {int,mem,per,wil,cha}
@@ -426,66 +493,6 @@ function effAttrs(baseAttrs, implantBonuses){
   return eff;
 }
 
-// Greedy shortest-first scheduler that respects live prerequisites.
-// At each step, finds every skill level whose prerequisites are satisfied
-// by the CURRENT simulated state (already trained + already scheduled),
-// then picks the one with the shortest training time.
-// This means a skill only becomes a candidate once you actually have the
-// prereq levels trained — matching how the EVE client works.
-function optimiseOrder(queue, effA, currentLevels){
-  const byKey={};
-  queue.forEach(e=>{ byKey[e.skillId+':'+e.level]=e; });
-
-  // Training seconds for an entry given sim state
-  function entrySec(e, sim){
-    const curSP=spForLevel(e.rank, sim[e.skillId]||0);
-    const tgtSP=spForLevel(e.rank, e.level);
-    const needed=Math.max(0,tgtSP-curSP);
-    return trainSec(needed, effA[e.pri]||20, effA[e.sec]||20);
-  }
-
-  // Is every prerequisite for this skill level satisfied by sim?
-  function prereqsMet(e, sim){
-    // must have trained the previous level already
-    if(e.level>1 && (sim[e.skillId]||0)<e.level-1) return false;
-    // all dogma prereqs must be at or above required level in sim
-    const d=skillDogmaCache[e.skillId];
-    if(d){
-      for(const [pid,plv] of (d.req||[])){
-        if((sim[pid]||0)<plv) return false;
-      }
-    }
-    return true;
-  }
-
-  const sim={...(currentLevels||{})};
-  const remaining=new Set(Object.keys(byKey));
-  const result=[];
-
-  while(remaining.size>0){
-    // Collect every skill level unlocked right now
-    const ready=[];
-    remaining.forEach(k=>{
-      if(prereqsMet(byKey[k], sim)) ready.push(byKey[k]);
-    });
-    if(!ready.length) break; // nothing unlockable — stop
-
-    // Pick shortest training time; tie-break on rank then level
-    ready.sort((a,b)=>{
-      const ta=entrySec(a,sim), tb=entrySec(b,sim);
-      if(ta!==tb) return ta-tb;
-      if(a.rank!==b.rank) return a.rank-b.rank;
-      return a.level-b.level;
-    });
-
-    const pick=ready[0];
-    const key=pick.skillId+':'+pick.level;
-    result.push(pick);
-    remaining.delete(key);
-    sim[pick.skillId]=pick.level; // advance sim so next level can unlock
-  }
-  return result;
-}
 
 /* ---- modal state ---- */
 let qModal=null;
@@ -564,31 +571,34 @@ async function openQueueModal(charId){
       }
     });
 
-    // Sort targets: best SP/hr first (using with-implants attrs for now)
     const effWith=effAttrs(baseA,implantBonus);
     const effWithout=effAttrs(baseA,{int:0,mem:0,per:0,wil:0,cha:0});
 
-    // Sort targets by training efficiency (highest SP/min for their attr pair)
-    targets.sort((a,b)=>{
-      const da=skillDogmaCache[a[0]], db=skillDogmaCache[b[0]];
-      if(!da||!db)return 0;
-      const ra=effWith[da.pri]+effWith[da.sec]/2;
-      const rb=effWith[db.pri]+effWith[db.sec]/2;
-      return rb-ra; // higher rate first
-    });
+    // Sort targets by shortest absolute training time to reach level 5 from current level.
+    // buildQueue walks this list in order, inserting prereqs inline as needed,
+    // so the resulting queue naturally has shortest-first with prereqs respected.
+    function sortTargets(effA){
+      return targets.slice().sort((a,b)=>{
+        const da=skillDogmaCache[a[0]], db=skillDogmaCache[b[0]];
+        if(!da||!db) return 0;
+        const curA=curLevels[a[0]]||0, curB=curLevels[b[0]]||0;
+        const spA=spForLevel(da.rank,5)-spForLevel(da.rank,curA);
+        const spB=spForLevel(db.rank,5)-spForLevel(db.rank,curB);
+        const tA=trainSec(Math.max(0,spA), effA[da.pri]||20, effA[da.sec]||20);
+        const tB=trainSec(Math.max(0,spB), effA[db.pri]||20, effA[db.sec]||20);
+        return tA-tB; // shortest first
+      });
+    }
 
     const QCAP=50;
-    const qWith=buildQueue(targets,curLevels,skillDogmaCache,QCAP);
-    const qWithout=buildQueue(targets,curLevels,skillDogmaCache,QCAP);
+    // buildQueue respects prereqs via recursive needSkill — no reordering needed after
+    const qWith=buildQueue(sortTargets(effWith),curLevels,skillDogmaCache,effWith,QCAP);
+    const qWithout=buildQueue(sortTargets(effWithout),curLevels,skillDogmaCache,effWithout,QCAP);
 
-    // Optimise each queue for its own attr set
-    const qWithOpt=optimiseOrder(qWith,effWith,curLevels);
-    const qWithoutOpt=optimiseOrder(qWithout,effWithout,curLevels);
+    const tWith=queueTime(qWith,effWith,curLevels);
+    const tWithout=queueTime(qWithout,effWithout,curLevels);
 
-    const tWith=queueTime(qWithOpt,effWith,curLevels);
-    const tWithout=queueTime(qWithoutOpt,effWithout,curLevels);
-
-    renderQueueModal(s.name,qWithOpt,qWithoutOpt,effWith,effWithout,
+    renderQueueModal(s.name,qWith,qWithout,effWith,effWithout,
                      implantBonus,hasImplants,tWith,tWithout,curLevels,baseA);
   }catch(err){
     showModal('<div style="padding:20px;font-size:12px;color:var(--red)">⚠ '+esc(err.message||String(err))+'</div>');
