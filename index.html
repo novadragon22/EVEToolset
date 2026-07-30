@@ -484,19 +484,42 @@ function dashBadge(key){
   const ageTxt=ageMin<1?'just now':ageMin<60?Math.round(ageMin)+'m ago':Math.round(ageMin/60)+'h ago';
   return `<span class="dash-badge ${d.level}"><span class="dash-dot"></span>${d.text} · ${ageTxt}</span>`;
 }
+/* ── Constellation layout  (four functional clusters) ────────────────
+   Top-left     COMMAND      briefing · academy · clones
+   Top-right    LOGISTICS    citadel · hangar · lanes
+   Bottom-left  INDUSTRIAL   industry · colonies · chains · mining · moons
+   Bottom-right MARKET       exchange · treasury · holdings · contracts
+   ──────────────────────────────────────────────────────────────────── */
 const STAR_POS={
-  briefing:[27,50],
-  mining:[30,10],    colonies:[33,29], industry:[33,71], clones:[30,90],
-  exchange:[56,12],  academy:[54,35],  treasury:[54,65], lanes:[56,88],
-  hangar:[80,27],    holdings:[84,50], citadel:[80,73],  contracts:[82,90],
-  moons:[55,50], chains:[8,29] };
+  /* COMMAND — top-left */
+  briefing:[14,18],  academy:[26,10],  clones:[26,28],
+  /* LOGISTICS — top-right */
+  citadel:[14,72],   hangar:[26,84],   lanes:[26,62],
+  /* INDUSTRIAL — bottom-left */
+  industry:[60,12],  colonies:[72,24], chains:[60,30],  mining:[72,10],  moons:[84,20],
+  /* MARKET — bottom-right */
+  exchange:[60,70],  treasury:[72,82], holdings:[84,68], contracts:[60,88]
+};
 const STAR_LINKS=[
-  ['briefing','colonies'],['briefing','industry'],
-  ['colonies','academy'],['industry','treasury'],['colonies','exchange'],['industry','lanes'],
-  ['academy','treasury'],['academy','hangar'],['treasury','citadel'],
-  ['exchange','hangar'],['lanes','citadel'],['hangar','holdings'],['citadel','holdings'],
-  ['mining','colonies'],['mining','exchange'],['clones','lanes'],['contracts','lanes'],['contracts','citadel'],
-  ['moons','citadel'],['moons','mining'],['chains','colonies'],['chains','briefing']];
+  /* command intra */
+  ['briefing','academy'],['briefing','clones'],['academy','clones'],
+  /* logistics intra */
+  ['citadel','hangar'],['citadel','lanes'],['hangar','lanes'],
+  /* industrial intra */
+  ['industry','colonies'],['industry','chains'],['colonies','chains'],
+  ['colonies','mining'],['mining','moons'],['moons','industry'],
+  /* market intra */
+  ['exchange','treasury'],['treasury','holdings'],['holdings','contracts'],['contracts','exchange'],
+  /* cross-cluster bridges */
+  ['briefing','industry'],   /* command -> industrial */
+  ['briefing','citadel'],    /* command -> logistics  */
+  ['clones','lanes'],        /* command -> logistics  */
+  ['industry','exchange'],   /* industrial -> market  */
+  ['mining','exchange'],     /* industrial -> market  */
+  ['moons','citadel'],       /* industrial -> logistics */
+  ['citadel','holdings'],    /* logistics -> market   */
+  ['lanes','contracts']      /* logistics -> market   */
+];
 const STAR_ACCENT={ industry:'#e8a850', colonies:'#4ac89a', lanes:'#4a90c4', hangar:'#c86a3a', citadel:'#9ad84a',
   briefing:'#e8d296', exchange:'#d8a24a', treasury:'#6ad86a', academy:'#a48ad6', holdings:'#7ab8c8',
   contracts:'#c8c88a', mining:'#8aa0b8', clones:'#5ad8c8', moons:'#c0c8d8', chains:'#b8d86a' };
