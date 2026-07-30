@@ -133,8 +133,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
 <style>
-.pilot-strip{position:fixed;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:5px;z-index:9999;max-width:540px}
-.pilot-chip{width:22px;height:22px}
+
 </style>
 <style>
 .constellation.compact .tool-star{width:120px}
@@ -167,7 +166,6 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Saira:wght@400;500;600&family=Quicksand:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=Teko:wght@500;600&family=Michroma&family=Cinzel:wght@500;600&family=Comfortaa:wght@400;600&family=Saira+Stencil+One&display=swap" rel="stylesheet">
 </head>
 <body>
-<div class="pilot-strip"></div>
 <div class="app" id="menuApp">
   <header>
 
@@ -289,14 +287,7 @@ async function esiPub(path){ const r=await fetch('https://esi.evetech.net/latest
 function loadSuiteChars(){ try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};} }
 function saveSuiteChars(chars){ localStorage.setItem(SHARED_KEY, JSON.stringify(chars)); }
 let suiteChars=loadSuiteChars();
-function renderPilotStrip(){
-  const ids=Object.keys(suiteChars);
-  document.querySelectorAll('.pilot-strip').forEach(el=>{
-    if(!ids.length){ el.style.display='none'; el.innerHTML=''; return; }
-    el.style.display='flex';
-    el.innerHTML=ids.map((id,i)=>`<div class="pilot-chip${i===0?' on':''}" title="${suiteChars[id].charName||('Character '+id)}" style="background-image:url(https://images.evetech.net/characters/${id}/portrait?size=64);background-size:cover;background-position:center"></div>`).join('');
-  });
-}
+function renderPilotStrip(){ /* removed */ }
 renderPilotStrip();
 window.addEventListener('storage', e=>{ if(e.key===SHARED_KEY){ suiteChars=loadSuiteChars(); renderPilotStrip(); } });
 
@@ -501,35 +492,28 @@ function dashBadge(key){
    [top%, left%]
    ──────────────────────────────────────────────────────────────────── */
 const STAR_POS={
-  /* COMMAND — top-left */
-  briefing:[22,22],  academy:[13,13],  clones:[13,32],
-  /* LOGISTICS — top-right */
-  citadel:[22,78],   hangar:[13,87],   lanes:[13,68],
-  /* INDUSTRIAL — bottom-left */
-  industry:[52,26],  colonies:[65,17], chains:[40,17],  mining:[78,13],  moons:[65,35],
-  /* MARKET — bottom-right */
-  exchange:[52,74],  treasury:[65,83], holdings:[40,83], contracts:[78,87]
+  /* COMMAND — top-left: tight triangle, briefing at apex */
+  briefing:[18,18],  academy:[10,10],  clones:[10,27],
+
+  /* LOGISTICS — top-right: tight triangle, citadel at apex */
+  citadel:[18,82],   hangar:[10,90],   lanes:[10,73],
+
+  /* INDUSTRIAL — bottom-left: pentagon/web of 5 */
+  industry:[57,16],  colonies:[72,10], chains:[86,20],  mining:[86,36],  moons:[72,38],
+
+  /* MARKET — bottom-right: diamond of 4 */
+  exchange:[57,62],  treasury:[72,57], holdings:[72,80], contracts:[86,70]
 };
 const STAR_LINKS=[
-  /* command intra */
+  /* COMMAND — triangle */
   ['briefing','academy'],['briefing','clones'],['academy','clones'],
-  /* logistics intra */
+  /* LOGISTICS — triangle */
   ['citadel','hangar'],['citadel','lanes'],['hangar','lanes'],
-  /* industrial intra */
+  /* INDUSTRIAL — internal web */
   ['industry','colonies'],['industry','chains'],['industry','moons'],
-  ['colonies','mining'],['chains','colonies'],['moons','mining'],
-  /* market intra */
-  ['exchange','treasury'],['treasury','holdings'],['holdings','contracts'],['contracts','exchange'],
-  /* cross-cluster bridges — connect the closest node from each cluster */
-  ['briefing','industry'],   /* command  -> industrial  (centre span) */
-  ['briefing','citadel'],    /* command  -> logistics   (centre span) */
-  ['clones','lanes'],        /* command  -> logistics   */
-  ['academy','chains'],      /* command  -> industrial  */
-  ['industry','exchange'],   /* industrial -> market    (centre span) */
-  ['moons','citadel'],       /* industrial -> logistics */
-  ['citadel','holdings'],    /* logistics -> market     (centre span) */
-  ['lanes','exchange'],      /* logistics -> market     */
-  ['clones','contracts']     /* command  -> market      (diagonal) */
+  ['colonies','mining'],['mining','moons'],['chains','colonies'],
+  /* MARKET — internal ring */
+  ['exchange','treasury'],['treasury','holdings'],['holdings','contracts'],['contracts','exchange'],['exchange','holdings']
 ];
 const STAR_ACCENT={ industry:'#e8a850', colonies:'#4ac89a', lanes:'#4a90c4', hangar:'#c86a3a', citadel:'#9ad84a',
   briefing:'#e8d296', exchange:'#d8a24a', treasury:'#6ad86a', academy:'#a48ad6', holdings:'#7ab8c8',
@@ -568,11 +552,21 @@ function buildCards(){
   cont.querySelectorAll('.tool-star').forEach(c=>c.onclick=()=>openTool(+c.dataset.i));
   drawLinks();
 }
+const CONST_LABELS=[
+  {name:'COMMAND',    top:5,  left:18, anchor:'middle'},
+  {name:'LOGISTICS',  top:5,  left:82, anchor:'middle'},
+  {name:'INDUSTRIAL', top:52, left:16, anchor:'middle'},
+  {name:'MARKET',     top:52, left:71, anchor:'middle'},
+];
 function drawLinks(){
-  const svg=document.getElementById('constLinks'); const stageEl=document.getElementById('stage');
-  const idx=k=>APPS.findIndex(a=>a.key===k);
-  svg.innerHTML=STAR_LINKS.map(([a,b])=>{ const [ay,ax]=STAR_POS[a], [by,bx]=STAR_POS[b];
-    return `<line x1="${ax}%" y1="${ay}%" x2="${bx}%" y2="${by}%" stroke="rgba(var(--gold-rgb),.18)" stroke-width="1"/>`; }).join('');
+  const svg=document.getElementById('constLinks');
+  const lines=STAR_LINKS.map(([a,b])=>{ const [ay,ax]=STAR_POS[a], [by,bx]=STAR_POS[b];
+    return `<line x1="${ax}%" y1="${ay}%" x2="${bx}%" y2="${by}%" stroke="rgba(var(--gold-rgb),.22)" stroke-width="1"/>`;
+  }).join('');
+  const labels=CONST_LABELS.map(l=>
+    `<text x="${l.left}%" y="${l.top}%" text-anchor="${l.anchor}" font-size="9" letter-spacing="3" fill="rgba(var(--gold-rgb),.28)" font-family="inherit" style="text-transform:uppercase;pointer-events:none">${l.name}</text>`
+  ).join('');
+  svg.innerHTML=lines+labels;
 }
 addEventListener('resize',drawLinks);
 document.getElementById('titleHome').onclick=closeTool;
