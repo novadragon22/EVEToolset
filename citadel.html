@@ -148,15 +148,8 @@ function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
 /* SDE service module fuel cycle rates (blocks per hour, attrID 2109).
    The hull itself consumes no fuel — only online service modules do.
    Each module runs on a 1-hour cycle; its rate is blocks consumed per cycle.
-   ESI returns services as {name, state} — keyed by canonical in-game name.   */
-
-/* Returns blocks/hr for this structure based solely on its online service modules.
-   Each module's SDE cycle rate (blocks/hr) is summed; unknown modules fall back
-   to 10 blk/hr. Returns 0 if no services are online.                           */
-  });
-  return bph;
-}
-/* Convenience: blocks per 30-day month at this structure's burn rate */
+   ESI returns services as {name, state} — keyed by canonical in-game name.
+   fuelBph()/fuelBpMonth() now live in svcFuel.js.                            */
 function fmtBlocks(n){return n.toLocaleString()+' blocks';}
 async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
   if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
@@ -256,6 +249,7 @@ window._towerSnooze=function(id){
 };
 
 async function loadAll(){
+  chars=loadChars();renderPilots(); // re-sync in case sign-in happened after this tool loaded
   if(noPilotsGuard('out'))return;
   const btn=$('loadBtn');btn.disabled=true;
   $('out').innerHTML='<div class="empty"><span class="spin"></span>Walking the skyline…</div>';

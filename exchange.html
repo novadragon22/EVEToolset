@@ -403,6 +403,7 @@ async function appraise(){
 }
 
 async function loadOrders(){
+  chars=loadChars();renderPilots(); // re-sync in case sign-in happened after this tool loaded
   if(noPilotsGuard('ordersOut'))return;
   $('ordersOut').innerHTML='<div class="empty" style="padding:24px"><span class="spin"></span>reading orders…</div>';
   const all=[];const errs=[];

@@ -75,6 +75,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 </style>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
+<script src="universe.js"></script>
 <script src="universe_coords.js"></script>
 <script src="npcStations.js"></script>
 </head>
@@ -255,22 +256,29 @@ $('shipSel').onchange=e=>{ship=e.target.value;};
 function fillSk(id,min,cb){const s=$(id);s.innerHTML='';for(let i=min;i<=5;i++){const o=document.createElement('option');o.value=i;o.textContent=roman(i);if(i===5)o.selected=true;s.appendChild(o);}s.onchange=e=>cb(+e.target.value);}
 fillSk('jdcSel',0,v=>{JDC=v;});fillSk('jfcSel',0,v=>{JFC=v;});fillSk('jfSel',1,v=>{JF=v;});
 
-/* ---- System name typeahead ---- */
+/* ---- System name typeahead ----
+   Local lookup against UNIVERSE.systems — no ESI round-trip needed since
+   every system name in the game is already loaded client-side. */
+const SYS_NAME_LIST=(window.UNIVERSE&&UNIVERSE.systems)
+  ?Object.values(UNIVERSE.systems).map(s=>s[0])
+  :[];
 const typeaheadTimers={};
 function attachSysTypeahead(inp,dl){
   inp.addEventListener('input',()=>{
-    const q=inp.value.trim();
+    const q=inp.value.trim().toLowerCase();
     clearTimeout(typeaheadTimers[inp.id||'wa']);
     if(q.length<2){dl.innerHTML='';return;}
-    typeaheadTimers[inp.id||'wa']=setTimeout(async()=>{
-      try{
-        const r=await esiGet('/search/?categories=solar_system&search='+encodeURIComponent(q)+'&strict=false&language=en&datasource=tranquility');
-        const ids=(r.solar_system||[]).slice(0,12);
-        if(!ids.length){dl.innerHTML='';return;}
-        const names=await esiPost('/universe/names/',ids);
-        dl.innerHTML=names.map(n=>'<option value="'+n.name+'">').join('');
-      }catch(e){dl.innerHTML='';}
-    },220);
+    typeaheadTimers[inp.id||'wa']=setTimeout(()=>{
+      const starts=[],contains=[];
+      for(const nm of SYS_NAME_LIST){
+        const l=nm.toLowerCase();
+        if(l.startsWith(q))starts.push(nm);
+        else if(l.includes(q))contains.push(nm);
+        if(starts.length>=12)break;
+      }
+      const matches=starts.concat(contains).slice(0,12);
+      dl.innerHTML=matches.map(nm=>'<option value="'+nm+'">').join('');
+    },0);
   });
 }
 // Wire fixed inputs
@@ -293,14 +301,21 @@ $('addWay').onclick=()=>{
 };
 
 const sysCache={};   // name(lower) -> {id,name,pos}
+/* Build name(lower) -> systemID index once from local SDE data. */
+const SYS_ID_BY_NAME={};
+if(window.UNIVERSE&&UNIVERSE.systems){
+  for(const [id,s] of Object.entries(UNIVERSE.systems)) SYS_ID_BY_NAME[s[0].toLowerCase()]=+id;
+}
 async function systemByName(name){
   const k=name.toLowerCase();
   if(sysCache[k])return sysCache[k];
-  const r=await esiPost('/universe/ids/',[name]);
-  const s=(r.systems||[])[0];
-  if(!s)throw new Error('unknown system: "'+name+'" (ESI needs the exact name)');
-  const d=await esiGet('/universe/systems/'+s.id+'/');
-  const out={id:s.id,name:d.name,pos:d.position,sec:d.security_status};
+  const id=SYS_ID_BY_NAME[k];
+  if(!id)throw new Error('unknown system: "'+name+'" (check spelling — pick a suggestion from the dropdown)');
+  const s=UNIVERSE.systems[id];
+  const c=(window.UNIVERSE_COORDS||{})[id];
+  if(!c)throw new Error('no position data for "'+name+'"');
+  const out={id, name:s[0], sec:s[1],
+    pos:{x:c[0]*LY_M, y:c[1]*LY_M, z:c[2]*LY_M}};
   sysCache[k]=out;return out;
 }
 function lyBetween(a,b){
@@ -339,30 +354,16 @@ async function findMidpoints(a,b,mr,npcOnly){
   const top=candidates.slice(0,npcOnly?40:10);
   if(!top.length) return [];
 
-  // Resolve names for top candidates via ESI
-  const nameMap={};
-  try{
-    const res=await esiPost('/universe/names/',top.map(c=>c.id));
-    res.forEach(r=>{nameMap[r.id]=r.name;});
-  }catch(e){}
-
-  // Fetch sec status for top candidates (batch via system endpoint)
-  const secMap={};
-  await Promise.all(top.slice(0,npcOnly?20:10).map(async c=>{
-    try{
-      const d=sysCache[Object.values(sysCache).find&&Object.entries(sysCache).find(([,v])=>v.id===c.id)?.[0]||''];
-      if(d){secMap[c.id]=d.sec;return;}
-      const r=await esiGet('/universe/systems/'+c.id+'/');
-      secMap[c.id]=r.security_status||0;
-      if(r.name) nameMap[c.id]=r.name;
-      sysCache[r.name.toLowerCase()]={id:r.system_id,name:r.name,pos:r.position,sec:r.security_status||0};
-    }catch(e){secMap[c.id]=0;}
-  }));
-
-  const enriched=top.map(c=>({
-    s:{id:c.id,name:nameMap[c.id]||('System '+c.id),sec:secMap[c.id]||0,pos:{x:c.coords[0]*LY_M,y:c.coords[1]*LY_M,z:c.coords[2]*LY_M}},
-    la:c.la,lb:c.lb,total:c.total
-  })).filter(c=>c.s.name);
+  // Resolve name + security entirely from local SDE data — no ESI needed.
+  const sysData=(window.UNIVERSE&&UNIVERSE.systems)||{};
+  const enriched=top.map(c=>{
+    const s=sysData[c.id]; // [name, sec, regionID, x, y, planetTypes, neighbors]
+    return {
+      s:{id:c.id, name:s?s[0]:('System '+c.id), sec:s?s[1]:0,
+         pos:{x:c.coords[0]*LY_M, y:c.coords[1]*LY_M, z:c.coords[2]*LY_M}},
+      la:c.la, lb:c.lb, total:c.total
+    };
+  }).filter(c=>c.s.name && c.s.sec<0.45); // a midpoint is a jump-in target — cynos can't be lit in highsec
 
   if(!npcOnly) return enriched.slice(0,10);
 
@@ -391,10 +392,20 @@ async function suggestMidpoints(legIdx, btnEl){
   btnEl.closest('.lbox').appendChild(pop);
   activeSuggestEl=pop;
 
+  if(leg.b.sec>=0.45){
+    pop.innerHTML='<div class="ms-hd">Can\'t jump into highsec</div><div class="ms-none">'+esc(leg.b.name)+' is '+leg.b.sec.toFixed(1)+' sec — cynos can\'t be lit there, so a jump freighter can\'t jump in. Route the last stretch by gate instead, or change the destination to a lowsec/nullsec system near it.</div>';
+    return;
+  }
+
   try{
     const candidates=await findMidpoints(leg.a,leg.b,mr,npcOnly);
     if(!candidates.length){
-      pop.innerHTML='<div class="ms-hd">'+(npcOnly?'No reachable systems with NPC stations':'No reachable midpoints')+'</div><div class="ms-none">Try disabling the NPC filter or adding a manual midpoint.</div>';
+      const legLy=lyBetween(leg.a,leg.b);
+      const tooLong=legLy>mr*2;
+      const msg=tooLong
+        ?'This leg is '+legLy.toFixed(1)+' LY — no single system can be within '+mr.toFixed(1)+' LY of both ends. Add a manual midpoint roughly halfway, then suggest again from there.'
+        :(npcOnly?'No systems with NPC stations found in range of both ends — try disabling the NPC filter.':'No systems found in range of both ends — try adding a manual midpoint.');
+      pop.innerHTML='<div class="ms-hd">'+(npcOnly?'No reachable systems with NPC stations':'No reachable midpoints')+'</div><div class="ms-none">'+esc(msg)+'</div>';
       return;
     }
     const secBadge=sec=>(sec>=0.45?'<span style="color:var(--red);font-size:9px">highsec</span>':sec>0?'<span style="color:var(--gold-dim);font-size:9px">'+sec.toFixed(1)+'</span>':'<span style="font-size:9px;opacity:.5">'+sec.toFixed(1)+'</span>');
@@ -453,28 +464,30 @@ async function plan(){
       const a=stops[i];
       const ly=lyBetween(a,b);
       const fuel=Math.ceil(ly*fpl);
-      const bad=ly>mr;
+      const noCyno=b.sec>=0.45; // can't jump INTO highsec — no cyno can be lit there
+      const bad=ly>mr||noCyno;
       if(bad)over++;else{totLy+=ly;totFuel+=fuel;}
-      return {a,b,ly,fuel,bad};
+      return {a,b,ly,fuel,bad,noCyno};
     });
     window._planLegs=legs;  // store for suggestMidpoints
     const nodeHtml=s=>'<div class="node"><span class="np'+(s.sec>=0.45?' hi':'')+'"></span><div class="nn">'+esc(s.name)+'</div><div class="nl">'+s.sec.toFixed(1)+' sec'+(s.sec>=0.45?' · NO CYNO (highsec)':'')+'</div></div>';
     const legHtml=(l,idx)=>'<div class="leg'+(l.bad?' over':'')+'" id="leg'+idx+'"><span class="line"></span><div class="lbox">'+
-      '<div class="ly">'+l.ly.toFixed(2)+' LY'+(l.bad?' — OVER RANGE':'')+'</div>'+
+      '<div class="ly">'+l.ly.toFixed(2)+' LY'+(l.noCyno?' — CAN\'T JUMP IN (highsec)':l.bad?' — OVER RANGE':'')+'</div>'+
       '<div class="fu">'+(l.bad?'<button class="btn suggest-btn" onclick="suggestMidpoints('+idx+',this)">⟳ Suggest midpoints</button>':fmtInt(l.fuel)+' '+SHIPS[ship].iso.split(' ')[0].toLowerCase()+' iso')+'</div></div></div>';
     let lane='';
     stops.forEach((s,i)=>{lane+=nodeHtml(s);if(i<legs.length)lane+=legHtml(legs[i],i);});
-    const hiSecDest=stops.slice(1).some(s=>s.sec>=0.45);
+    const noCynoCount=legs.filter(l=>l.noCyno).length;
+    const overRangeCount=legs.filter(l=>l.bad&&!l.noCyno).length;
     $('out').innerHTML=
       '<div class="lane panel">'+lane+'</div>'+
       '<div class="totals panel">'+
       '<div class="t"><div class="l">Ship · max jump</div><div class="v">'+SHIPS[ship].name+' · '+maxRange().toFixed(1)+' LY</div></div>'+
-      '<div class="t"><div class="l">Jumps</div><div class="v">'+legs.length+(over?' ('+over+' over range)':'')+'</div></div>'+
+      '<div class="t"><div class="l">Jumps</div><div class="v">'+legs.length+(over?' ('+[overRangeCount&&overRangeCount+' over range',noCynoCount&&noCynoCount+' no cyno (highsec)'].filter(Boolean).join(', ')+')':'')+'</div></div>'+
       '<div class="t"><div class="l">Distance jumped</div><div class="v">'+totLy.toFixed(2)+' LY</div></div>'+
       '<div class="t"><div class="l">Fuel · '+esc(SHIPS[ship].iso)+'</div><div class="v">'+fmtInt(totFuel)+'</div></div>'+
       '</div>'+
-      '<div class="smallprint panel">Distances are straight-line light-years from live ESI system coordinates. Fuel = ⌈ly × '+fmtFull(fpl)+'⌉ per jump (base 3,100 × JFC × JF), the same formula as the original planner. '+
-      (hiSecDest?'<b>Note:</b> legs ending in highsec (0.45+) can\'t be jumped to — cynos can\'t be lit there; route to a lowsec midpoint instead. ':'')+
+      '<div class="smallprint panel">Distances are straight-line light-years from SDE system coordinates. Fuel = ⌈ly × '+fmtFull(fpl)+'⌉ per jump (base 3,100 × JFC × JF), the same formula as the original planner. '+
+      (noCynoCount?'<b>Note:</b> a cyno can\'t be lit in highsec (0.45+), so a jump freighter can\'t jump into a highsec system — only out of one. Legs marked \u201cCAN\'T JUMP IN\u201d need to be finished by gate, or the route needs to end one stop earlier at a lowsec/nullsec system. ':'')+
       'Jump fatigue and gate routing are not modelled here.</div>';
     reportDashboard(legs.length+' jumps · '+fmtInt(totFuel)+' iso', over?'bad':'ok');
   }catch(e){$('out').innerHTML='<div class="empty">plan failed: '+esc(e.message)+'</div>';}

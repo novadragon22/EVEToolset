@@ -205,6 +205,7 @@ let shelves=null;   // locId -> {name, items:[{tid,qty,isk,owner,inContainer}]}
 let avgPrices={};
 
 async function loadAll(){
+  chars=loadChars();renderPilots(); // re-sync in case sign-in happened after this tool loaded
   if(noPilotsGuard('out'))return;
   const btn=$('loadBtn');btn.disabled=true;
   $('out').innerHTML='<div class="empty"><span class="spin"></span>Opening the warehouse… (large rosters take a moment)</div>';

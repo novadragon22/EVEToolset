@@ -297,6 +297,7 @@ function statusOf(r){
   return 'idle';}
 
 async function loadAll(){
+  chars=loadChars();renderPilots(); // re-sync in case sign-in happened after this tool loaded
   if(noPilotsGuard('out'))return;
   const btn=$('loadBtn');btn.disabled=true;
   $('out').innerHTML='<div class="empty"><span class="spin"></span>Sighting the moons…</div>';

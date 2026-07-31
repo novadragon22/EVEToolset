@@ -214,6 +214,7 @@ let watchOnly=false;try{watchOnly=localStorage.getItem(WATCH_KEY)==='1';}catch(e
 const CYCLE_RING_H=48;   // ring scale: a full ring = 48h of extractor time left
 
 async function loadAll(){
+  chars=loadChars();renderPilots(); // re-sync in case sign-in happened after this tool loaded
   if(noPilotsGuard('out'))return;
   const btn=$('loadBtn');btn.disabled=true;
   $('out').innerHTML='<div class="empty" style="grid-column:1/-1"><span class="spin"></span>Scanning the orbits…</div>';
