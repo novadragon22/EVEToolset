@@ -371,6 +371,50 @@ async function findMidpoints(a,b,mr,npcOnly){
   return enriched.filter(c=>hasNpcStation(c.s.id)).slice(0,10);
 }
 
+/* Greedy multi-hop chain: used when a single waypoint can't bridge the leg.
+   At each step, pick the reachable-within-mr system (never highsec, optionally
+   NPC-station-only) that leaves the least distance remaining to the final
+   destination, and repeat from there. Stops once within mr of the destination,
+   or after MAX_HOPS steps if no progress can be made (returns whatever chain
+   was built so far, possibly incomplete). */
+const MAX_HOPS=12;
+function findMidpointChain(a,b,mr,npcOnly){
+  const coords=window.UNIVERSE_COORDS||{};
+  const sysData=(window.UNIVERSE&&UNIVERSE.systems)||{};
+  const bx=b.pos.x/LY_M, by=b.pos.y/LY_M, bz=b.pos.z/LY_M;
+  const chain=[];
+  let cur={id:a.id, pos:a.pos};
+  const visited=new Set([a.id,b.id]);
+
+  for(let hop=0; hop<MAX_HOPS; hop++){
+    const cx=cur.pos.x/LY_M, cy=cur.pos.y/LY_M, cz=cur.pos.z/LY_M;
+    const distToDest=Math.sqrt((bx-cx)**2+(by-cy)**2+(bz-cz)**2);
+    if(distToDest<=mr) return chain; // current position can reach the destination directly
+
+    let best=null;
+    for(const [idStr,c] of Object.entries(coords)){
+      const id=+idStr;
+      if(visited.has(id)) continue;
+      const distFromCur=Math.sqrt((c[0]-cx)**2+(c[1]-cy)**2+(c[2]-cz)**2);
+      if(distFromCur>mr||distFromCur<0.01) continue; // must be a real jump, not the same system
+      const distToB=Math.sqrt((bx-c[0])**2+(by-c[1])**2+(bz-c[2])**2);
+      if(distToB>=distToDest) continue; // must make net progress toward the destination
+      const s=sysData[id];
+      if(!s||s[1]>=0.45) continue; // no cyno in highsec — can't jump in
+      if(npcOnly&&!hasNpcStation(id)) continue;
+      if(!best||distToB<best.distToB) best={id,name:s[0],sec:s[1],coords:c,distToB,distFromCur};
+    }
+    if(!best) return chain; // stuck — return whatever we have; caller reports if it didn't reach
+
+    chain.push({id:best.id,name:best.name,sec:best.sec,
+      pos:{x:best.coords[0]*LY_M,y:best.coords[1]*LY_M,z:best.coords[2]*LY_M},
+      ly:best.distFromCur});
+    visited.add(best.id);
+    cur={id:best.id,pos:{x:best.coords[0]*LY_M,y:best.coords[1]*LY_M,z:best.coords[2]*LY_M}};
+  }
+  return chain;
+}
+
 let activeSuggestEl=null;
 function closeSuggest(){
   if(activeSuggestEl){activeSuggestEl.remove();activeSuggestEl=null;}
@@ -400,11 +444,23 @@ async function suggestMidpoints(legIdx, btnEl){
   try{
     const candidates=await findMidpoints(leg.a,leg.b,mr,npcOnly);
     if(!candidates.length){
+      // No single waypoint bridges this leg — try a multi-hop chain instead.
+      const chain=findMidpointChain(leg.a,leg.b,mr,npcOnly);
       const legLy=lyBetween(leg.a,leg.b);
+      if(chain.length){
+        const reached=lyBetween({pos:chain[chain.length-1].pos},leg.b)<=mr;
+        const hopNames=chain.map(c=>c.name);
+        pop.innerHTML='<div class="ms-hd">'+chain.length+'-hop chain'+(reached?'':' (partial)')+'</div>'+
+          '<div class="ms-row" onclick="injectMidpointChain('+JSON.stringify(hopNames).replace(/"/g,'&quot;')+','+legIdx+')">'+
+            '<span class="ms-name">'+chain.map(c=>esc(c.name)).join(' → ')+'</span>'+
+          '</div>'+
+          (reached?'':'<div class="ms-none">Got partway ('+chain.length+' hops) but couldn\'t fully bridge the gap — click to insert this much, then suggest again from the last stop.</div>');
+        return;
+      }
       const tooLong=legLy>mr*2;
       const msg=tooLong
-        ?'This leg is '+legLy.toFixed(1)+' LY — no single system can be within '+mr.toFixed(1)+' LY of both ends. Add a manual midpoint roughly halfway, then suggest again from there.'
-        :(npcOnly?'No systems with NPC stations found in range of both ends — try disabling the NPC filter.':'No systems found in range of both ends — try adding a manual midpoint.');
+        ?'This leg is '+legLy.toFixed(1)+' LY and no chain of jumps could be found'+(npcOnly?' with NPC stations only — try disabling that filter.':'.')
+        :(npcOnly?'No systems with NPC stations found in range of both ends — try disabling the NPC filter.':'No systems found in range of both ends.');
       pop.innerHTML='<div class="ms-hd">'+(npcOnly?'No reachable systems with NPC stations':'No reachable midpoints')+'</div><div class="ms-none">'+esc(msg)+'</div>';
       return;
     }
@@ -446,6 +502,29 @@ function injectMidpoint(name, legIdx){
   if(before) wayContainer.insertBefore(inp, before);
   else wayContainer.appendChild(inp);
   toast('Added '+name+' as midpoint — re-file the plan');
+  plan();
+}
+
+function injectMidpointChain(names, legIdx){
+  closeSuggest();
+  const wayContainer=$('ways');
+  const before=[...wayContainer.querySelectorAll('.wayin')][legIdx]||null;
+  names.forEach(name=>{
+    const uid='way'+(++wayCount);
+    const dl=document.createElement('datalist');
+    dl.id=uid;
+    document.body.appendChild(dl);
+    const inp=document.createElement('input');
+    inp.className='wayin';
+    inp.placeholder='midpoint system';
+    inp.setAttribute('autocomplete','off');
+    inp.setAttribute('list',uid);
+    inp.value=name;
+    attachSysTypeahead(inp,dl);
+    if(before) wayContainer.insertBefore(inp, before);
+    else wayContainer.appendChild(inp);
+  });
+  toast('Added '+names.length+'-hop chain — re-filing the plan');
   plan();
 }
 
