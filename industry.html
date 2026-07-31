@@ -1410,6 +1410,8 @@ function wireBpCardHandlers(){
       ()=>{ b.textContent='✔ Copied'; setTimeout(()=>b.textContent='⧉ Multibuy',1500); },
       ()=>{ b.textContent='blocked'; setTimeout(()=>b.textContent='⧉ Multibuy',1500); });
   });
+  document.querySelectorAll('.bp-add.research').forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
     const card = b.closest('.bp-card');
     const bpTypeId = Number(card.dataset.bptypeid);
     const owned = libraryOwnedByBpTypeId[bpTypeId];
