@@ -86,6 +86,36 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .qdelta.faster{color:var(--green)}
 .qdelta.slower{color:var(--red)}
 
+/* ---- Corp Plan Optimiser Drawer ---- */
+.cpo-drawer{position:fixed;top:0;right:0;width:420px;max-width:100vw;height:100vh;z-index:300;
+  display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:-6px 0 32px rgba(0,0,0,.55);}
+.cpo-drawer.open{transform:translateX(0);}
+.cpo-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:299;opacity:0;pointer-events:none;transition:opacity .28s;}
+.cpo-overlay.show{opacity:1;pointer-events:auto;}
+.cpo-hd{padding:16px 18px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;border-bottom:1px solid var(--line);}
+.cpo-hd h2{margin:0;font-size:14px;}
+.cpo-close{cursor:pointer;font-size:18px;line-height:1;padding:4px 8px;opacity:.6;}
+.cpo-close:hover{opacity:1;}
+.cpo-body{flex:1;overflow-y:auto;padding:16px 18px;}
+.cpo-label{font-size:10px;margin-bottom:5px;opacity:.6;text-transform:uppercase;letter-spacing:.06em;}
+.cpo-textarea{width:100%;height:160px;font-size:10.5px;font-family:var(--mono);resize:vertical;padding:8px;margin-bottom:10px;}
+.cpo-run{font-size:10.5px;padding:8px 18px;cursor:pointer;width:100%;}
+.cpo-result{margin-top:16px;}
+.cpo-stat{font-size:10.5px;margin-bottom:10px;opacity:.75;}
+.cpo-row{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);}
+.cpo-row:last-child{border:none;}
+.cpo-pos{font-size:9.5px;width:22px;text-align:right;opacity:.4;flex-shrink:0;}
+.cpo-skn{font-size:11.5px;flex:1;}
+.cpo-skl{font-size:10px;width:20px;text-align:center;font-weight:700;color:var(--gold-bright);}
+.cpo-prereq .cpo-skn{opacity:.55;}
+.cpo-prereq .cpo-skl{color:var(--cyan);}
+.cpo-err{font-size:11px;padding:10px 14px;color:var(--red);border-left:3px solid var(--red);margin-top:8px;}
+.cpo-copy{margin-top:14px;}
+.cpo-copy textarea{width:100%;height:80px;font-size:10px;font-family:var(--mono);resize:vertical;padding:8px;}
+.cpo-note{font-size:10px;padding:7px 12px;margin-bottom:10px;border-left:3px solid var(--gold-dim);opacity:.8;line-height:1.6;}
+.cpo-spin{padding:24px;text-align:center;font-size:11px;}
+
 </style>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
@@ -103,6 +133,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
     </div>
   </div>
   <div class="tb-right">
+    <button class="btn" id="corpPlanBtn" onclick="openPlanDrawer()" title="Paste a corp skill plan and get an optimised training order">◈ Corp Plan Optimiser</button>
     <span class="eveclock" id="eveclock"></span>
     <div class="pilots" id="pilots"></div>
   </div>
@@ -115,6 +146,22 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 </div>
 
 <div id="toast"></div>
+
+<!-- Corp Plan Optimiser Drawer -->
+<div class="cpo-overlay" id="cpo-overlay" onclick="closePlanDrawer()"></div>
+<div class="cpo-drawer panel" id="cpo-drawer">
+  <div class="cpo-hd">
+    <h2>◈ Corp Plan Optimiser</h2>
+    <span class="cpo-close" onclick="closePlanDrawer()">✕</span>
+  </div>
+  <div class="cpo-body">
+    <div class="cpo-note">Paste a corp skill plan — one skill per line in <b>Skill Name Level</b> format (e.g. <i>Caldari Cruiser 4</i>). The optimiser resolves prerequisites and reorders the plan for the fastest training time using default attributes.</div>
+    <div class="cpo-label">Skill Plan</div>
+    <textarea class="cpo-textarea" id="cpo-input" placeholder="Caldari Cruiser 4&#10;Heavy Assault Cruisers 1&#10;Spaceship Command 5&#10;…"></textarea>
+    <button class="btn primary cpo-run" id="cpo-run-btn" onclick="runCorpPlanOptimiser()">⚡ Optimise Plan</button>
+    <div class="cpo-result" id="cpo-result"></div>
+  </div>
+</div>
 <script>
 const MY_SECTION='academy';
 
@@ -693,10 +740,203 @@ function renderQueueModal(charName,qWith,qWithout,effWith,effWithout,
   });
 }
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closePlanDrawer();}});
 
 
 window.onRosterChange=()=>{ if(tracks.length)loadAll(); };
+
+/* ================================================================
+   CORP PLAN OPTIMISER DRAWER
+   ================================================================ */
+
+function openPlanDrawer(){
+  $('cpo-drawer').classList.add('open');
+  $('cpo-overlay').classList.add('show');
+  setTimeout(()=>$('cpo-input').focus(),300);
+}
+function closePlanDrawer(){
+  $('cpo-drawer').classList.remove('open');
+  $('cpo-overlay').classList.remove('show');
+}
+
+// Build a skill-name → typeId index lazily from the dogma cache + name cache
+// We resolve names by searching ESI /universe/types/ with category=16 (skills)
+const skillNameIndex={}; // lowercase name -> typeId
+let skillNameIndexBuilt=false;
+
+function buildSkillNameIndex(){
+  // Populate from already-cached dogma entries (fast path)
+  Object.entries(skillDogmaCache).forEach(([id,d])=>{
+    if(d&&d.name) skillNameIndex[d.name.toLowerCase()]=+id;
+  });
+  // Also from name cache
+  Object.entries(nameCache).forEach(([id,v])=>{
+    if(v&&v.c==='inventory_type'&&v.n) skillNameIndex[v.n.toLowerCase()]=+id;
+  });
+}
+
+async function resolveSkillName(name){
+  const key=name.toLowerCase().trim();
+  if(skillNameIndex[key]) return skillNameIndex[key];
+  // Search ESI
+  try{
+    const r=await fetch('https://esi.evetech.net/latest/search/?categories=inventory_type&search='+encodeURIComponent(name)+'&strict=true&language=en');
+    if(!r.ok) return null;
+    const d=await r.json();
+    const ids=(d.inventory_type||[]);
+    if(!ids.length) return null;
+    // Fetch each candidate and check it's a skill (category 16)
+    for(const tid of ids.slice(0,5)){
+      if(skillDogmaCache[tid]){
+        skillNameIndex[key]=tid;
+        return tid;
+      }
+      try{
+        const tr=await fetch('https://esi.evetech.net/latest/universe/types/'+tid+'/');
+        if(!tr.ok) continue;
+        const td=await tr.json();
+        if(td.category_id===16){
+          const attrs={};
+          (td.dogma_attributes||[]).forEach(a=>{attrs[a.attribute_id]=a.value;});
+          const pri=ATTR_CODE[attrs[DA_PRIMARY]]||'int';
+          const sec=ATTR_CODE[attrs[DA_SECONDARY]]||'mem';
+          const rank=attrs[DA_RANK]||1;
+          const req=[];
+          [[DA_REQ1,DA_LV1],[DA_REQ2,DA_LV2],[DA_REQ3,DA_LV3],[DA_REQ4,DA_LV4],[DA_REQ5,DA_LV5]]
+            .forEach(([ra,la])=>{ if(attrs[ra]&&attrs[la]) req.push([+attrs[ra],+attrs[la]]); });
+          skillDogmaCache[tid]={name:td.name,rank,pri,sec,req};
+          nameCache[tid]={n:td.name,c:'inventory_type'};
+          skillNameIndex[key]=tid;
+          saveDogmaCache();
+          return tid;
+        }
+      }catch(e){}
+    }
+  }catch(e){}
+  return null;
+}
+
+// Parse pasted plan: "Skill Name Level" per line (same format as Optimal Queue copy-out)
+function parsePlanText(text){
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const out=[];
+  for(const line of lines){
+    // Last token that's a digit 1-5 is the level; everything before is the name
+    const m=line.match(/^(.+?)\s+([1-5])\s*$/);
+    if(m) out.push({raw:line, name:m[1].trim(), level:+m[2]});
+    else out.push({raw:line, name:line, level:null, parseErr:true});
+  }
+  return out;
+}
+
+async function runCorpPlanOptimiser(){
+  const text=$('cpo-input').value.trim();
+  if(!text){
+    $('cpo-result').innerHTML='<div class="cpo-err">Paste a skill plan first.</div>';
+    return;
+  }
+  $('cpo-result').innerHTML='<div class="cpo-spin"><span class="spin"></span> Resolving skills…</div>';
+  $('cpo-run-btn').disabled=true;
+
+  buildSkillNameIndex();
+
+  const parsed=parsePlanText(text);
+  const errors=[];
+  const targets=[];
+
+  // Resolve each skill name to a typeId
+  const lim=pLimit(4);
+  await Promise.all(parsed.map(p=>lim(async()=>{
+    if(p.parseErr){ errors.push('Could not parse: '+p.raw); return; }
+    const tid=await resolveSkillName(p.name);
+    if(!tid){ errors.push('Skill not found: '+p.name); return; }
+    targets.push([tid, p.level, p.name]);
+  })));
+
+  if(!targets.length){
+    $('cpo-result').innerHTML='<div class="cpo-err">No valid skills resolved.<br>'+errors.map(esc).join('<br>')+'</div>';
+    $('cpo-run-btn').disabled=false;
+    return;
+  }
+
+  // Fetch dogma for all target skills (prereqs will be fetched recursively inside buildQueue)
+  $('cpo-result').innerHTML='<div class="cpo-spin"><span class="spin"></span> Fetching skill metadata…</div>';
+  await fetchSkillDogma(targets.map(([id])=>id));
+
+  // Also pre-fetch dogma for all known prereqs recursively
+  async function prefetchPrereqs(ids, visited=new Set()){
+    const need=ids.filter(id=>!visited.has(id));
+    if(!need.length) return;
+    need.forEach(id=>visited.add(id));
+    await fetchSkillDogma(need);
+    const nextLayer=[];
+    need.forEach(id=>{
+      const d=skillDogmaCache[id];
+      if(d)(d.req||[]).forEach(([pid])=>{ if(!visited.has(pid)) nextLayer.push(pid); });
+    });
+    if(nextLayer.length) await prefetchPrereqs(nextLayer,visited);
+  }
+  await prefetchPrereqs(targets.map(([id])=>id));
+
+  // Default attributes (no pilot context — use standard base)
+  const baseA={int:20,mem:20,per:20,wil:20,cha:19};
+  const eff=effAttrs(baseA,{});
+
+  // No current levels — optimise from scratch (corp plan = what they need to train)
+  const curLevels={};
+
+  // Sort targets shortest-first then build queue with prereqs
+  const sortedTargets=targets.slice().sort((a,b)=>{
+    const da=skillDogmaCache[a[0]], db=skillDogmaCache[b[0]];
+    if(!da||!db) return 0;
+    const spA=spForLevel(da.rank,a[1]);
+    const spB=spForLevel(db.rank,b[1]);
+    const tA=trainSec(spA, eff[da.pri]||20, eff[da.sec]||20);
+    const tB=trainSec(spB, eff[db.pri]||20, eff[db.sec]||20);
+    return tA-tB;
+  }).map(([id,lv])=>[id,lv]);
+
+  const queue=buildQueue(sortedTargets, curLevels, skillDogmaCache, eff, 200);
+  const totalSec=queueTime(queue, eff, curLevels);
+
+  if(!queue.length){
+    $('cpo-result').innerHTML='<div class="cpo-err">No trainable skills found in that plan.</div>';
+    $('cpo-run-btn').disabled=false;
+    return;
+  }
+
+  // Mark which entries were in the original target set
+  const targetSet=new Set(sortedTargets.map(([id,lv])=>id+':'+lv));
+
+  // Render
+  const sim={};
+  const rows=queue.map((e,i)=>{
+    const curSP=spForLevel(e.rank, sim[e.skillId]||0);
+    const tgtSP=spForLevel(e.rank, e.level);
+    const needed=Math.max(0,tgtSP-curSP);
+    const pri=eff[e.pri]||20, sec2=eff[e.sec]||20;
+    const dur=trainSec(needed,pri,sec2);
+    sim[e.skillId]=e.level;
+    const isPrereq=!targetSet.has(e.skillId+':'+e.level);
+    return '<div class="cpo-row'+(isPrereq?' cpo-prereq':'')+'">'+
+      '<span class="cpo-pos">'+(i+1)+'</span>'+
+      '<span class="cpo-skn">'+esc(e.name)+(isPrereq?' <span style="font-size:9px;opacity:.5">(prereq)</span>':'')+'</span>'+
+      '<span class="cpo-skl">'+['','I','II','III','IV','V'][e.level]+'</span>'+
+      '<span class="qtm" style="font-size:10px;width:68px;text-align:right;opacity:.6;font-family:var(--mono)">+'+fmtDur(dur*1000)+'</span>'+
+      '</div>';
+  }).join('');
+
+  const copyVal=queue.map(e=>e.name+' '+e.level).join('\n');
+
+  const errBlock=errors.length?'<div class="cpo-err" style="margin-bottom:10px">⚠ Skipped:<br>'+errors.map(esc).join('<br>')+'</div>':'';
+
+  $('cpo-result').innerHTML=errBlock+
+    '<div class="cpo-stat">'+queue.length+' entries · total training time: <b>'+fmtDur(totalSec*1000)+'</b> <span style="opacity:.5;font-size:9.5px">(base attrs, no implants)</span></div>'+
+    rows+
+    '<div class="cpo-copy"><div class="cpo-label" style="margin-top:14px">Copy to clipboard</div><textarea readonly>'+esc(copyVal)+'</textarea></div>';
+
+  $('cpo-run-btn').disabled=false;
+}
 
 </script>
 <script>
