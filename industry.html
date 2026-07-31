@@ -1906,8 +1906,9 @@ document.getElementById('libraryLoadBtn').onclick = async ()=>{
 };
 
 const LIBRARY_FACTION_RE = /\b(Navy|Federation|Republic|State|Imperial|Guristas|Angel|Sansha|Blood|Serpentis|Mordus|Syndicate|InterBus|Intaki|Sukuuvestaa|Quafe|Aliastra|Inner Zone|Kaalakiota|Nugoeihuvi|Ishukone|Wiyrkomi|Viziam|Duvolle|Carthum|Lai Dai|Dread Guristas|True Sansha|Domination|Shadow Serpentis|Corelum|Coreli|Dark Blood|Centus|Centii|Gistum|Gisti|Veles|Zorya|Marshal|Enforcer|Pacifier|Victor|Virtuoso|Vigilant|Daredevil|Dramiel|Worm|Gila|Cynabal|Vagabond|Machariel|Nightmare|Vindicator|Rattlesnake|Bhaalgorn|Vangel|Ashimmu|Succubus|Cruor)\b/i;
-function isT2BP(d){var m=d.materials||[];return !d.isReaction&&m.some(function(x){return x[0].startsWith('R.A.M.-');})&&m.some(function(x){return x[0]==='Morphite';});}
-function isT3SubBP(d){return /subsystem/i.test(d.group||'');}
+var T2_HULL_GROUPS={'Assault Frigate':1,'Interceptor':1,'Covert Ops':1,'Stealth Bomber':1,'Electronic Attack Ship':1,'Heavy Assault Cruiser':1,'Heavy Interdiction Cruiser':1,'Interdictor':1,'Logistics':1,'Force Recon Ship':1,'Combat Recon Ship':1,'Command Ship':1,'Black Ops':1,'Marauder':1};
+function isT2BP(d){var m=d.materials||[];return !d.isReaction&&((m.some(function(x){return x[0].startsWith('R.A.M.-');})&&m.some(function(x){return x[0]==='Morphite';}))|| T2_HULL_GROUPS[d.group]);}
+function isT3SubBP(d){return /subsystem/i.test(d.group||'')||d.group==='Strategic Cruiser';}
 function isSeededBP(d){var m=d.materials||[];return m.length===1&&m[0][0]==='Tritanium'&&m[0][1]===1;}
 function isFactionBP(name,d){return LIBRARY_FACTION_RE.test(name)&&!d.isReaction&&!isT2BP(d);}
 function isLibraryBP(name,d){return !isT2BP(d)&&!isT3SubBP(d)&&!isSeededBP(d)&&!isFactionBP(name,d);}
