@@ -1350,7 +1350,7 @@ document.getElementById('importJsonFile').addEventListener('change', (e)=>{
 });
 
 let bpTypeFilt='blueprint', bpStatusFilt='missing', bpSourceFilt='all', bpSearchTerm='';
-const BP_RENDER_CHUNK=80; let bpRenderLimit=BP_RENDER_CHUNK; // 8 cols × 10 rows
+const BP_RENDER_CHUNK=64; let bpRenderLimit=BP_RENDER_CHUNK; // 8 cols × 8 rows
 function applyBpFilters(){
   bpRenderLimit = BP_RENDER_CHUNK;
   renderBpLibrary();
