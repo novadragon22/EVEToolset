@@ -75,6 +75,8 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 </style>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
+<script src="universe_coords.js"></script>
+<script src="npcStations.js"></script>
 </head>
 <body>
 
@@ -262,10 +264,9 @@ function attachSysTypeahead(inp,dl){
     if(q.length<2){dl.innerHTML='';return;}
     typeaheadTimers[inp.id||'wa']=setTimeout(async()=>{
       try{
-        const r=await esiGet('/search/?categories=solar_system&search='+encodeURIComponent(q)+'&strict=false&language=en');
+        const r=await esiGet('/search/?categories=solar_system&search='+encodeURIComponent(q)+'&strict=false&language=en&datasource=tranquility');
         const ids=(r.solar_system||[]).slice(0,12);
         if(!ids.length){dl.innerHTML='';return;}
-        // batch-resolve names
         const names=await esiPost('/universe/names/',ids);
         dl.innerHTML=names.map(n=>'<option value="'+n.name+'">').join('');
       }catch(e){dl.innerHTML='';}
@@ -307,43 +308,66 @@ function lyBetween(a,b){
   return Math.sqrt(dx*dx+dy*dy+dz*dz)/LY_M;
 }
 
-// Cache: sysId -> array of NPC station names ([] if none, null if unchecked)
+// Cache: sysId -> bool (has NPC station)
 const stationCache={};
 
-async function hasNpcStation(sysId){
+function hasNpcStation(sysId){
   if(stationCache[sysId]!==undefined) return stationCache[sysId];
-  try{
-    const d=await esiGet('/universe/systems/'+sysId+'/');
-    const sta=d.stations||[];
-    stationCache[sysId]=sta.length>0;
-    return stationCache[sysId];
-  }catch(e){ stationCache[sysId]=false; return false; }
+  const result=(window.NPC_STATION_SYSTEMS||new Set()).has(sysId);
+  stationCache[sysId]=result;
+  return result;
 }
 
 async function findMidpoints(a,b,mr,npcOnly){
-  // Use ESI autopilot route (shortest) to get candidate systems in between
-  const route=await esiGet('/route/'+a.id+'/'+b.id+'/?flag=shortest');
-  // route is array of sysIds: [a.id, ..., b.id]
-  const midIds=route.slice(1,-1);
-  if(!midIds.length) return [];
-  // Resolve positions for all candidates
+  // Spatial search: find all known systems reachable from both a and b within mr LY
+  // Uses UNIVERSE_COORDS (pre-built SDE data, in light-years already)
+  const coords=window.UNIVERSE_COORDS||{};
+  const ax=a.pos.x/LY_M, ay=a.pos.y/LY_M, az=a.pos.z/LY_M;
+  const bx=b.pos.x/LY_M, by=b.pos.y/LY_M, bz=b.pos.z/LY_M;
   const candidates=[];
-  const lim=pLimit?pLimit(6):null;
-  const fetch6=lim
-    ? id=>lim(()=>esiGet('/universe/systems/'+id+'/'))
-    : id=>esiGet('/universe/systems/'+id+'/');
-  const results=await Promise.all(midIds.map(id=>fetch6(id).catch(()=>null)));
-  for(const d of results){
-    if(!d||!d.position) continue;
-    const s={id:d.system_id,name:d.name,pos:d.position,sec:d.security_status||0};
-    const la=lyBetween(a,s), lb=lyBetween(s,b);
-    if(la<=mr&&lb<=mr) candidates.push({s,la,lb,total:la+lb});
+
+  for(const [idStr,c] of Object.entries(coords)){
+    const id=+idStr;
+    if(id===a.id||id===b.id) continue;
+    const la=Math.sqrt((c[0]-ax)**2+(c[1]-ay)**2+(c[2]-az)**2);
+    if(la>mr) continue;
+    const lb=Math.sqrt((c[0]-bx)**2+(c[1]-by)**2+(c[2]-bz)**2);
+    if(lb>mr) continue;
+    candidates.push({id,la,lb,total:la+lb,coords:c});
   }
   candidates.sort((x,y)=>x.total-y.total);
-  if(!npcOnly) return candidates.slice(0,10);
-  // Filter by NPC station
-  const checked=await Promise.all(candidates.map(c=>hasNpcStation(c.s.id).then(ok=>ok?c:null)));
-  return checked.filter(Boolean).slice(0,10);
+  const top=candidates.slice(0,npcOnly?40:10);
+  if(!top.length) return [];
+
+  // Resolve names for top candidates via ESI
+  const nameMap={};
+  try{
+    const res=await esiPost('/universe/names/',top.map(c=>c.id));
+    res.forEach(r=>{nameMap[r.id]=r.name;});
+  }catch(e){}
+
+  // Fetch sec status for top candidates (batch via system endpoint)
+  const secMap={};
+  await Promise.all(top.slice(0,npcOnly?20:10).map(async c=>{
+    try{
+      const d=sysCache[Object.values(sysCache).find&&Object.entries(sysCache).find(([,v])=>v.id===c.id)?.[0]||''];
+      if(d){secMap[c.id]=d.sec;return;}
+      const r=await esiGet('/universe/systems/'+c.id+'/');
+      secMap[c.id]=r.security_status||0;
+      if(r.name) nameMap[c.id]=r.name;
+      sysCache[r.name.toLowerCase()]={id:r.system_id,name:r.name,pos:r.position,sec:r.security_status||0};
+    }catch(e){secMap[c.id]=0;}
+  }));
+
+  const enriched=top.map(c=>({
+    s:{id:c.id,name:nameMap[c.id]||('System '+c.id),sec:secMap[c.id]||0,pos:{x:c.coords[0]*LY_M,y:c.coords[1]*LY_M,z:c.coords[2]*LY_M}},
+    la:c.la,lb:c.lb,total:c.total
+  })).filter(c=>c.s.name);
+
+  if(!npcOnly) return enriched.slice(0,10);
+
+  // Filter by NPC station using local SDE data (instant, no ESI needed)
+  return enriched.filter(c=>hasNpcStation(c.s.id)).slice(0,10);
 }
 
 let activeSuggestEl=null;
