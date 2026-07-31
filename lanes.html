@@ -437,7 +437,92 @@ async function suggestMidpoints(legIdx, btnEl){
   activeSuggestEl=pop;
 
   if(leg.b.sec>=0.45){
-    pop.innerHTML='<div class="ms-hd">Can\'t jump into highsec</div><div class="ms-none">'+esc(leg.b.name)+' is '+leg.b.sec.toFixed(1)+' sec — cynos can\'t be lit there, so a jump freighter can\'t jump in. Route the last stretch by gate instead, or change the destination to a lowsec/nullsec system near it.</div>';
+    // Can't jump into highsec. Find the best lowsec/nullsec system to jump into
+    // that has a gate path leading toward the highsec destination.
+    // Strategy: BFS from destination through gate neighbours, collect lowsec/null
+    // systems within a small gate-hop radius, then pick whichever of those is
+    // within jump range of the origin.
+    const sysData=(window.UNIVERSE&&UNIVERSE.systems)||{};
+    const coords=window.UNIVERSE_COORDS||{};
+    const LY=LY_M;
+    const ax=leg.a.pos.x/LY, ay=leg.a.pos.y/LY, az=leg.a.pos.z/LY;
+
+    // BFS from the highsec destination through gates (up to 5 hops) to find
+    // adjacent lowsec/nullsec systems that could serve as jump-in staging.
+    const gateReachable=[]; // {id, hops}
+    const bfsVisited=new Set([leg.b.id]);
+    let frontier=[leg.b.id];
+    for(let h=1;h<=5&&frontier.length;h++){
+      const next=[];
+      for(const sid of frontier){
+        const s=sysData[sid];
+        if(!s)continue;
+        for(const nid of (s[6]||[])){
+          if(bfsVisited.has(nid))continue;
+          bfsVisited.add(nid);
+          const ns=sysData[nid];
+          if(ns&&ns[1]<0.45) gateReachable.push({id:nid,hops:h,sec:ns[1],name:ns[0]});
+          next.push(nid);
+        }
+      }
+      frontier=next;
+    }
+
+    if(!gateReachable.length){
+      pop.innerHTML='<div class="ms-hd">Highsec destination — no route found</div><div class="ms-none">'+esc(leg.b.name)+' is '+leg.b.sec.toFixed(1)+' sec — couldn\'t find any adjacent lowsec/nullsec staging system within 5 gate hops.</div>';
+      return;
+    }
+
+    // Of those gate-reachable systems, find ones within jump range of origin
+    const inRange=gateReachable.filter(s=>{
+      const c=coords[s.id];
+      if(!c)return false;
+      const d=Math.sqrt((c[0]-ax)**2+(c[1]-ay)**2+(c[2]-az)**2);
+      return d<=mr;
+    });
+
+    // Also check chain for cases that aren't in direct range
+    const secBadge=sec=>(sec>=0.45?'<span style="color:var(--red);font-size:9px">highsec</span>':sec>0?'<span style="color:var(--gold-dim);font-size:9px">'+sec.toFixed(1)+'</span>':'<span style="font-size:9px;opacity:.5">'+sec.toFixed(1)+'</span>');
+
+    if(inRange.length){
+      inRange.sort((a,b_)=>{
+        if(a.hops!==b_.hops)return a.hops-b_.hops;
+        const ca=coords[a.id],cb=coords[b_.id];
+        const da=Math.sqrt((ca[0]-ax)**2+(ca[1]-ay)**2+(ca[2]-az)**2);
+        const db=Math.sqrt((cb[0]-ax)**2+(cb[1]-ay)**2+(cb[2]-az)**2);
+        return da-db; // closer to origin first (more fuel-efficient)
+      });
+      const shown=inRange.filter(s=>!npcOnly||hasNpcStation(s.id)).slice(0,8);
+      if(!shown.length&&npcOnly){
+        pop.innerHTML='<div class="ms-hd">Highsec staging — NPC filter</div><div class="ms-none">Found '+inRange.length+' adjacent lowsec/nullsec system(s) in jump range, but none have NPC stations. Try disabling the NPC filter.</div>';
+        return;
+      }
+      pop.innerHTML='<div class="ms-hd">Jump staging for highsec destination</div>'+
+        '<div class="ms-none" style="font-size:11px;padding:4px 8px 8px">'+esc(leg.b.name)+' is highsec — jump here, then gate the last '+(shown[0]?shown[0].hops:1)+' hop'+(shown[0]&&shown[0].hops===1?'':'s')+' to the destination.</div>'+
+        shown.map(s=>{
+          const c=coords[s.id];
+          const dist=c?Math.sqrt((c[0]-ax)**2+(c[1]-ay)**2+(c[2]-az)**2).toFixed(2):'?';
+          return '<div class="ms-row" onclick="injectMidpoint(\''+esc(s.name)+'\','+legIdx+')">'+
+            '<span class="ms-name">'+esc(s.name)+'</span>'+
+            secBadge(s.sec)+
+            '<span class="ms-ly">'+dist+' LY · '+s.hops+' gate hop'+(s.hops===1?'':'s')+'</span>'+
+          '</div>';
+        }).join('');
+    } else {
+      // None in direct range — try chain to get close, then gate
+      const pseudoDest={id:gateReachable[0].id,pos:{x:coords[gateReachable[0].id]?coords[gateReachable[0].id][0]*LY:leg.b.pos.x,y:coords[gateReachable[0].id]?coords[gateReachable[0].id][1]*LY:leg.b.pos.y,z:coords[gateReachable[0].id]?coords[gateReachable[0].id][2]*LY:leg.b.pos.z}};
+      const chain=findMidpointChain(leg.a,pseudoDest,mr,npcOnly);
+      if(chain.length){
+        const hopNames=chain.map(c=>c.name);
+        pop.innerHTML='<div class="ms-hd">Highsec destination — chain to staging</div>'+
+          '<div class="ms-none" style="font-size:11px;padding:4px 8px 8px">'+esc(leg.b.name)+' is highsec. This chain gets you to a nearby lowsec/nullsec staging system, then gate from there.</div>'+
+          '<div class="ms-row" onclick="injectMidpointChain('+JSON.stringify(hopNames).replace(/"/g,'&quot;')+','+legIdx+')">'+
+            '<span class="ms-name">'+chain.map(c=>esc(c.name)).join(' → ')+'</span>'+
+          '</div>';
+      } else {
+        pop.innerHTML='<div class="ms-hd">Highsec destination</div><div class="ms-none">'+esc(leg.b.name)+' is highsec — no lowsec/nullsec staging found in jump range within 5 gate hops'+(npcOnly?' with NPC stations — try disabling the NPC filter':'')+'. Try adding a manual midpoint closer to the destination.</div>';
+      }
+    }
     return;
   }
 

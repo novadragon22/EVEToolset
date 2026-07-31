@@ -132,6 +132,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 <script src="themes.js" defer></script>
 <script src="blueprintGroups.js"></script>
 <script src="metaGroups.js"></script>
+<script src="industryRigs.js"></script>
+<script src="metaGroups.js"></script>
 <style>
 *{box-sizing: border-box}
 html,body{margin:0;min-height:100vh}
@@ -675,18 +677,17 @@ const CATEGORY_KEYWORDS = {
 // bonus actually applies to it. Anything not listed here is treated as
 // unscoped (no rig category will claim a match for it).
 
-// Rig tier (Basic/"I" vs Advanced/"II") determines the actual bonus size.
-// These are the standard Engineering-Complex / Refinery rig bonuses:
-//   Material Efficiency rig:  Basic (I) -2%,  Advanced (II) -2.4%
-//   Time Efficiency rig:      Basic (I) -15%, Advanced (II) -20%
+// Rig bonuses derived from INDUSTRY_RIGS (industryRigs.js, sourced from SDE typeDogma).
+// Corrected from previous hardcoded values: TE I=-20%, TE II=-24% (not 15%/20%).
 const RIG_TIER_BONUS = {
-  materialEfficiency: { I: 0.02, II: 0.024 },
-  timeEfficiency:     { I: 0.15, II: 0.20 }
+  materialEfficiency: { I: 0.02, II: 0.024 },   // SDE attr 2594
+  timeEfficiency:     { I: 0.20, II: 0.24  }    // SDE attr 2593 (was 0.15/0.20 — bug fixed)
 };
 // Structure hull itself (independent of rigs) gives a base TIME bonus to
 // manufacturing AND research jobs alike — material efficiency only ever comes
 // from rigs/BP research, never from the hull directly.
-const STRUCTURE_HULL_TIME_BONUS = { Raitaru:0.15, Azbel:0.20, Sotiyo:0.25, Athanor:0.20, Tatara:0.30 };
+// Hull time bonuses sourced from STRUCTURE_HULLS (industryRigs.js, from CCP design docs).
+const STRUCTURE_HULL_TIME_BONUS = Object.fromEntries(Object.entries(STRUCTURE_HULLS).map(([k,v])=>[k,v.timeBonus]));
 function hullTimeBonus(hull){ return STRUCTURE_HULL_TIME_BONUS[hull] || 0; }
 
 function rigTier(line){
