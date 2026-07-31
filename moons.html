@@ -98,6 +98,8 @@ td.dim{font-size:10.5px}
 </style>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
+<script src="moonOres.js"></script>
+<script src="systemConstellations.js"></script>
 </head>
 <body>
 
@@ -276,7 +278,6 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
 /* Refinery hull ids, extraction status logic, and the stagger optimiser are
    carried over from the original Structure Browser. Plans
    and exclusions share its localStorage keys, so both tools stay in step. */
-const REFINERY_TYPES={35835:'Athanor',35836:'Tatara'};
 const PLAN_KEY='eve_extraction_plans_v1', EXCLUDE_KEY='eve_extraction_exclude_v1';
 let refineries=[];    // {name,type,typeId,system,constellation,sec,corp, start,arrive,decay}
 const needsExtractionSet=new Set(); // sids flagged by operator as extraction started
@@ -333,7 +334,7 @@ async function loadAll(){
       const key='sysmeta'+r.sysId;
       if(!nameCache[key]){
         const sy=await esiGet('/universe/systems/'+r.sysId+'/');
-        let cn='';try{cn=(await esiGet('/universe/constellations/'+sy.constellation_id+'/')).name;}catch(e){}
+        const cn=CONST_NAMES[SYS_TO_CONST[r.sysId]]||'';
         nameCache[key]={n:JSON.stringify({nm:sy.name,sec:sy.security_status,con:cn}),c:'meta'};saveNameCache();
       }
       const meta=JSON.parse(nameCache[key].n);

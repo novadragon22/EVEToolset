@@ -79,6 +79,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 </style>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
+<script src="svcFuel.js"></script>
 </head>
 <body>
 
@@ -148,52 +149,14 @@ function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
    The hull itself consumes no fuel — only online service modules do.
    Each module runs on a 1-hour cycle; its rate is blocks consumed per cycle.
    ESI returns services as {name, state} — keyed by canonical in-game name.   */
-const SVC_FUEL_BLK_HR_BY_NAME = {
-  // Engineering Service Modules (groupID 1415)
-  'Standup Supercapital Shipyard I':36,
-  'Standup Manufacturing Plant I':12,
-  'Standup Capital Shipyard I':24,
-  'Standup Invention Lab I':12,
-  'Standup Research Lab I':12,
-  'Standup Hyasyoda Research Lab':10,
-  // Citadel Service Modules (groupID 1321)
-  'Standup Market Hub I':40,
-  'Standup Cloning Center I':10,
-  // Resource Processing Service Modules (groupID 1322)
-  'Standup Reprocessing Facility I':10,
-  'Standup Composite Reactor I':15,
-  'Standup Hybrid Reactor I':15,
-  'Standup Biochemical Reactor I':15,
-  // FLEX Service Modules (groupID 1324)
-  'Standup Cynosural Field Generator I':15,
-  'Standup Conduit Generator I':30,
-  'Standup Cynosural System Jammer I':40,
-  'Standup Metenox Moon Drill':5,
-  // Moon Drilling (groupID 1887)
-  'Standup Moon Drill I':5,
-  // Unpublished — confirmed SDE values
-  'Standup Drug Lab I':5,
-  'Structure Compression Plant':5,
-  'Structure Time Efficiency Laboratory':5,
-  'Structure Material Efficiency Laboratory':10,
-};
 
 /* Returns blocks/hr for this structure based solely on its online service modules.
    Each module's SDE cycle rate (blocks/hr) is summed; unknown modules fall back
    to 10 blk/hr. Returns 0 if no services are online.                           */
-function fuelBph(s){
-  let bph=0;
-  (s.services||[]).forEach(v=>{
-    if(v.state==='online'){
-      const key=(v.name||'').replace(/_/g,' ');
-      const rate=SVC_FUEL_BLK_HR_BY_NAME[key];
-      bph+=rate!=null?rate:10;
-    }
   });
   return bph;
 }
 /* Convenience: blocks per 30-day month at this structure's burn rate */
-function fuelBpMonth(s){ return fuelBph(s)*24*30; }
 function fmtBlocks(n){return n.toLocaleString()+' blocks';}
 async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
   if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}

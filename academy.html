@@ -119,6 +119,7 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 </style>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
+<script src="dogmaAttrs.js"></script>
 </head>
 <body>
 
@@ -351,16 +352,11 @@ $('loadBtn').onclick=loadAll;
    ================================================================ */
 
 // ESI dogma attribute IDs we care about
-const DA_PRIMARY   = 180;   // primary training attribute (164=int,165=per,166=cha,167=wil,168=mem)
-const DA_SECONDARY = 182;   // secondary training attribute
-const DA_RANK      = 275;   // skill rank (time constant)
 const DA_REQ1=182,DA_LV1=277, DA_REQ2=183,DA_LV2=278,
       DA_REQ3=184,DA_LV3=279, DA_REQ4=1285,DA_LV4=1286,
       DA_REQ5=1289,DA_LV5=1290;
 // Map EVE attribute typeId -> short key
-const ATTR_CODE={164:'int',165:'per',166:'cha',167:'wil',168:'mem'};
 // Implant dogma attr IDs (bonus to each attribute)
-const IMP_ATTR={175:'int',176:'mem',177:'per',178:'wil',179:'cha'};
 // Well-known attribute implant type IDs -> {attr, bonus}
 // Slots 1-5: INT, PER, CHA, WIL, MEM  (Squire/Ocular/Social/Neural/Lancer series)
 const KNOWN_IMP_TYPES={

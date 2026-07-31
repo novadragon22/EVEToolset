@@ -64,6 +64,8 @@ td.num,th.num{text-align:right}
 </style>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
+<script src="tradeHubs.js"></script>
+<script>const HUBS=TRADE_HUBS;</script>
 </head>
 <body>
 
@@ -231,13 +233,6 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
 
 /* ================= The Exchange ================= */
 /* Trade hubs: region + hub station, the classic five. */
-const HUBS=[
-  {name:'Jita 4-4',   region:10000002, station:60003760},
-  {name:'Amarr VIII', region:10000043, station:60008494},
-  {name:'Dodixie IX', region:10000032, station:60011866},
-  {name:'Rens VI',    region:10000030, station:60004588},
-  {name:'Hek VIII',   region:10000042, station:60005686},
-];
 let curType=null, hist=null;
 
 async function idForName(name){
