@@ -1404,8 +1404,10 @@ function wireBpCardHandlers(){
   });
   document.querySelectorAll('.bp-add.multibuy').forEach(b=>b.onclick=(e)=>{
     e.stopPropagation(); // don't open the detail drawer
-    const name=b.closest('.bp-card').querySelector('.bp-name').textContent;
-    const line=name+'\t1';
+    const card=b.closest('.bp-card');
+    const name=card.querySelector('.bp-name').textContent;
+    const bpName=name+(card.dataset.type==='reaction'?' Reaction Formula':' Blueprint');
+    const line=bpName+'\t1';
     (navigator.clipboard?navigator.clipboard.writeText(line):Promise.reject()).then(
       ()=>{ b.textContent='✔ Copied'; setTimeout(()=>b.textContent='⧉ Multibuy',1500); },
       ()=>{ b.textContent='blocked'; setTimeout(()=>b.textContent='⧉ Multibuy',1500); });
@@ -1452,11 +1454,11 @@ document.getElementById('bpCopyAllMissing').onclick=function(){
     const typeOk=bpTypeFilt==='all'||(m.isReaction?'reaction':'blueprint')===bpTypeFilt;
     const sourceOk=bpSourceFilt==='all'||m.sources.includes(bpSourceFilt);
     const searchOk=!bpSearchTerm||name.toLowerCase().includes(bpSearchTerm);
-    if(typeOk&&sourceOk&&searchOk) allMissing.push(name);
+    if(typeOk&&sourceOk&&searchOk) allMissing.push([name,d]);
   }
-  const list=(allMissing.length?allMissing:names);
+  const list=(allMissing.length?allMissing:names.map(n=>[n,BP_SDE_DETAIL[n]]));
   if(!list.length){btn.textContent='Nothing missing';setTimeout(()=>btn.textContent='⧉ Copy all missing',1500);return;}
-  const text=list.map(n=>n+'\t1').join('\n');
+  const text=list.map(([n,d])=>n+(d&&d.isReaction?' Reaction Formula':' Blueprint')+'\t1').join('\n');
   (navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).then(
     ()=>{ btn.textContent='✔ Copied '+list.length; setTimeout(()=>btn.textContent='⧉ Copy all missing',2000); },
     ()=>{ btn.textContent='clipboard blocked'; setTimeout(()=>btn.textContent='⧉ Copy all missing',1500); });
