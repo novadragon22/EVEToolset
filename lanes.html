@@ -55,6 +55,17 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .leg .fu{font-size:9.5px;margin-top:3px}
 .leg.over .ly{animation:blink 1.1s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
+.leg .suggest-btn{font-size:9px;padding:3px 8px;cursor:pointer;margin-top:5px;white-space:nowrap}
+.mid-suggestions{position:absolute;top:100%;left:50%;transform:translateX(-50%);min-width:220px;max-width:280px;
+  z-index:50;border:1px solid var(--line);margin-top:4px;max-height:240px;overflow-y:auto;}
+.mid-suggestions .ms-hd{font-size:9px;padding:6px 10px 4px;opacity:.5;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.06em;}
+.mid-suggestions .ms-row{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;font-size:10.5px;}
+.mid-suggestions .ms-row:hover{background:var(--hover);}
+.mid-suggestions .ms-name{flex:1;}
+.mid-suggestions .ms-ly{font-size:9px;opacity:.5;font-family:var(--mono);}
+.mid-suggestions .ms-sta{font-size:9px;color:var(--cyan);white-space:nowrap;}
+.mid-suggestions .ms-none{padding:10px;font-size:10px;opacity:.55;text-align:center;}
+.mid-suggestions .ms-spin{padding:10px;text-align:center;font-size:10px;}
 .totals{display:flex;flex-wrap:wrap;gap:0;margin-bottom:16px}
 .totals .t{flex:1 1 170px;padding:13px 16px}
 .totals .t .l{font-size:8.5px}
@@ -84,8 +95,8 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 </header>
 
 <div class="desk panel">
-  <div><label>Origin system</label><input id="fromIn" placeholder="e.g. Jita"></div>
-  <div><label>Destination system</label><input id="toIn" placeholder="e.g. Amarr"></div>
+  <div><label>Origin system</label><input id="fromIn" placeholder="e.g. Jita" autocomplete="off" list="fromList"><datalist id="fromList"></datalist></div>
+  <div><label>Destination system</label><input id="toIn" placeholder="e.g. Amarr" autocomplete="off" list="toList"><datalist id="toList"></datalist></div>
   <div><label>Ship</label><select id="shipSel"></select></div>
   <div><label>Jump Drive Calibration</label><select id="jdcSel"></select></div>
   <div><label>Jump Fuel Conservation</label><select id="jfcSel"></select></div>
@@ -96,6 +107,9 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
   <span class="wl">MIDPOINTS (in order, optional)</span>
   <span id="ways"></span>
   <button class="btn" id="addWay">+ midpoint</button>
+  <label style="font-size:10.5px;display:flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer;opacity:.8">
+    <input type="checkbox" id="npcOnly" style="cursor:pointer"> NPC stations only
+  </label>
 </div>
 
 <div id="out"><div class="empty">File a plan to see the lane.<br>This tool needs no sign-in at all — it reads only public system coordinates.</div></div>
@@ -239,11 +253,41 @@ $('shipSel').onchange=e=>{ship=e.target.value;};
 function fillSk(id,min,cb){const s=$(id);s.innerHTML='';for(let i=min;i<=5;i++){const o=document.createElement('option');o.value=i;o.textContent=roman(i);if(i===5)o.selected=true;s.appendChild(o);}s.onchange=e=>cb(+e.target.value);}
 fillSk('jdcSel',0,v=>{JDC=v;});fillSk('jfcSel',0,v=>{JFC=v;});fillSk('jfSel',1,v=>{JF=v;});
 
+/* ---- System name typeahead ---- */
+const typeaheadTimers={};
+function attachSysTypeahead(inp,dl){
+  inp.addEventListener('input',()=>{
+    const q=inp.value.trim();
+    clearTimeout(typeaheadTimers[inp.id||'wa']);
+    if(q.length<2){dl.innerHTML='';return;}
+    typeaheadTimers[inp.id||'wa']=setTimeout(async()=>{
+      try{
+        const r=await esiGet('/search/?categories=solar_system&search='+encodeURIComponent(q)+'&strict=false&language=en');
+        const ids=(r.solar_system||[]).slice(0,12);
+        if(!ids.length){dl.innerHTML='';return;}
+        // batch-resolve names
+        const names=await esiPost('/universe/names/',ids);
+        dl.innerHTML=names.map(n=>'<option value="'+n.name+'">').join('');
+      }catch(e){dl.innerHTML='';}
+    },220);
+  });
+}
+// Wire fixed inputs
+attachSysTypeahead($('fromIn'),$('fromList'));
+attachSysTypeahead($('toIn'),$('toList'));
+
 let wayCount=0;
 $('addWay').onclick=()=>{
   wayCount++;
+  const uid='way'+wayCount;
+  const dl=document.createElement('datalist');
+  dl.id=uid;
+  document.body.appendChild(dl);
   const sp=document.createElement('input');
   sp.className='wayin';sp.placeholder='midpoint system';
+  sp.setAttribute('autocomplete','off');
+  sp.setAttribute('list',uid);
+  attachSysTypeahead(sp,dl);
   $('ways').appendChild(sp);
 };
 
@@ -261,6 +305,113 @@ async function systemByName(name){
 function lyBetween(a,b){
   const dx=a.pos.x-b.pos.x,dy=a.pos.y-b.pos.y,dz=a.pos.z-b.pos.z;
   return Math.sqrt(dx*dx+dy*dy+dz*dz)/LY_M;
+}
+
+// Cache: sysId -> array of NPC station names ([] if none, null if unchecked)
+const stationCache={};
+
+async function hasNpcStation(sysId){
+  if(stationCache[sysId]!==undefined) return stationCache[sysId];
+  try{
+    const d=await esiGet('/universe/systems/'+sysId+'/');
+    const sta=d.stations||[];
+    stationCache[sysId]=sta.length>0;
+    return stationCache[sysId];
+  }catch(e){ stationCache[sysId]=false; return false; }
+}
+
+async function findMidpoints(a,b,mr,npcOnly){
+  // Use ESI autopilot route (shortest) to get candidate systems in between
+  const route=await esiGet('/route/'+a.id+'/'+b.id+'/?flag=shortest');
+  // route is array of sysIds: [a.id, ..., b.id]
+  const midIds=route.slice(1,-1);
+  if(!midIds.length) return [];
+  // Resolve positions for all candidates
+  const candidates=[];
+  const lim=pLimit?pLimit(6):null;
+  const fetch6=lim
+    ? id=>lim(()=>esiGet('/universe/systems/'+id+'/'))
+    : id=>esiGet('/universe/systems/'+id+'/');
+  const results=await Promise.all(midIds.map(id=>fetch6(id).catch(()=>null)));
+  for(const d of results){
+    if(!d||!d.position) continue;
+    const s={id:d.system_id,name:d.name,pos:d.position,sec:d.security_status||0};
+    const la=lyBetween(a,s), lb=lyBetween(s,b);
+    if(la<=mr&&lb<=mr) candidates.push({s,la,lb,total:la+lb});
+  }
+  candidates.sort((x,y)=>x.total-y.total);
+  if(!npcOnly) return candidates.slice(0,10);
+  // Filter by NPC station
+  const checked=await Promise.all(candidates.map(c=>hasNpcStation(c.s.id).then(ok=>ok?c:null)));
+  return checked.filter(Boolean).slice(0,10);
+}
+
+let activeSuggestEl=null;
+function closeSuggest(){
+  if(activeSuggestEl){activeSuggestEl.remove();activeSuggestEl=null;}
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.mid-suggestions')&&!e.target.closest('.suggest-btn')) closeSuggest();
+});
+
+async function suggestMidpoints(legIdx, btnEl){
+  closeSuggest();
+  const leg=window._planLegs&&window._planLegs[legIdx];
+  if(!leg) return;
+  const mr=maxRange();
+  const npcOnly=$('npcOnly').checked;
+
+  const pop=document.createElement('div');
+  pop.className='mid-suggestions panel';
+  pop.innerHTML='<div class="ms-spin"><span class="spin"></span> Finding midpoints…</div>';
+  btnEl.closest('.lbox').appendChild(pop);
+  activeSuggestEl=pop;
+
+  try{
+    const candidates=await findMidpoints(leg.a,leg.b,mr,npcOnly);
+    if(!candidates.length){
+      pop.innerHTML='<div class="ms-hd">'+(npcOnly?'No reachable systems with NPC stations':'No reachable midpoints')+'</div><div class="ms-none">Try disabling the NPC filter or adding a manual midpoint.</div>';
+      return;
+    }
+    const secBadge=sec=>(sec>=0.45?'<span style="color:var(--red);font-size:9px">highsec</span>':sec>0?'<span style="color:var(--gold-dim);font-size:9px">'+sec.toFixed(1)+'</span>':'<span style="font-size:9px;opacity:.5">'+sec.toFixed(1)+'</span>');
+    pop.innerHTML='<div class="ms-hd">'+(npcOnly?'Reachable · NPC station':'Reachable midpoints')+'</div>'+
+      candidates.map(c=>'<div class="ms-row" onclick="injectMidpoint(\''+esc(c.s.name)+'\','+legIdx+')">'+
+        '<span class="ms-name">'+esc(c.s.name)+'</span>'+
+        secBadge(c.s.sec)+
+        '<span class="ms-ly">'+c.la.toFixed(1)+'↔'+c.lb.toFixed(1)+' LY</span>'+
+        '</div>').join('');
+  }catch(e){
+    pop.innerHTML='<div class="ms-none">Error: '+esc(e.message)+'</div>';
+  }
+}
+
+function injectMidpoint(name, legIdx){
+  closeSuggest();
+  // Insert a new midpoint input at the correct position among .wayin inputs
+  const wayContainer=$('ways');
+  const existing=[...wayContainer.querySelectorAll('.wayin')];
+  // legIdx = index of leg (0 = between stop[0] and stop[1])
+  // We need to insert after (legIdx-1) existing midpoints
+  // stops = [from, ...midpoints, to], so between stop[legIdx] and stop[legIdx+1]
+  // midpoints already in the UI correspond to stops[1..n-1]
+  // so we need to insert at position legIdx-1 among .wayin inputs (before existing[legIdx-1] if it exists)
+  const uid='way'+(++wayCount);
+  const dl=document.createElement('datalist');
+  dl.id=uid;
+  document.body.appendChild(dl);
+  const inp=document.createElement('input');
+  inp.className='wayin';
+  inp.placeholder='midpoint system';
+  inp.setAttribute('autocomplete','off');
+  inp.setAttribute('list',uid);
+  inp.value=name;
+  attachSysTypeahead(inp,dl);
+  // Insert before existing[legIdx] if it exists, else append
+  const before=existing[legIdx]||null;
+  if(before) wayContainer.insertBefore(inp, before);
+  else wayContainer.appendChild(inp);
+  toast('Added '+name+' as midpoint — re-file the plan');
+  plan();
 }
 
 async function plan(){
@@ -282,12 +433,13 @@ async function plan(){
       if(bad)over++;else{totLy+=ly;totFuel+=fuel;}
       return {a,b,ly,fuel,bad};
     });
+    window._planLegs=legs;  // store for suggestMidpoints
     const nodeHtml=s=>'<div class="node"><span class="np'+(s.sec>=0.45?' hi':'')+'"></span><div class="nn">'+esc(s.name)+'</div><div class="nl">'+s.sec.toFixed(1)+' sec'+(s.sec>=0.45?' · NO CYNO (highsec)':'')+'</div></div>';
-    const legHtml=l=>'<div class="leg'+(l.bad?' over':'')+'"><span class="line"></span><div class="lbox">'+
+    const legHtml=(l,idx)=>'<div class="leg'+(l.bad?' over':'')+'" id="leg'+idx+'"><span class="line"></span><div class="lbox">'+
       '<div class="ly">'+l.ly.toFixed(2)+' LY'+(l.bad?' — OVER RANGE':'')+'</div>'+
-      '<div class="fu">'+(l.bad?'add a midpoint':fmtInt(l.fuel)+' '+SHIPS[ship].iso.split(' ')[0].toLowerCase()+' iso')+'</div></div></div>';
+      '<div class="fu">'+(l.bad?'<button class="btn suggest-btn" onclick="suggestMidpoints('+idx+',this)">⟳ Suggest midpoints</button>':fmtInt(l.fuel)+' '+SHIPS[ship].iso.split(' ')[0].toLowerCase()+' iso')+'</div></div></div>';
     let lane='';
-    stops.forEach((s,i)=>{lane+=nodeHtml(s);if(i<legs.length)lane+=legHtml(legs[i]);});
+    stops.forEach((s,i)=>{lane+=nodeHtml(s);if(i<legs.length)lane+=legHtml(legs[i],i);});
     const hiSecDest=stops.slice(1).some(s=>s.sec>=0.45);
     $('out').innerHTML=
       '<div class="lane panel">'+lane+'</div>'+
