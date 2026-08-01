@@ -100,6 +100,7 @@ td.dim{font-size:10.5px}
 <script src="themes.js" defer></script>
 <script src="moonOres.js"></script>
 <script src="systemConstellations.js"></script>
+<script src="moonSchedule.js"></script>
 </head>
 <body>
 
@@ -364,9 +365,25 @@ function moonSortKeyForChip(name,system){
   return [(system||'').toLowerCase(),planet,moon];
 }
 function buildScheduleUnits(){
-  /* Single source of truth for unit ordering — queue order, planet/moon within each system */
+  /* Single source of truth for unit ordering — moonSchedule.js defines system order,
+     falling back to the UI queue for any systems not listed in the file. */
   const gap=2; // chunks arrive every 2 days at 12:00 EVE
-  const plansToSchedule=extractionPlans.filter(p=>!isExcluded(p.system,p.system));
+  /* Merge: file order first, then any queued systems not already covered */
+  const fileOrder=(typeof MOON_SCHEDULE_ORDER!=='undefined'?MOON_SCHEDULE_ORDER:[])
+    .map(s=>s.trim()).filter(Boolean);
+  const fileLower=new Set(fileOrder.map(s=>s.toLowerCase()));
+  const queueExtra=extractionPlans.map(p=>p.system).filter(s=>!fileLower.has(s.toLowerCase()));
+  const orderedSystems=[...fileOrder,...queueExtra];
+  /* Build plansToSchedule preserving merged order */
+  const plansToSchedule=orderedSystems
+    .filter(sys=>!isExcluded(sys,sys))
+    .map(sys=>{
+      const existing=extractionPlans.find(p=>p.system.toLowerCase()===sys.toLowerCase());
+      if(existing)return existing;
+      /* system is in the file but not in the UI queue — synthesise a minimal plan entry */
+      const ref=refineries.find(r=>(r.system||'').toLowerCase()===sys.toLowerCase());
+      return {id:'file-'+sys,system:sys,constellation:(ref&&ref.constellation)||''};
+    });
   const units=[];
   plansToSchedule.forEach(p=>{
     const refs=refineries.filter(rf=>(rf.system||'').toLowerCase()===p.system.toLowerCase()&&!isExcluded(rf.name,rf.system));
@@ -552,10 +569,26 @@ function renderCalendar(){
 function savePlans(){try{localStorage.setItem(PLAN_KEY,JSON.stringify(extractionPlans));}catch(e){}renderPlanList();}
 function renderPlanList(){
   const wrap=$('planList');if(!wrap)return;
-  const list=extractionPlans.filter(p=>(optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation));
-  wrap.innerHTML=list.length?list.map(p=>{const ex=isExcluded(p.system,p.system);
-    return '<div class="plan-row"'+(ex?' style="opacity:.45"':'')+'><span>'+esc(p.system)+(ex?' <i style="font-style:normal">excluded</i>':'')+'</span><span class="dim">'+esc(p.constellation||'Unspecified')+'</span><button class="char-x" data-id="'+p.id+'">&#10005;</button></div>';}).join('')
-    :'<div class="empty" style="padding:12px;font-size:10.5px">No systems queued for scheduling yet.</div>';
+  /* Build the same merged order as buildScheduleUnits so the list reflects schedule order */
+  const fileOrder=(typeof MOON_SCHEDULE_ORDER!=='undefined'?MOON_SCHEDULE_ORDER:[])
+    .map(s=>s.trim()).filter(Boolean);
+  const fileLower=new Set(fileOrder.map(s=>s.toLowerCase()));
+  const queueExtra=extractionPlans.filter(p=>!fileLower.has(p.system.toLowerCase()));
+  const merged=[
+    ...fileOrder.map(sys=>{
+      const existing=extractionPlans.find(p=>p.system.toLowerCase()===sys.toLowerCase());
+      const ref=refineries.find(r=>(r.system||'').toLowerCase()===sys.toLowerCase());
+      return {id:null,system:sys,constellation:(existing&&existing.constellation)||(ref&&ref.constellation)||'',fromFile:true};
+    }),
+    ...queueExtra.map(p=>({...p,fromFile:false}))
+  ].filter(p=>optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation);
+  wrap.innerHTML=merged.length?merged.map(p=>{
+    const ex=isExcluded(p.system,p.system);
+    const tag=p.fromFile?'<i style="font-style:normal;font-size:9px;opacity:.5"> · file</i>':'';
+    const btn=p.fromFile?'<span style="font-size:9px;opacity:.4">locked</span>':'<button class="char-x" data-id="'+p.id+'">&#10005;</button>';
+    return '<div class="plan-row"'+(ex?' style="opacity:.45"':'')+'><span>'+esc(p.system)+tag+(ex?' <i style="font-style:normal">excluded</i>':'')+'</span><span class="dim">'+esc(p.constellation||'Unspecified')+'</span>'+btn+'</div>';
+  }).join('')
+  :'<div class="empty" style="padding:12px;font-size:10.5px">No systems queued for scheduling yet.</div>';
   wrap.querySelectorAll('.char-x').forEach(b=>{b.onclick=()=>{extractionPlans=extractionPlans.filter(p=>p.id!==b.dataset.id);savePlans();};});
 }
 $('addPlanBtn').onclick=()=>{
