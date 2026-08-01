@@ -1907,13 +1907,64 @@ document.getElementById('libraryLoadBtn').onclick = async ()=>{
   renderBpLibrary();
 };
 
-const LIBRARY_FACTION_RE = /\b(Navy|Federation|Republic|State|Imperial|Guristas|Angel|Sansha|Blood|Serpentis|Mordus|Syndicate|InterBus|Intaki|Sukuuvestaa|Quafe|Aliastra|Inner Zone|Kaalakiota|Nugoeihuvi|Ishukone|Wiyrkomi|Viziam|Duvolle|Carthum|Lai Dai|Dread Guristas|True Sansha|Domination|Shadow Serpentis|Corelum|Coreli|Dark Blood|Centus|Centii|Gistum|Gisti|Veles|Zorya|Marshal|Enforcer|Pacifier|Victor|Virtuoso|Vigilant|Daredevil|Dramiel|Worm|Gila|Cynabal|Vagabond|Machariel|Nightmare|Vindicator|Rattlesnake|Bhaalgorn|Vangel|Ashimmu|Succubus|Cruor)\b/i;
-var T2_HULL_GROUPS={'Assault Frigate':1,'Interceptor':1,'Covert Ops':1,'Stealth Bomber':1,'Electronic Attack Ship':1,'Heavy Assault Cruiser':1,'Heavy Interdiction Cruiser':1,'Interdictor':1,'Logistics':1,'Force Recon Ship':1,'Combat Recon Ship':1,'Command Ship':1,'Black Ops':1,'Marauder':1};
+const LIBRARY_FACTION_RE = /\b(Navy|Federation|Republic|State|Imperial|Guristas|Angel|Sansha|Blood|Serpentis|Mordus|Syndicate|Dread Guristas|True Sansha|Domination|Shadow Serpentis|Corelum|Coreli|Dark Blood|Centus|Centii|Gistum|Gisti|Veles|Zorya|Marshal|Enforcer|Pacifier|Victor|Virtuoso|Vigilant|Daredevil|Dramiel|Worm|Gila|Cynabal|Vagabond|Machariel|Nightmare|Vindicator|Rattlesnake|Bhaalgorn|Vangel|Ashimmu|Succubus|Cruor|Phantasm|Garmur|Orthrus|Barghest|Astero|Stratios|Nestor|Damavik|Vedmak|Leshak|Kikimora|Drekavac|Rodiva|Skybreaker|Stormbringer|Thunderchild|Mekubal|Alligator|Khizriel|Mamba|Cenotaph|Tholos|Boobook|Odysseus|Thukker|Xarasier|Sentient|Perun|Hyasyoda|Deathless Circle|Frostline)\b|\bFleet Issue\b|\bTribal Issue\b|\bFederate Issue\b|Emergency Responder|\bEdition\b|\bConsortium Issue\b|Guardian-Vexor|Megathron Federate|Goru's Shuttle|Council Diplomatic|\bCustom\b|\bModified\b|Spectre Fleet/i;
+var T2_HULL_GROUPS={'Assault Frigate':1,'Interceptor':1,'Covert Ops':1,'Stealth Bomber':1,'Electronic Attack Ship':1,'Heavy Assault Cruiser':1,'Heavy Interdiction Cruiser':1,'Interdictor':1,'Logistics':1,'Force Recon Ship':1,'Combat Recon Ship':1,'Command Ship':1,'Black Ops':1,'Marauder':1,'Mining Crystal':1,'Mercoxit Mining Crystal':1};
 function isT2BP(d){var m=d.materials||[];return !d.isReaction&&((m.some(function(x){return x[0].startsWith('R.A.M.-');})&&m.some(function(x){return x[0]==='Morphite';}))|| T2_HULL_GROUPS[d.group]);}
-function isT3SubBP(d){return /subsystem/i.test(d.group||'')||d.group==='Strategic Cruiser';}
+function isT3SubBP(d){return /subsystem/i.test(d.group||'')||d.group==='Strategic Cruiser'||d.group==='Tactical Destroyer';}
 function isSeededBP(d){var m=d.materials||[];return m.length===1&&m[0][0]==='Tritanium'&&m[0][1]===1;}
-function isFactionBP(name,d){return LIBRARY_FACTION_RE.test(name)&&!d.isReaction&&!isT2BP(d);}
-function isLibraryBP(name,d){return !isT2BP(d)&&!isT3SubBP(d)&&!isSeededBP(d)&&!isFactionBP(name,d);}
+var EXCLUDE_GROUPS={'Mutaplasmids':1,'Cyberimplant':1,'Assembly Array':1,'Silo':1,'Mobile Reactor':1,'Reprocessing Array':1,'Compression Array':1,'Moon Mining':1,'Cynosural Generator Array':1,'Cynosural System Jammer':1,'Jump Portal Array':1,'Territorial Claim Unit':1,'Orbital Construction Platform':1,'Biochemical Material':1,'Infrastructure Hub Military Upgrades':1,'Infrastructure Hub Industrial Upgrades':1,'Infrastructure Hub Strategic Upgrades':1,'Special Edition Commodities':1,'Special Edition Yachts':1,'Warp Matrix Filaments':1,'Expired Abyssal Battlefields Filaments':1,'Jump Filaments':1,'Expired Jump Filaments':1,'Encounter Surveillance System':1,'Unknown Components':1,'Unpublished Structure Modules':1,'Gang Coordinator':1,'SCARAB Breacher Pods':1,'Mobile Siphon Unit':1,'Warp Accelerator':1,'Jump Drive Economizer':1,'Cyber Electronic Systems':1,'Cyber Scanning':1,'Laboratory':1,'Tactical Destroyer':1,'Miscellaneous':1,'Commodities':1,'Corvette':1,'Capital Mobility Modules':1,'Data Interfaces':1,'Ancillary Shield Booster':1,'Ancillary Armor Repairer':1,'Ancillary Remote Shield Booster':1,'Ancillary Remote Armor Repairer':1,'Micro Jump Drive':1,'Armor Resistance Shift Hardener':1,'Signature Suppressor':1,'Exotic Plasma Charge':1,'Advanced Exotic Plasma Charge':1,'Condenser Pack':1,'Advanced Condenser Pack':1,'Vorton Projector':1,'Mutadaptive Remote Armor Repairer':1};
+var EXCLUDE_NAMES={'Confessor':1,'Svipul':1,'Jackdaw':1,'Hecate':1,'Revenant':1,'Vendetta':1,'Vehement':1,'Chemosh':1,'Caiman':1,'Zirnitra':1,'Vanquisher':1,'Molok':1,'Komodo':1,'Azariel':1,'Dagon':1,'Loggerhead':1,'Shadow':1,'Perseverance':1,'Apotheosis':1,'Leopard':1,'Sarathiel':1,'Ultratidal Entropic Disintegrator I':1,'Ultratidal Entropic Disintegrator II':1,'Upwell Palatine Keepstar':1,'Capital Ultratidal Entropic Mounting':1,'Capital Radiation Conversion Unit':1,'Capital Absorption Thruster Array':1,'Mobile Sanguine Harvester':1,'Consortium Mobile Tractor Unit':1,'1MN Civilian Afterburner':1,'Standup Shadow':1,'R.A.M.- Cybernetics':1,'Spatial Attunement Unit':1,'Triplot Scan Acquisition Array':1,'InterBus Shuttle':1,'Harvester Mining Drone':1,'Vorton Tuning System I':1,'Standard Cerebral Accelerator':1,'Advanced Cerebral Accelerator':1,'Prototype Cerebral Accelerator':1,'Nanoheuristic Clone Mapper':1,'Strong Veilguard Booster':1};
+var ORE_COMPRESS_GROUPS={'Arkonor':1,'Bistot':1,'Crokite':1,'Dark Ochre':1,'Gneiss':1,'Hedbergite':1,'Hemorphite':1,'Jaspet':1,'Kernite':1,'Mercoxit':1,'Omber':1,'Plagioclase':1,'Pyroxeres':1,'Scordite':1,'Spodumain':1,'Veldspar':1,'Ice':1};
+// Market-seeded faction items that would otherwise be caught by LIBRARY_FACTION_RE
+var FACTION_WHITELIST={'Caldari Navy Bastion Module':1,'Federation Navy Bastion Module':1,'Imperial Navy Bastion Module':1,'Republic Fleet Bastion Module':1,'Veles Entropic Radiation Sink':1,'Veles Light Entropic Disintegrator':1,'Veles Heavy Entropic Disintegrator':1,'Veles Supratidal Entropic Disintegrator':1,'Dread Guristas Standup Variable Spectrum ECM':1,'Dark Blood Standup Heavy Energy Neutralizer':1,'Consortium Vorton Tuning System':1,"Kasiha's Modified Vorton Tuning System":1,'Frostline \'Omnivore\' Harvester Upgrade':1,'R.Db - Thukker Mix':1,'ML-EKP \'Polybolos\' Ballistic Control System':1,'CONCORD Rogue Analysis Beacon':1,'Aralez':1};
+// Pochven-exclusive materials (Crystalline Isogen-10 and Zero-Point Condensate excluded — T1 entropic weapons and stability generators use them and ARE on market)
+const POCHVEN_MATS=new Set(['Electromagnetic Metaprismatic Sheeting','Hyperbolic Metatransistor Array','Ultraconducting Ablative Nanocable']);
+function isPochvenBP(d){return (d.materials||[]).some(function(x){return POCHVEN_MATS.has(x[0]);});}
+function isFactionBP(name,d){return !FACTION_WHITELIST[name]&&LIBRARY_FACTION_RE.test(name)&&!d.isReaction&&!isT2BP(d);}
+function isLibraryBP(name,d){
+  if(FACTION_WHITELIST[name]) return true;  // explicitly market-seeded despite faction name
+  if(isT2BP(d)||isT3SubBP(d)||isSeededBP(d)) return false;
+  if(isFactionBP(name,d)) return false;
+  if(isPochvenBP(d)) return false;
+  if(EXCLUDE_GROUPS[d.group]) return false;
+  if(EXCLUDE_NAMES[name]) return false;
+  if(ORE_COMPRESS_GROUPS[d.group]) return false;
+  // Rig II and Structure Rig II are invention-only
+  if(/ II$/.test(name)&&(/^Rig /.test(d.group)||/^Structure /.test(d.group))) return false;
+  // T2 modules that are invention-only (not seeded as BPs)
+  if(/ II$/.test(name)&&['Data Miners','Salvager','Cloaking Device','Gas Cloud Scoops','Scanning Upgrade','Scanning Upgrade Time','Warp Scrambler','Damage Control','Energy Neutralizer'].indexOf(d.group)!==-1) return false;
+  if(name.indexOf("''")!==-1) return false;
+  // Civilian prefix — but not Mining Drones (Civilian Mining Drone IS on market)
+  if(/^Civilian /.test(name)&&['Mining Drone','Armor Repair Unit','Shield Booster'].indexOf(d.group)===-1) return false;
+  if(/^CONCORD /.test(name)&&!FACTION_WHITELIST[name]) return false;
+  if(/^Deprecated |^Defunct /.test(name)) return false;
+  if(/'\w[^']*'\s/.test(name)||/ '\w[^']*'$/.test(name)) return false;
+  // ECM named module variants
+  if(d.group==='ECM'&&/^(Legion|Gambler|Plunderer|Heist|Marshall)/.test(name)) return false;
+  // Target Painter — only T1 seeded BP on market
+  if(d.group==='Target Painter'&&name!=='Target Painter I') return false;
+  // ORE-branded and Sisters-branded items not on standard market
+  if(/^ORE (Deep Core|Miner|Ice Harvester|Strip Miner|Gas Cloud)/.test(name)) return false;
+  if(/^Sisters (Expanded|Core) Probe/.test(name)) return false;
+  // Named hull conversion mods and analog propulsion
+  if(/^Synthetic Hull Conversion/.test(name)) return false;
+  if(/Analog Booster|Digital Booster/.test(name)) return false;
+  // N-1 Neon Type (faction rocket launcher)
+  if(/^N-1 Neon/.test(name)) return false;
+  // Booster group: Synth variants ARE seeded manufacturing BPs; Improved/Standard/Strong are reactions (handled by isReaction check)
+  // Tractor Beam named variants
+  if(d.group==='Tractor Beam'&&/^Consortium /.test(name)) return false;
+  // Shadow POS structures
+  if(/^Shadow (Control Tower|Warp|Sensor Dampening|Large|Medium|Small)/.test(name)) return false;
+  // Data Miners II and named integrated analyzers
+  if(d.group==='Data Miners'&&(/ II$/.test(name)||/Integrated Analyzer/.test(name))) return false;
+  // Scanning upgrades II
+  if(d.group==='Scanning Upgrade'&&/ II$/.test(name)) return false;
+  if(d.group==='Scanning Upgrade Time'&&(/ II$/.test(name)||/Triplot/.test(name))) return false;
+  // Sisters Capital Emergency Hull Energizer
+  if(/^Sisters /.test(name)) return false;
+  return true;
+}
 
 function bpEntryMeta(d){
   const isReaction = !!d.isReaction;
