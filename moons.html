@@ -288,10 +288,12 @@ function parseExclude(str){return (str||'').split(',').map(s=>s.trim().toLowerCa
 excludeKeywords=parseExclude(excludeRaw);
 function isExcluded(name,system){if(!excludeKeywords.length)return false;
   const hay=((name||'')+' '+(system||'')).toLowerCase();return excludeKeywords.some(k=>hay.includes(k));}
-function dateKey(d){const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
-function startOfDay(ts){const d=new Date(ts);d.setHours(0,0,0,0);return d;}
-function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
-function dayLabel(d){return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});}
+function dateKey(d){const x=new Date(d);return x.getUTCFullYear()+'-'+String(x.getUTCMonth()+1).padStart(2,'0')+'-'+String(x.getUTCDate()).padStart(2,'0');}
+/* All chunk arrivals are anchored to 12:00 UTC (EVE noon). */
+function noonUTC(ts){const d=new Date(ts);d.setUTCHours(12,0,0,0);return d;}
+function startOfDay(ts){return noonUTC(ts);}  // kept for call-sites; maps to noon UTC
+function addDays(d,n){const x=new Date(d);x.setUTCDate(x.getUTCDate()+n);return x;}
+function dayLabel(d){return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+' 12:00 EVE';}
 function statusOf(r){
   if(r.arrive)return Date.parse(r.arrive)>now()?'extracting':'ready';
   return 'idle';}
@@ -362,7 +364,7 @@ function moonSortKeyForChip(name,system){
 }
 function buildScheduleUnits(){
   /* Single source of truth for unit ordering — queue order, planet/moon within each system */
-  const gap=3;
+  const gap=2; // chunks arrive every 2 days at 12:00 EVE
   const plansToSchedule=extractionPlans.filter(p=>!isExcluded(p.system,p.system));
   const units=[];
   plansToSchedule.forEach(p=>{
@@ -483,7 +485,7 @@ function render(errs){
 
 /* ---- arrivals calendar (algorithm carried over from the Structure Browser) ---- */
 function refineryArrivals(){return refineries.filter(r=>r.arrive&&!isExcluded(r.name,r.system))
-  .map(r=>({name:r.name,system:r.system,constellation:r.constellation||'Unknown',date:new Date(r.arrive)}));}
+  .map(r=>({name:r.name,system:r.system,constellation:r.constellation||'Unknown',date:noonUTC(Date.parse(r.arrive))}));}
 function refreshOptFilters(){
   const sel=$('optConst');if(!sel)return;
   const consts=[...new Set(refineries.map(r=>r.constellation||'Unknown'))].filter(Boolean).sort();
@@ -503,7 +505,8 @@ function renderCalendar(){
     const d=addDays(today,i),k=dateKey(d),items=buckets[k]||[];
     if(!items.length)continue;
     const lvl=items.length<=2?'lo':'hi';
-    strip+='<div class="cal-tile '+lvl+(i===0?' today':'')+'"><span class="cal-dow">'+d.toLocaleDateString([],{weekday:'short'})+'</span><span class="cal-dom">'+d.getDate()+'</span><span class="cal-count">'+items.length+'</span></div>';
+    const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()];
+    strip+='<div class="cal-tile '+lvl+(i===0?' today':'')+'"><span class="cal-dow">'+dow+'</span><span class="cal-dom">'+d.getUTCDate()+'</span><span class="cal-count">'+items.length+'</span></div>';
     list+='<div class="cal-day-row"><div class="cal-day-date">'+dayLabel(d)+'</div><div class="cal-day-chips">'+items.map(a=>'<span class="cal-chip">'+esc(a.name)+' <i>'+esc(a.system)+'</i></span>').join('')+'</div></div>';
   }
   wrap.innerHTML='<div class="cal-strip">'+strip+'</div>'+(list?'<div class="cal-list">'+list+'</div>':'<div class="empty" style="padding:14px">No scheduled arrivals in this window'+(optFilter.constellation!=='all'?' for '+esc(optFilter.constellation):'')+'.</div>');
