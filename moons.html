@@ -278,10 +278,11 @@ function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerI
 /* Refinery hull ids, extraction status logic, and the stagger optimiser are
    carried over from the original Structure Browser. Plans
    and exclusions share its localStorage keys, so both tools stay in step. */
-const PLAN_KEY='eve_extraction_plans_v1', EXCLUDE_KEY='eve_extraction_exclude_v1';
+const PLAN_KEY='eve_extraction_plans_v1', EXCLUDE_KEY='eve_extraction_exclude_v1', SCHEDULE_KEY='eve_extraction_schedule_v1';
 let refineries=[];    // {name,type,typeId,system,constellation,sec,corp, start,arrive,decay}
 const needsExtractionSet=new Set(); // sids flagged by operator as extraction started
 let extractionPlans=[]; let optFilter={constellation:'all'}; let excludeKeywords=[];
+let _scheduleCache=null; // cached parsed schedule — invalidated on save
 try{extractionPlans=JSON.parse(localStorage.getItem(PLAN_KEY)||'[]')||[];}catch(e){}
 let excludeRaw='';try{excludeRaw=JSON.parse(localStorage.getItem(EXCLUDE_KEY)||'""')||'';}catch(e){try{excludeRaw=localStorage.getItem(EXCLUDE_KEY)||'';}catch(e2){}}
 function parseExclude(str){return (str||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);}
@@ -384,7 +385,43 @@ function buildScheduleUnits(){
   });
   return {units,gap,plansToSchedule};
 }
+function loadedSchedule(){
+  if(_scheduleCache===null){
+    try{_scheduleCache=JSON.parse(localStorage.getItem(SCHEDULE_KEY)||'null')||false;}
+    catch(e){_scheduleCache=false;}
+  }
+  return _scheduleCache||null;
+}
+function savedScheduleFor(r){
+  try{
+    const saved=loadedSchedule();
+    if(!saved||!saved.results)return null;
+    const norm=s=>(s||'').toLowerCase().trim();
+    /* 1. SID exact match — most reliable */
+    if(r.sid){
+      const bySid=saved.results.find(u=>u.sid&&Number(u.sid)===Number(r.sid));
+      if(bySid)return bySid;
+    }
+    /* 2. Name exact match (both come from ESI structureName) */
+    if(r.name){
+      const byName=saved.results.find(u=>u.refinery&&norm(u.refinery)===norm(r.name));
+      if(byName)return byName;
+    }
+    return null;
+  }catch(e){return null;}
+}
 function nextCycleDate(r){
+  /* Prefer saved generated schedule so chip indicators match exactly what was planned. */
+  const saved=loadedSchedule();
+  const entry=savedScheduleFor(r);
+  if(entry&&entry.arrivalDate){
+    const cycleDays=saved?saved.cycleDays:null;
+    const today=startOfDay(now());
+    let d=new Date(entry.arrivalDate);
+    if(cycleDays){while(d<today)d=addDays(d,cycleDays);}
+    return d;
+  }
+  /* Fall back to live calculation when no saved schedule exists. */
   const {units,gap}=buildScheduleUnits();
   const N=units.length;
   if(!N)return null;
@@ -401,7 +438,7 @@ function nextCycleDate(r){
   const slotOffset=Math.round(idx*gap);
   let d=addDays(epoch,slotOffset);
   while(d<today)d=addDays(d,cycleDays);
-  return d; /* returns the target chunk arrival date */
+  return d;
 }
 function phaseChip(r,displaySt){
   const st=displaySt||statusOf(r);
@@ -545,31 +582,94 @@ $('genPatternBtn').onclick=()=>{
   const out=$('patternResult');
   if(!filteredUnits.length){out.innerHTML='<div class="empty" style="padding:20px">No systems to schedule — add one, or it may be hidden by your exclusion keywords.</div>';return;}
   const N=filteredUnits.length,cycleDays=N*gap;
-  /* anchor the cycle to the earliest known chunk arrival among synced refineries in the plan,
-     so arrival dates never shift when the pattern is regenerated */
+
+  /* ---- build a set of days already occupied by live ESI arrivals ----
+     These are chunks that are genuinely inbound and not part of this schedule run.
+     A "conflict" is any day where a non-queued refinery already has a chunk landing. */
+  const queuedSids=new Set(filteredUnits.map(u=>u.sid).filter(Boolean));
+  /* days occupied by refineries NOT in the queue (external conflicts) */
+  const externalOccupied=new Set(
+    refineries
+      .filter(r=>r.arrive&&!queuedSids.has(r.sid)&&!isExcluded(r.name,r.system))
+      .map(r=>dateKey(noonUTC(Date.parse(r.arrive))))
+  );
+
+  /* anchor the cycle to the earliest known chunk arrival among synced refineries in the plan */
   const syncedArrivals=filteredUnits.map(u=>{
     const ref=refineries.find(r=>r.sid&&u.sid&&r.sid===u.sid);
     return (ref&&ref.arrive)?Date.parse(ref.arrive):null;
   }).filter(Boolean);
   const epochMs=syncedArrivals.length?Math.min(...syncedArrivals):today.getTime();
   const epoch=startOfDay(epochMs);
-  /* for each slot, find its fixed phase (index*gap days from epoch) then advance by full
-     cycles until the next occurrence on or after today */
+
+  /* ---- assign slots, detecting and resolving conflicts ----
+     For each unit:
+       1. Compute the ideal slot date from epoch + index*gap, advanced to today.
+       2. If that day clashes with an external arrival OR a day already claimed by
+          an earlier unit in this run, bump forward one day at a time (up to gap-1
+          days) until clear. Record whether a bump was needed. */
+  const usedDays=new Set(); // days claimed by earlier units in this schedule run
   const results=filteredUnits.map((u,i)=>{
     const slotOffset=Math.round(i*gap);
     let arrivalDate=addDays(epoch,slotOffset);
     while(arrivalDate<today)arrivalDate=addDays(arrivalDate,cycleDays);
+    const idealKey=dateKey(arrivalDate);
+    /* bump up to (gap-1) days to find a clear day */
+    let bumped=false;
+    const maxBump=gap-1;
+    for(let b=0;b<=maxBump;b++){
+      const k=dateKey(arrivalDate);
+      if(!externalOccupied.has(k)&&!usedDays.has(k))break;
+      if(b<maxBump){arrivalDate=addDays(arrivalDate,1);bumped=true;}
+      else{
+        /* all days in window conflict — use the ideal date and flag it */
+        arrivalDate=addDays(epoch,slotOffset);
+        while(arrivalDate<today)arrivalDate=addDays(arrivalDate,cycleDays);
+        bumped=true;
+      }
+    }
+    usedDays.add(dateKey(arrivalDate));
     const nextArrival=addDays(arrivalDate,cycleDays);
-    return {...u,arrivalDate,nextArrival};
+    const conflict=externalOccupied.has(dateKey(arrivalDate));
+    return {...u,arrivalDate,nextArrival,bumped,conflict,idealKey};
   });
-  out.innerHTML='<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+filteredPlans.length+' system'+(plansToSchedule.length!==1?'s':'')+' · one full cycle every <b>'+cycleDays+'d</b>. Each system\'s refineries are all scheduled before the cycle returns to the first.</div>'+
-  '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Chunk arrival</th><th>Next arrival</th></tr></thead><tbody>'+
-  results.map((r,i)=>'<tr><td class="dim">'+(i+1)+'</td><td><div class="nm">'+esc(r.system)+'</div></td><td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td><td class="dim">'+esc(r.constellation||'Unspecified')+'</td><td>'+dayLabel(r.arrivalDate)+'</td><td class="dim">'+dayLabel(r.nextArrival)+'</td></tr>').join('')+
-  '</tbody></table></div>';
+
+  const savedResults=results.map(r=>({...r,arrivalDate:r.arrivalDate.toISOString(),nextArrival:r.nextArrival.toISOString()}));
+  try{localStorage.setItem(SCHEDULE_KEY,JSON.stringify({results:savedResults,N,cycleDays,filteredPlansLen:filteredPlans.length,plansLen:plansToSchedule.length,savedAt:Date.now()}));_scheduleCache=null;}catch(e){}
+  renderSchedule(results,N,cycleDays,filteredPlans.length,plansToSchedule.length);
 };
+function renderSchedule(results,N,cycleDays,filteredPlansLen,plansLen,savedAt){
+  const out=$('patternResult');
+  const stamp=savedAt?'<span style="font-size:9px;opacity:.55"> · saved '+timeago(savedAt)+'</span>':'';
+  const conflicts=results.filter(r=>r.conflict).length;
+  const bumps=results.filter(r=>r.bumped&&!r.conflict).length;
+  let notice='';
+  if(conflicts)notice+='<span style="color:var(--c-warn,#e0a030);font-size:10px"> · ⚠ '+conflicts+' unresolvable conflict'+(conflicts!==1?'s':'')+'</span>';
+  if(bumps)notice+='<span style="font-size:10px;opacity:.7"> · '+bumps+' slot'+(bumps!==1?'s':'')+' nudged to avoid clashes</span>';
+  out.innerHTML='<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+filteredPlansLen+' system'+(plansLen!==1?'s':'')+' · one full cycle every <b>'+cycleDays+'d</b>. Each system\'s refineries are all scheduled before the cycle returns to the first.'+notice+stamp+'</div>'+
+  '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Chunk arrival</th><th>Next arrival</th><th>Status</th></tr></thead><tbody>'+
+  results.map((r,i)=>{
+    const arr=new Date(r.arrivalDate),nxt=new Date(r.nextArrival);
+    let status='';
+    if(r.conflict)status='<span style="color:var(--c-warn,#e0a030)">⚠ conflict</span>';
+    else if(r.bumped)status='<span style="opacity:.6">nudged</span>';
+    else status='<span style="color:var(--c-ok,#4caf82)">clear</span>';
+    return '<tr><td class="dim">'+(i+1)+'</td><td><div class="nm">'+esc(r.system)+'</div></td><td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td><td class="dim">'+esc(r.constellation||'Unspecified')+'</td><td>'+dayLabel(arr)+'</td><td class="dim">'+dayLabel(nxt)+'</td><td style="font-size:10px">'+status+'</td></tr>';
+  }).join('')+
+  '</tbody></table></div>';
+}
 $('loadBtn').onclick=loadAll;
 window.onRosterChange=()=>{ if(refineries.length)loadAll(); };
 renderPlanList();
+/* restore saved schedule and prime cache */
+try{
+  const saved=JSON.parse(localStorage.getItem(SCHEDULE_KEY)||'null');
+  if(saved&&saved.results&&saved.results.length){
+    _scheduleCache=saved; // prime so nextCycleDate works immediately after loadAll
+    $('optGrid').style.display='';
+    renderSchedule(saved.results,saved.N,saved.cycleDays,saved.filteredPlansLen,saved.plansLen,saved.savedAt);
+  }
+}catch(e){}
 
 </script>
 <script>
