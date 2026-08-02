@@ -1,7 +1,8 @@
 /* moonSchedule.js — EVE Moon Watch extraction schedule order
- * Edit MOON_SCHEDULE_ORDER to control which systems are scheduled and in what order.
- * Each entry is a refinery name (string). Moons.html reads this at schedule-generation
- * time and merges it with live ESI refinery data.
+ * MOON_SCHEDULE_ORDER: full refinery names in extraction order.
+ * MOON_SCHEDULE_ANCHORS: known chunk arrival dates for specific refineries.
+ *   These are used as fixed reference points when generating the suggested schedule.
+ *   Format: { 'Refinery Name': 'YYYY-MM-DD' }
  */
 
 const MOON_SCHEDULE_ORDER = [
@@ -23,3 +24,10 @@ const MOON_SCHEDULE_ORDER = [
   'Talidal - RONA VI M17',
   'Efa - Raziel',
 ];
+
+const MOON_SCHEDULE_ANCHORS = {
+  'Moro - RONA VIII M1':  '2026-08-17',
+  'Moro - RONA VIII M16': '2026-08-19',
+  'Moro - RONA VIII M17': '2026-08-21',
+  'Moro - RONA VIII M23': '2026-08-23',
+};

@@ -143,6 +143,7 @@ td.dim{font-size:10.5px}
     <label style="margin-top:14px">QUEUED SYSTEMS</label>
     <div id="planList"></div>
     <button class="btn primary" id="genPatternBtn">Generate stagger pattern</button>
+    <button class="btn" id="editScheduleBtn" style="margin-top:6px">Edit moonSchedule.js</button>
   </aside>
   <div class="panel"><div class="panel-hd2" style="padding:11px 16px"><h2>Suggested schedule</h2></div>
     <div class="optout" id="patternResult"><div class="empty" style="padding:20px">queue systems and generate a pattern</div></div>
@@ -625,6 +626,9 @@ function renderPlanList(){
   wrap.querySelectorAll('.char-x').forEach(b=>{b.onclick=()=>{extractionPlans=extractionPlans.filter(p=>p.id!==b.dataset.id);savePlans();};});
 }
 /* addPlanBtn removed — schedule order is driven by moonSchedule.js */
+$('editScheduleBtn').onclick=()=>{
+  if(typeof sendPrompt==='function')sendPrompt('edit moonSchedule.js');
+};
 $('optConst').addEventListener('change',e=>{optFilter.constellation=e.target.value;renderCalendar();renderPlanList();});
 $('optWindow').addEventListener('input',renderCalendar);
 $('optExclude').value=excludeRaw;
@@ -657,9 +661,21 @@ $('genPatternBtn').onclick=()=>{
     if(d<=skipHorizon)d=addDays(d,cycleDays);
     return d;
   }
-  /* primary anchors: the 3 furthest-out entries in the arrivals calendar
-     used exactly as-is — no horizon skipping, these are the reference dates */
+  /* primary anchors: hardcoded dates from MOON_SCHEDULE_ANCHORS in moonSchedule.js.
+     These are fixed reference points — the real chunk arrival dates for those refineries.
+     If ESI has a live arrival for a non-anchored refinery, use that too.
+     Everything else derives forward from the anchors in moonSchedule.js order. */
   const primaryAnchors=new Map();
+  const fileAnchors=typeof MOON_SCHEDULE_ANCHORS!=='undefined'?MOON_SCHEDULE_ANCHORS:{};
+  /* 1. file anchors — highest priority, always used as-is */
+  filteredUnits.forEach((u,i)=>{
+    const name=u.refinery||'';
+    const fileDate=fileAnchors[name]||Object.entries(fileAnchors).find(([k])=>k.toLowerCase()===name.toLowerCase())?.[1];
+    if(fileDate){
+      primaryAnchors.set(i,{date:startOfDay(Date.parse(fileDate+'T12:00:00Z')),source:'esi'});
+    }
+  });
+  /* 2. ESI live arrivals for refineries not in the file anchors */
   const calendarEntries=refineries
     .filter(r=>r.arrive&&!isExcluded(r.name,r.system))
     .sort((a,b)=>Date.parse(b.arrive)-Date.parse(a.arrive))
@@ -670,11 +686,10 @@ $('genPatternBtn').onclick=()=>{
       (u.refinery&&r.name&&u.refinery.toLowerCase()===r.name.toLowerCase())
     );
     if(idx>=0&&!primaryAnchors.has(idx)){
-      /* anchor is the ESI chunk arrival date — this IS the scheduled extraction date */
       primaryAnchors.set(idx,{date:startOfDay(Date.parse(r.arrive)),source:'esi'});
     }
   });
-  /* build full liveArrivals — primary anchors are fixed; fallbacks use horizon filter */
+  /* build full liveArrivals — anchors fixed; fallbacks use horizon filter */
   const liveArrivals=filteredUnits.map((u,i)=>{
     if(primaryAnchors.has(i))return primaryAnchors.get(i);
     const ref=refineries.find(r=>r.sid&&u.sid&&r.sid===u.sid);
