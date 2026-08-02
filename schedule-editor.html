@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html data-app="schedule-editor">
+<head>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schedule Editor · EVE Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-size:14px}
+body::before,body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
+.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
+.backlink{font-size:10px;padding:7px 12px;display:flex;align-items:center;white-space:nowrap}
+.obsv{max-width:960px;margin:0 auto;padding:26px 30px 70px;position:relative;z-index:1}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
+.tb-left{display:flex;align-items:flex-start;gap:16px}
+.kicker{font-size:10px;margin-bottom:7px}
+h1{font-size:23px;margin:0}
+h1 .diamond{margin:0 10px;transform:translateY(-2px)}
+.subline{font-size:12px;margin-top:6px;max-width:560px}
+.layout{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+
+/* drag list */
+.list-panel{padding:16px}
+.list-panel h2{font-size:11.5px;margin:0 0 14px}
+.add-row{display:flex;gap:8px;margin-bottom:14px}
+.add-row input{flex:1;font-size:12px;padding:8px 10px;font-family:inherit}
+.add-row .btn{font-size:10px;padding:8px 14px;cursor:pointer;white-space:nowrap}
+#sortList{list-style:none;margin:0;padding:0;min-height:40px}
+.sort-item{display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:5px;cursor:grab;user-select:none;border-radius:6px;transition:opacity .15s}
+.sort-item:active{cursor:grabbing}
+.sort-item.dragging{opacity:.35}
+.sort-item.drag-over{outline:2px solid var(--accent,#4caf82);outline-offset:1px}
+.sort-item .grip{font-size:14px;opacity:.35;flex:none;line-height:1}
+.sort-item .idx{font-size:9px;width:20px;text-align:right;flex:none;opacity:.45;font-family:'IBM Plex Mono',monospace}
+.sort-item .name{flex:1;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.sort-item .del{background:none;border:none;cursor:pointer;font-size:13px;opacity:.4;padding:0 4px;line-height:1;font-family:inherit}
+.sort-item .del:hover{opacity:.9}
+.empty-list{padding:28px 12px;text-align:center;font-size:11.5px;opacity:.5}
+
+/* output panel */
+.out-panel{padding:16px;position:sticky;top:20px}
+.out-panel h2{font-size:11.5px;margin:0 0 10px}
+.out-panel .hint{font-size:10px;margin-bottom:12px;line-height:1.6}
+#jsOut{width:100%;font-size:10.5px;font-family:'IBM Plex Mono',monospace;padding:12px;resize:vertical;min-height:260px;border-radius:6px;white-space:pre}
+.btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn-row .btn{flex:1;font-size:10px;padding:9px 10px;cursor:pointer;text-align:center}
+.copied{font-size:9.5px;opacity:0;transition:opacity .3s;margin-top:6px;text-align:center}
+.copied.show{opacity:.7}
+</style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
+<script src="moonSchedule.js"></script>
+</head>
+<body>
+<div class="obsv">
+<header class="topbar">
+  <div class="tb-left">
+    <a class="backlink" href="moons.html">&#9666; Moon Watch</a>
+    <div>
+      <div class="kicker">Configuration · Moon Watch</div>
+      <h1>Schedule<span class="diamond"></span>Editor</h1>
+      <div class="subline">Drag to reorder your extraction schedule. Copy or download the result and replace <code>moonSchedule.js</code> in your repository.</div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- left: drag list -->
+  <div class="list-panel panel">
+    <h2>Extraction order</h2>
+    <div class="add-row">
+      <input type="text" id="addInput" placeholder="System name e.g. Athinard" autocomplete="off">
+      <button class="btn primary" id="addBtn">Add system</button>
+    </div>
+    <ul id="sortList"></ul>
+  </div>
+
+  <!-- right: output -->
+  <div class="out-panel panel">
+    <h2>moonSchedule.js output</h2>
+    <p class="hint">Copy this and replace the contents of <code>moonSchedule.js</code> in your repo, or use the download button.</p>
+    <textarea id="jsOut" readonly spellcheck="false"></textarea>
+    <div class="btn-row">
+      <button class="btn" id="copyBtn">Copy</button>
+      <button class="btn primary" id="dlBtn">&#8595; Download</button>
+    </div>
+    <div class="copied" id="copiedMsg">Copied to clipboard</div>
+  </div>
+</div>
+</div>
+
+<script>
+// ---- state ----
+let systems = [];
+
+// seed from moonSchedule.js if loaded
+if(typeof MOON_SCHEDULE_ORDER !== 'undefined' && Array.isArray(MOON_SCHEDULE_ORDER)){
+  systems = MOON_SCHEDULE_ORDER.map(s => s.trim()).filter(Boolean);
+}
+
+// ---- render ----
+function render(){
+  const list = document.getElementById('sortList');
+  if(!systems.length){
+    list.innerHTML = '<li class="empty-list">No systems yet — add one above.</li>';
+  } else {
+    list.innerHTML = systems.map((s,i) => `
+      <li class="sort-item" draggable="true" data-idx="${i}">
+        <span class="grip">&#8942;&#8942;</span>
+        <span class="idx">${String(i+1).padStart(2,'0')}</span>
+        <span class="name">${esc(s)}</span>
+        <button class="del" data-idx="${i}" title="Remove">&#10005;</button>
+      </li>`).join('');
+    attachDrag();
+  }
+  updateOutput();
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---- output ----
+function buildJS(){
+  const header =
+`/* moonSchedule.js — EVE Moon Watch extraction schedule order
+ * Edit MOON_SCHEDULE_ORDER to control which systems are scheduled and in what order.
+ * Each entry is a system name (string). Moons.html reads this at schedule-generation
+ * time and merges it with live ESI refinery data.
+ */
+
+`;
+  const body = systems.length
+    ? `const MOON_SCHEDULE_ORDER = [
+${systems.map(s=>`  '${s.replace(/'/g,"\'")}',`).join('
+')}
+];
+`
+    : `const MOON_SCHEDULE_ORDER = [
+  // Add system names here, one per line, in extraction order.
+];
+`;
+  return header + body;
+}
+
+function updateOutput(){
+  document.getElementById('jsOut').value = buildJS();
+}
+
+// ---- add ----
+document.getElementById('addBtn').onclick = addSystem;
+document.getElementById('addInput').addEventListener('keydown', e => { if(e.key === 'Enter') addSystem(); });
+function addSystem(){
+  const inp = document.getElementById('addInput');
+  const val = inp.value.trim();
+  if(!val) return;
+  if(systems.map(s=>s.toLowerCase()).includes(val.toLowerCase())){
+    inp.style.outline = '2px solid var(--c-warn,#e0a030)';
+    setTimeout(()=>inp.style.outline='', 1200);
+    return;
+  }
+  systems.push(val);
+  inp.value = '';
+  render();
+}
+
+// ---- delete ----
+document.getElementById('sortList').addEventListener('click', e => {
+  const btn = e.target.closest('.del');
+  if(!btn) return;
+  const idx = +btn.dataset.idx;
+  systems.splice(idx, 1);
+  render();
+});
+
+// ---- drag and drop ----
+let dragIdx = null;
+
+function attachDrag(){
+  const items = document.querySelectorAll('.sort-item');
+  items.forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragIdx = +item.dataset.idx;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      document.querySelectorAll('.sort-item').forEach(i => i.classList.remove('drag-over'));
+      dragIdx = null;
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.sort-item').forEach(i => i.classList.remove('drag-over'));
+      item.classList.add('drag-over');
+    });
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetIdx = +item.dataset.idx;
+      if(dragIdx === null || dragIdx === targetIdx) return;
+      const moved = systems.splice(dragIdx, 1)[0];
+      systems.splice(targetIdx, 0, moved);
+      render();
+    });
+  });
+}
+
+// ---- copy ----
+document.getElementById('copyBtn').onclick = () => {
+  navigator.clipboard.writeText(buildJS()).then(() => {
+    const msg = document.getElementById('copiedMsg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2000);
+  });
+};
+
+// ---- download ----
+document.getElementById('dlBtn').onclick = () => {
+  const blob = new Blob([buildJS()], {type:'text/javascript'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'moonSchedule.js';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+// ---- init ----
+render();
+</script>
+</body>
+</html>

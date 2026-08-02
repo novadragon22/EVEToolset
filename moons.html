@@ -347,6 +347,48 @@ async function loadAll(){
       r.sec=meta.sec;r.constellation=meta.con||'Unknown';
     }catch(e){r.constellation='Unknown';}
   }));
+  /* ---- fetch personal calendar for the character that read mining data ----
+     EVE puts moon chunk arrivals in the personal calendar as events titled
+     "Extraction Complete: <Structure Name>". We read past events (from_event=0
+     walks backwards) and match them to refineries by name to get the last real
+     arrival date for idle refineries. */
+  const miningCharId=visibleIds()[0]; // first visible pilot — same one that read corp structures
+  if(miningCharId){
+    try{
+      const cs=await getTok(miningCharId);
+      if(cs&&cs.charId){
+        /* calendar returns up to 50 events; fetch two pages (past + upcoming) */
+        let calEvents=[];
+        try{
+          const upcoming=await esiGet('/characters/'+cs.charId+'/calendar/',cs.access);
+          if(Array.isArray(upcoming))calEvents=calEvents.concat(upcoming);
+          /* walk back in time — use the earliest event_id from first batch as from_event */
+          if(upcoming&&upcoming.length){
+            const minId=Math.min(...upcoming.map(e=>e.event_id));
+            try{
+              const past=await esiGet('/characters/'+cs.charId+'/calendar/?from_event='+minId,cs.access);
+              if(Array.isArray(past))calEvents=calEvents.concat(past);
+            }catch(e){}
+          }
+        }catch(e){}
+        /* match extraction complete events to refineries */
+        const extractionEvents=calEvents.filter(e=>e.title&&e.title.toLowerCase().includes('extraction'));
+        /* fetch details for events we don't have a full date on — calendar summary has event_date */
+        for(const ev of extractionEvents){
+          if(!ev.event_date)continue;
+          const evDate=Date.parse(ev.event_date);
+          if(isNaN(evDate))continue;
+          /* title format: "Extraction Complete: <Structure Name>" or similar */
+          const nameMatch=ev.title.replace(/extraction\s*(complete|ready|finished)?:?\s*/i,'').trim();
+          if(!nameMatch)continue;
+          const ref=refineries.find(r=>r.name&&r.name.toLowerCase()===nameMatch.toLowerCase());
+          if(!ref)continue;
+          /* keep the most recent past calendar event per refinery */
+          if(!ref.calendarArrive||evDate>ref.calendarArrive)ref.calendarArrive=evDate;
+        }
+      }
+    }catch(e){}
+  }
   render(errs);
   btn.disabled=false;
 }
@@ -365,39 +407,32 @@ function moonSortKeyForChip(name,system){
   return [(system||'').toLowerCase(),planet,moon];
 }
 function buildScheduleUnits(){
-  /* Single source of truth for unit ordering — moonSchedule.js defines system order,
-     falling back to the UI queue for any systems not listed in the file. */
+  /* Single source of truth for unit ordering — moonSchedule.js defines refinery order.
+     Each entry is a full refinery name (e.g. 'Moro - RONA VIII M1').
+     Falls back to UI queue for any refineries not listed in the file. */
   const gap=2; // chunks arrive every 2 days at 12:00 EVE
-  /* Merge: file order first, then any queued systems not already covered */
   const fileOrder=(typeof MOON_SCHEDULE_ORDER!=='undefined'?MOON_SCHEDULE_ORDER:[])
     .map(s=>s.trim()).filter(Boolean);
   const fileLower=new Set(fileOrder.map(s=>s.toLowerCase()));
-  const queueExtra=extractionPlans.map(p=>p.system).filter(s=>!fileLower.has(s.toLowerCase()));
-  const orderedSystems=[...fileOrder,...queueExtra];
-  /* Build plansToSchedule preserving merged order */
-  const plansToSchedule=orderedSystems
-    .filter(sys=>!isExcluded(sys,sys))
-    .map(sys=>{
-      const existing=extractionPlans.find(p=>p.system.toLowerCase()===sys.toLowerCase());
-      if(existing)return existing;
-      /* system is in the file but not in the UI queue — synthesise a minimal plan entry */
-      const ref=refineries.find(r=>(r.system||'').toLowerCase()===sys.toLowerCase());
-      return {id:'file-'+sys,system:sys,constellation:(ref&&ref.constellation)||''};
-    });
+  /* Queue extras: refineries in UI queue whose name isn't in the file */
+  const queueExtraRefs=refineries.filter(r=>r.name&&!fileLower.has(r.name.toLowerCase())&&!isExcluded(r.name,r.system));
+  /* Build plansToSchedule: one entry per refinery in file order, then queue extras */
+  const plansToSchedule=[
+    ...fileOrder.filter(name=>!isExcluded(name,name)).map(name=>{
+      const ref=refineries.find(r=>r.name&&r.name.toLowerCase()===name.toLowerCase());
+      return {id:'file-'+name,system:ref?ref.system:name.split(' ')[0],constellation:ref?ref.constellation:'',refName:name};
+    }),
+    ...queueExtraRefs.map(r=>({id:'queue-'+r.sid,system:r.system,constellation:r.constellation||'',refName:r.name}))
+  ];
   const units=[];
   plansToSchedule.forEach(p=>{
-    const refs=refineries.filter(rf=>(rf.system||'').toLowerCase()===p.system.toLowerCase()&&!isExcluded(rf.name,rf.system));
+    const refs=refineries.filter(rf=>rf.name&&rf.name.toLowerCase()===(p.refName||'').toLowerCase()&&!isExcluded(rf.name,rf.system));
+    /* file order is per-refinery — each plan entry maps to exactly one refinery */
     if(refs.length){
-      refs.sort((a,b)=>{
-        const ma=a.name?a.name.match(/Planet\s+(\w+).*Moon\s+(\d+)/i):null;
-        const mb=b.name?b.name.match(/Planet\s+(\w+).*Moon\s+(\d+)/i):null;
-        const pa=ma?romanToInt(ma[1]):9999,pb=mb?romanToInt(mb[1]):9999;
-        const moa=ma?+ma[2]:9999,mob=mb?+mb[2]:9999;
-        return pa!==pb?pa-pb:moa-mob;
-      });
-      refs.forEach(rf=>units.push({system:p.system,constellation:p.constellation||rf.constellation||'Unknown',refinery:rf.name,sid:rf.sid}));
+      const rf=refs[0];
+      units.push({system:p.system,constellation:p.constellation||rf.constellation||'Unknown',refinery:rf.name,sid:rf.sid});
     } else {
-      units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:null,sid:null});
+      units.push({system:p.system,constellation:p.constellation||'Unknown',refinery:p.refName||null,sid:null});
     }
   });
   return {units,gap,plansToSchedule};
@@ -573,20 +608,19 @@ function renderPlanList(){
   const fileOrder=(typeof MOON_SCHEDULE_ORDER!=='undefined'?MOON_SCHEDULE_ORDER:[])
     .map(s=>s.trim()).filter(Boolean);
   const fileLower=new Set(fileOrder.map(s=>s.toLowerCase()));
-  const queueExtra=extractionPlans.filter(p=>!fileLower.has(p.system.toLowerCase()));
+  const queueExtra=refineries.filter(r=>r.name&&!fileLower.has(r.name.toLowerCase())&&!isExcluded(r.name,r.system));
   const merged=[
-    ...fileOrder.map(sys=>{
-      const existing=extractionPlans.find(p=>p.system.toLowerCase()===sys.toLowerCase());
-      const ref=refineries.find(r=>(r.system||'').toLowerCase()===sys.toLowerCase());
-      return {id:null,system:sys,constellation:(existing&&existing.constellation)||(ref&&ref.constellation)||'',fromFile:true};
+    ...fileOrder.map(name=>{
+      const ref=refineries.find(r=>r.name&&r.name.toLowerCase()===name.toLowerCase());
+      return {id:null,display:name,constellation:(ref&&ref.constellation)||'',fromFile:true,name};
     }),
-    ...queueExtra.map(p=>({...p,fromFile:false}))
+    ...queueExtra.map(r=>({id:'q-'+r.sid,display:r.name,constellation:r.constellation||'',fromFile:false,name:r.name}))
   ].filter(p=>optFilter.constellation==='all'||(p.constellation||'Unknown')===optFilter.constellation);
   wrap.innerHTML=merged.length?merged.map(p=>{
-    const ex=isExcluded(p.system,p.system);
+    const ex=isExcluded(p.name,p.name);
     const tag=p.fromFile?'<i style="font-style:normal;font-size:9px;opacity:.5"> · file</i>':'';
     const btn=p.fromFile?'<span style="font-size:9px;opacity:.4">locked</span>':'<button class="char-x" data-id="'+p.id+'">&#10005;</button>';
-    return '<div class="plan-row"'+(ex?' style="opacity:.45"':'')+'><span>'+esc(p.system)+tag+(ex?' <i style="font-style:normal">excluded</i>':'')+'</span><span class="dim">'+esc(p.constellation||'Unspecified')+'</span>'+btn+'</div>';
+    return '<div class="plan-row"'+(ex?' style="opacity:.45"':'')+'><span>'+esc(p.display)+tag+(ex?' <i style="font-style:normal">excluded</i>':'')+'</span><span class="dim">'+esc(p.constellation||'Unspecified')+'</span>'+btn+'</div>';
   }).join('')
   :'<div class="empty" style="padding:12px;font-size:10.5px">No systems queued for scheduling yet.</div>';
   wrap.querySelectorAll('.char-x').forEach(b=>{b.onclick=()=>{extractionPlans=extractionPlans.filter(p=>p.id!==b.dataset.id);savePlans();};});
@@ -616,55 +650,114 @@ $('genPatternBtn').onclick=()=>{
   if(!filteredUnits.length){out.innerHTML='<div class="empty" style="padding:20px">No systems to schedule — add one, or it may be hidden by your exclusion keywords.</div>';return;}
   const N=filteredUnits.length,cycleDays=N*gap;
 
-  /* ---- build a set of days already occupied by live ESI arrivals ----
-     These are chunks that are genuinely inbound and not part of this schedule run.
-     A "conflict" is any day where a non-queued refinery already has a chunk landing. */
+  /* ---- step 1: pin each unit to its next known arrival date ----
+     Priority (moonSchedule.js order is always the spine):
+       a) Live ESI chunk_arrival_time — refinery actively extracting; date is real.
+       b) Personal calendar — most recent past extraction event for this refinery;
+          advance by full cycles to get next expected arrival.
+       c) Saved schedule nextArrival — idle refinery with no calendar history yet.
+     In all cases:
+       - Advance by full cycles past today.
+       - If the resulting date is within 14 days of today it is too soon to act on —
+         skip it by advancing one more full cycle so the schedule targets the
+         next actionable window. */
+  const saved=loadedSchedule();
+  const SKIP_DAYS=14;
+  const skipHorizon=addDays(today,SKIP_DAYS);
+  function advancePastHorizon(d){
+    while(d<today)d=addDays(d,cycleDays);
+    if(d<=skipHorizon)d=addDays(d,cycleDays);
+    return d;
+  }
+  const liveArrivals=filteredUnits.map(u=>{
+    const ref=refineries.find(r=>r.sid&&u.sid&&r.sid===u.sid);
+    /* a) live ESI arrival */
+    if(ref&&ref.arrive){
+      const d=advancePastHorizon(startOfDay(Date.parse(ref.arrive)));
+      return {date:d,source:'esi'};
+    }
+    /* b) personal calendar — last real extraction event for this refinery */
+    if(ref&&ref.calendarArrive){
+      const d=advancePastHorizon(startOfDay(ref.calendarArrive));
+      return {date:d,source:'calendar'};
+    }
+    /* c) saved nextArrival for idle refineries with no calendar history */
+    if(saved&&saved.results){
+      const entry=saved.results.find(s=>(u.sid&&s.sid&&Number(s.sid)===Number(u.sid))||(u.refinery&&s.refinery&&s.refinery.toLowerCase()===u.refinery.toLowerCase()));
+      if(entry&&entry.nextArrival){
+        const d=advancePastHorizon(startOfDay(Date.parse(entry.nextArrival)));
+        return {date:d,source:'next'};
+      }
+    }
+    return null;
+  });
+
+  /* ---- step 2: seed anchor dates then enforce moonSchedule.js order unconditionally ----
+     Every slot — anchored or not — must satisfy slot[i] >= slot[i-1] + gap.
+     Anchored slots that violate order are advanced by full cycles until they clear.
+     Unanchored slots are filled by stepping forward from the previous slot. */
+  /* Seed from known anchors, then derive every slot from file-order position.
+     Find the first known anchor, step backwards to derive earlier slots,
+     then do a single forward pass to fill gaps and enforce order for all slots.
+     No slot ever falls back to "today" — position in file order is always
+     derived from the nearest real anchor via gap arithmetic. */
+  const anchorDates=Array(N).fill(null);
+  liveArrivals.forEach((a,i)=>{if(a)anchorDates[i]=a.date;});
+  const firstKnown=anchorDates.findIndex(d=>d!==null);
+  if(firstKnown<0){
+    /* no anchors at all — cannot generate a meaningful schedule */
+    out.innerHTML='<div class="empty" style="padding:20px">No arrival data available — load ESI data first so the schedule has real dates to anchor to.</div>';
+    return;
+  }
+  /* step backwards from first known anchor to fill earlier slots.
+     Unanchored slots get the same day-of-cycle as the anchor, offset by gap×distance,
+     advanced by full cycles if in the past — the date itself is preserved. */
+  for(let i=firstKnown-1;i>=0;i--){
+    const dist=firstKnown-i;
+    let d=addDays(anchorDates[firstKnown],-gap*dist);
+    while(d<today)d=addDays(d,cycleDays);
+    anchorDates[i]=d;
+  }
+  /* forward pass — fill gaps and enforce order for ALL slots.
+     Anchored slots that arrive before their predecessor are advanced by full cycles
+     only — the date within the cycle never changes. Unanchored slots are derived
+     from the nearest preceding anchor by gap×distance, advanced by full cycles. */
+  let lastAnchorIdx=firstKnown;
+  for(let i=1;i<N;i++){
+    const minDate=addDays(anchorDates[i-1],gap);
+    if(!anchorDates[i]){
+      /* derive from the nearest preceding anchor, preserving its day-of-cycle */
+      const dist=i-lastAnchorIdx;
+      let d=addDays(anchorDates[lastAnchorIdx],gap*dist);
+      while(d<today)d=addDays(d,cycleDays);
+      while(d<minDate)d=addDays(d,cycleDays);
+      anchorDates[i]=d;
+    } else {
+      /* anchored — advance by full cycles only until it clears the previous slot */
+      let d=new Date(anchorDates[i]);
+      while(d<minDate)d=addDays(d,cycleDays);
+      anchorDates[i]=d;
+      lastAnchorIdx=i;
+    }
+  }
+
+  /* ---- step 3: build results — dates are fixed, only flag conflicts ----
+     Dates must not move. External arrivals on the same day are flagged as
+     conflicts but the scheduled date is kept. */
   const queuedSids=new Set(filteredUnits.map(u=>u.sid).filter(Boolean));
-  /* days occupied by refineries NOT in the queue (external conflicts) */
   const externalOccupied=new Set(
     refineries
       .filter(r=>r.arrive&&!queuedSids.has(r.sid)&&!isExcluded(r.name,r.system))
       .map(r=>dateKey(noonUTC(Date.parse(r.arrive))))
   );
-
-  /* anchor the cycle to the earliest known chunk arrival among synced refineries in the plan */
-  const syncedArrivals=filteredUnits.map(u=>{
-    const ref=refineries.find(r=>r.sid&&u.sid&&r.sid===u.sid);
-    return (ref&&ref.arrive)?Date.parse(ref.arrive):null;
-  }).filter(Boolean);
-  const epochMs=syncedArrivals.length?Math.min(...syncedArrivals):today.getTime();
-  const epoch=startOfDay(epochMs);
-
-  /* ---- assign slots, detecting and resolving conflicts ----
-     For each unit:
-       1. Compute the ideal slot date from epoch + index*gap, advanced to today.
-       2. If that day clashes with an external arrival OR a day already claimed by
-          an earlier unit in this run, bump forward one day at a time (up to gap-1
-          days) until clear. Record whether a bump was needed. */
-  const usedDays=new Set(); // days claimed by earlier units in this schedule run
   const results=filteredUnits.map((u,i)=>{
-    const slotOffset=Math.round(i*gap);
-    let arrivalDate=addDays(epoch,slotOffset);
-    while(arrivalDate<today)arrivalDate=addDays(arrivalDate,cycleDays);
+    const anchor=liveArrivals[i];
+    const anchorSource=anchor?anchor.source:'inferred';
+    const arrivalDate=new Date(anchorDates[i]);
     const idealKey=dateKey(arrivalDate);
-    /* bump up to (gap-1) days to find a clear day */
-    let bumped=false;
-    const maxBump=gap-1;
-    for(let b=0;b<=maxBump;b++){
-      const k=dateKey(arrivalDate);
-      if(!externalOccupied.has(k)&&!usedDays.has(k))break;
-      if(b<maxBump){arrivalDate=addDays(arrivalDate,1);bumped=true;}
-      else{
-        /* all days in window conflict — use the ideal date and flag it */
-        arrivalDate=addDays(epoch,slotOffset);
-        while(arrivalDate<today)arrivalDate=addDays(arrivalDate,cycleDays);
-        bumped=true;
-      }
-    }
-    usedDays.add(dateKey(arrivalDate));
     const nextArrival=addDays(arrivalDate,cycleDays);
-    const conflict=externalOccupied.has(dateKey(arrivalDate));
-    return {...u,arrivalDate,nextArrival,bumped,conflict,idealKey};
+    const conflict=externalOccupied.has(idealKey);
+    return {...u,arrivalDate,nextArrival,conflict,idealKey,anchored:!!anchor,anchorSource};
   });
 
   const savedResults=results.map(r=>({...r,arrivalDate:r.arrivalDate.toISOString(),nextArrival:r.nextArrival.toISOString()}));
@@ -685,8 +778,10 @@ function renderSchedule(results,N,cycleDays,filteredPlansLen,plansLen,savedAt){
     const arr=new Date(r.arrivalDate),nxt=new Date(r.nextArrival);
     let status='';
     if(r.conflict)status='<span style="color:var(--c-warn,#e0a030)">⚠ conflict</span>';
-    else if(r.bumped)status='<span style="opacity:.6">nudged</span>';
-    else status='<span style="color:var(--c-ok,#4caf82)">clear</span>';
+    else if(r.anchorSource==='esi')status='<span style="color:var(--c-ok,#4caf82)">⚓ live</span>';
+    else if(r.anchorSource==='calendar')status='<span style="color:var(--c-ok,#4caf82)">📅 calendar</span>';
+    else if(r.anchorSource==='next')status='<span style="color:var(--c-ok,#4caf82)">↻ saved</span>';
+    else status='<span style="opacity:.6">derived</span>';
     return '<tr><td class="dim">'+(i+1)+'</td><td><div class="nm">'+esc(r.system)+'</div></td><td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td><td class="dim">'+esc(r.constellation||'Unspecified')+'</td><td>'+dayLabel(arr)+'</td><td class="dim">'+dayLabel(nxt)+'</td><td style="font-size:10px">'+status+'</td></tr>';
   }).join('')+
   '</tbody></table></div>';
