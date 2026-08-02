@@ -478,7 +478,7 @@ function nextCycleDate(r){
   const entry=savedScheduleFor(r);
   if(entry&&entry.arrivalDate){
     const cycleDays=saved?saved.cycleDays:null;
-    /* arrivalDate is the scheduled chunk date — advance past today if needed */
+    /* return the exact scheduled date — only advance if genuinely in the past */
     let d=new Date(entry.arrivalDate);
     if(cycleDays){while(d<_ncdToday)d=addDays(d,cycleDays);}
     return d;
@@ -658,6 +658,10 @@ $('optExclude').addEventListener('input',e=>{excludeKeywords=parseExclude(e.targ
   if(refineries.length)render();
   renderCalendar();renderPlanList();});
 $('genPatternBtn').onclick=()=>{
+  /* always start fresh — clear caches so anchor changes in moonSchedule.js
+     take effect immediately without stale saved schedule interfering */
+  _liveResults=null;
+  _scheduleCache=null;
   const today=startOfDay(now());
   const {units,gap,plansToSchedule}=buildScheduleUnits();
   /* apply constellation filter on top of the shared unit list */
@@ -718,13 +722,7 @@ $('genPatternBtn').onclick=()=>{
       const d=advancePastHorizon(startOfDay(ref.calendarArrive));
       return {date:d,source:'calendar'};
     }
-    if(saved&&saved.results){
-      const entry=saved.results.find(s=>(u.sid&&s.sid&&Number(s.sid)===Number(u.sid))||(u.refinery&&s.refinery&&s.refinery.toLowerCase()===u.refinery.toLowerCase()));
-      if(entry&&entry.nextArrival){
-        const d=advancePastHorizon(startOfDay(Date.parse(entry.nextArrival)));
-        return {date:d,source:'next'};
-      }
-    }
+    /* no saved schedule fallback — derive everything from anchors and ESI only */
     return null;
   });
 
@@ -745,22 +743,22 @@ $('genPatternBtn').onclick=()=>{
     out.innerHTML='<div class="empty" style="padding:20px">No arrival data available — load ESI data first so the schedule has real dates to anchor to.</div>';
     return;
   }
-  /* forward-only pass — seed slot 0 from firstKnown anchor stepping back by gap,
-     then fill every slot forward from there. No backwards derivation.
-     Anchored slots that violate order are advanced by full cycles only. */
-  /* seed slots before firstKnown by stepping back from it */
-  for(let i=firstKnown-1;i>=0;i--){
-    anchorDates[i]=addDays(anchorDates[firstKnown],-(firstKnown-i)*gap);
+  /* Use the LAST anchor in file order as the reference point.
+     Everything after it steps forward by gap. Everything before steps backward.
+     This means the stagger is always derived from the latest known fixed date. */
+  const lastAnchor=anchorDates.reduce((last,d,i)=>d!==null?i:last,-1);
+  /* step backward from lastAnchor to fill earlier slots */
+  for(let i=lastAnchor-1;i>=0;i--){
+    if(!anchorDates[i])anchorDates[i]=addDays(anchorDates[i+1],-gap);
   }
-  /* forward pass — each slot is always prev + gap.
-     Unanchored: step exactly gap days from previous slot.
-     Anchored: keep the fixed date but advance by full cycles if it would
-     fall before prev+gap, preserving the day-of-cycle. */
+  /* step forward from lastAnchor to fill later slots */
+  for(let i=lastAnchor+1;i<N;i++){
+    if(!anchorDates[i])anchorDates[i]=addDays(anchorDates[i-1],gap);
+  }
+  /* enforce order — any anchor that still falls before prev+gap gets advanced by full cycles */
   for(let i=1;i<N;i++){
     const minDate=addDays(anchorDates[i-1],gap);
-    if(!anchorDates[i]){
-      anchorDates[i]=new Date(minDate);
-    } else {
+    if(anchorDates[i]<minDate){
       let d=new Date(anchorDates[i]);
       while(d<minDate)d=addDays(d,cycleDays);
       anchorDates[i]=d;
@@ -790,6 +788,8 @@ $('genPatternBtn').onclick=()=>{
   const savedResults=results.map(r=>({...r,arrivalDate:r.arrivalDate.toISOString(),nextArrival:r.nextArrival.toISOString()}));
   try{localStorage.setItem(SCHEDULE_KEY,JSON.stringify({results:savedResults,N,cycleDays,filteredPlansLen:filteredPlans.length,plansLen:plansToSchedule.length,savedAt:Date.now()}));_scheduleCache=null;}catch(e){}
   renderSchedule(results,N,cycleDays,filteredPlans.length,plansToSchedule.length);
+  /* re-render cards now that _liveResults is populated with fresh schedule dates */
+  if(refineries.length)render();
 };
 function renderSchedule(results,N,cycleDays,filteredPlansLen,plansLen,savedAt){
   const out=$('patternResult');
