@@ -127,14 +127,15 @@ td.dim{font-size:10.5px}
 <div id="out"><div class="empty">Press <b>Sight the moons</b> to read refineries and extraction timers.<br>Sign-in lives in the Toolset menu.</div></div>
 
 <div class="calpanel panel" id="calPanel" style="display:none">
-  <div class="panel-hd2"><h2>Extraction arrivals</h2>
-    <div class="calctl">
+  <div class="panel-hd2" id="calPanelHd" style="cursor:pointer" onclick="toggleCal()">
+    <h2>Extraction arrivals <span id="calToggleIcon" style="font-size:9px;opacity:.5;margin-left:6px">▶</span></h2>
+    <div class="calctl" id="calCtl" style="display:none" onclick="event.stopPropagation()">
       <label>WINDOW (DAYS)</label><input type="number" id="optWindow" value="30" min="3" max="60">
       <label>CONSTELLATION</label><select id="optConst"><option value="all">All constellations</option></select>
       <label>EXCLUDE (KEYWORDS, COMMA-SEP)</label><input type="text" id="optExclude" placeholder="e.g. keepstar, staging">
     </div>
   </div>
-  <div id="calendarWrap"></div>
+  <div id="calendarWrap" style="display:none"></div>
 </div>
 
 <div class="optgrid" id="optGrid" style="display:none">
@@ -626,6 +627,13 @@ function renderPlanList(){
   wrap.querySelectorAll('.char-x').forEach(b=>{b.onclick=()=>{extractionPlans=extractionPlans.filter(p=>p.id!==b.dataset.id);savePlans();};});
 }
 /* addPlanBtn removed — schedule order is driven by moonSchedule.js */
+function toggleCal(){
+  const wrap=$('calendarWrap'),ctl=$('calCtl'),icon=$('calToggleIcon');
+  const open=wrap.style.display!=='none';
+  wrap.style.display=open?'none':'';
+  ctl.style.display=open?'none':'';
+  icon.textContent=open?'▶':'▼';
+}
 $('editScheduleBtn').onclick=()=>{
   if(typeof sendPrompt==='function')sendPrompt('edit moonSchedule.js');
 };
