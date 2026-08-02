@@ -508,26 +508,18 @@ function phaseChip(r,displaySt){
   const flagged=needsExtractionSet.has(r.sid);
   let line,sub='';
   if(st==='extracting'&&!flagged){
-    const scheduled=nextCycleDate(r);
-    if(scheduled&&!isExcluded(r.name,r.system)){
-      const actualDay=dateKey(new Date(r.arrive));
-      const schedDay=dateKey(scheduled);
-      line='Chunk arrives: '+dayLabel(scheduled);
-      if(actualDay===schedDay){sub='on schedule';}
-      else{sub='ESI: '+dayLabel(new Date(r.arrive));}
-    } else {
-      line='Chunk lands in '+fmtDur(Date.parse(r.arrive)-now());
-    }
-    if(!sub&&r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';
+    /* actively extracting — show actual ESI arrival time */
+    line='Chunk arrives: '+dayLabel(new Date(r.arrive));
+    if(!isExcluded(r.name,r.system)&&r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';
   } else if(flagged){
     line='Extraction started — awaiting ESI confirmation';
   } else {
-    line='No extraction scheduled';
+    /* idle — show scheduled arrival from suggested schedule */
     if(!isExcluded(r.name,r.system)){
       const nd=nextCycleDate(r);
-      sub=nd?'chunk arrives: '+dayLabel(nd):'drill is dark — schedule a chunk';
+      line=nd?'Scheduled arrival: '+dayLabel(nd):'drill is dark — schedule a chunk';
     } else {
-      sub='excluded from cycle';
+      line='Excluded from cycle';
     }
   }
   const btnHtml=flagged
@@ -679,11 +671,8 @@ $('genPatternBtn').onclick=()=>{
      If fewer than 3 live arrivals exist, fall back to calendar history then saved
      nextArrival for any remaining unanchored slots. */
   const saved=loadedSchedule();
-  const SKIP_DAYS=14;
-  const skipHorizon=addDays(today,SKIP_DAYS);
   function advancePastHorizon(d){
     while(d<today)d=addDays(d,cycleDays);
-    if(d<=skipHorizon)d=addDays(d,cycleDays);
     return d;
   }
   /* primary anchors: hardcoded dates from MOON_SCHEDULE_ANCHORS in moonSchedule.js.
