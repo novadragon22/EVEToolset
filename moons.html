@@ -279,6 +279,7 @@ let refineries=[];    // {name,type,typeId,system,constellation,sec,corp, start,
 const needsExtractionSet=new Set(); // sids flagged by operator as extraction started
 let extractionPlans=[]; let optFilter={constellation:'all'}; let excludeKeywords=[];
 let _scheduleCache=null; // cached parsed schedule — invalidated on save
+let _liveResults=null;  // live results from last Generate run — used by cards for exact date match
 try{extractionPlans=JSON.parse(localStorage.getItem(PLAN_KEY)||'[]')||[];}catch(e){}
 let excludeRaw='';try{excludeRaw=JSON.parse(localStorage.getItem(EXCLUDE_KEY)||'""')||'';}catch(e){try{excludeRaw=localStorage.getItem(EXCLUDE_KEY)||'';}catch(e2){}}
 function parseExclude(str){return (str||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);}
@@ -458,18 +459,28 @@ function savedScheduleFor(r){
   }catch(e){return null;}
 }
 function nextCycleDate(r){
-  /* Use saved schedule so card dates match exactly what was planned.
-     For extracting refineries: show nextArrival (arrivalDate + cycleDays) — when they
-     need extracting again after the current chunk lands.
-     For idle refineries: show arrivalDate advanced past today by full cycles. */
+  /* Read from _liveResults first — exact Date objects from the last Generate run,
+     no localStorage round-trip or string parsing. Falls back to saved schedule. */
+  const _ncdToday=startOfDay(now());
+  if(_liveResults&&_liveResults.length){
+    const entry=_liveResults.find(u=>
+      (u.sid&&r.sid&&Number(u.sid)===Number(r.sid))||
+      (u.refinery&&r.name&&u.refinery.toLowerCase()===r.name.toLowerCase())
+    );
+    if(entry&&entry.arrivalDate){
+      const cycleDays=_liveResults.length*2;
+      let d=new Date(entry.arrivalDate);
+      while(d<_ncdToday)d=addDays(d,cycleDays);
+      return d;
+    }
+  }
   const saved=loadedSchedule();
   const entry=savedScheduleFor(r);
   if(entry&&entry.arrivalDate){
     const cycleDays=saved?saved.cycleDays:null;
-    const today=startOfDay(now());
     /* arrivalDate is the scheduled chunk date — advance past today if needed */
     let d=new Date(entry.arrivalDate);
-    if(cycleDays){while(d<today)d=addDays(d,cycleDays);}
+    if(cycleDays){while(d<_ncdToday)d=addDays(d,cycleDays);}
     return d;
   }
   /* Fall back to live calculation when no saved schedule exists. */
@@ -497,13 +508,15 @@ function phaseChip(r,displaySt){
   const flagged=needsExtractionSet.has(r.sid);
   let line,sub='';
   if(st==='extracting'&&!flagged){
-    line='Chunk lands in '+fmtDur(Date.parse(r.arrive)-now());
-    if(!isExcluded(r.name,r.system)){
-      const scheduled=nextCycleDate(r);
+    const scheduled=nextCycleDate(r);
+    if(scheduled&&!isExcluded(r.name,r.system)){
       const actualDay=dateKey(new Date(r.arrive));
-      const schedDay=scheduled?dateKey(scheduled):null;
-      if(schedDay&&actualDay===schedDay){sub='on schedule';}
-      else if(schedDay){sub='off schedule — expected '+dayLabel(scheduled);}
+      const schedDay=dateKey(scheduled);
+      line='Chunk arrives: '+dayLabel(scheduled);
+      if(actualDay===schedDay){sub='on schedule';}
+      else{sub='ESI: '+dayLabel(new Date(r.arrive));}
+    } else {
+      line='Chunk lands in '+fmtDur(Date.parse(r.arrive)-now());
     }
     if(!sub&&r.decay)sub='auto-decays '+fmtDur(Date.parse(r.decay)-now())+' after';
   } else if(flagged){
@@ -777,6 +790,7 @@ $('genPatternBtn').onclick=()=>{
     return {...u,arrivalDate,nextArrival,conflict,idealKey,anchored:!!anchor,anchorSource};
   });
 
+  _liveResults=results;
   const savedResults=results.map(r=>({...r,arrivalDate:r.arrivalDate.toISOString(),nextArrival:r.nextArrival.toISOString()}));
   try{localStorage.setItem(SCHEDULE_KEY,JSON.stringify({results:savedResults,N,cycleDays,filteredPlansLen:filteredPlans.length,plansLen:plansToSchedule.length,savedAt:Date.now()}));_scheduleCache=null;}catch(e){}
   renderSchedule(results,N,cycleDays,filteredPlans.length,plansToSchedule.length);
