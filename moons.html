@@ -129,7 +129,7 @@ td.dim{font-size:10.5px}
 <div class="calpanel panel" id="calPanel" style="display:none">
   <div class="panel-hd2"><h2>Extraction arrivals</h2>
     <div class="calctl">
-      <label>WINDOW (DAYS)</label><input type="number" id="optWindow" value="14" min="3" max="60">
+      <label>WINDOW (DAYS)</label><input type="number" id="optWindow" value="30" min="3" max="60">
       <label>CONSTELLATION</label><select id="optConst"><option value="all">All constellations</option></select>
       <label>EXCLUDE (KEYWORDS, COMMA-SEP)</label><input type="text" id="optExclude" placeholder="e.g. keepstar, staging">
     </div>
@@ -140,13 +140,6 @@ td.dim{font-size:10.5px}
 <div class="optgrid" id="optGrid" style="display:none">
   <aside class="optdesk panel">
     <h2>Chunk Extraction Optimiser</h2>
-    <span class="c">Stagger extraction starts across your scan-plan queue so chunks don't all land the same day — same algorithm and saved plans as the original.</span>
-    <label>ADD A SYSTEM TO THE QUEUE</label>
-    <input id="planSystem" placeholder="system name">
-    <label>CONSTELLATION (OPTIONAL — AUTO-FILLED IF SYNCED)</label>
-    <input id="planConst" list="constDatalist" placeholder="constellation">
-    <datalist id="constDatalist"></datalist>
-    <button class="btn" id="addPlanBtn">+ Queue system</button>
     <label style="margin-top:14px">QUEUED SYSTEMS</label>
     <div id="planList"></div>
     <button class="btn primary" id="genPatternBtn">Generate stagger pattern</button>
@@ -463,15 +456,28 @@ function savedScheduleFor(r){
   }catch(e){return null;}
 }
 function nextCycleDate(r){
-  /* Prefer saved generated schedule so chip indicators match exactly what was planned. */
+  /* Use saved schedule so card dates match exactly what was planned.
+     For extracting refineries: show nextArrival (arrivalDate + cycleDays) — when they
+     need extracting again after the current chunk lands.
+     For idle refineries: show arrivalDate advanced past today by full cycles. */
   const saved=loadedSchedule();
   const entry=savedScheduleFor(r);
-  if(entry&&entry.arrivalDate){
+  if(entry){
     const cycleDays=saved?saved.cycleDays:null;
     const today=startOfDay(now());
-    let d=new Date(entry.arrivalDate);
-    if(cycleDays){while(d<today)d=addDays(d,cycleDays);}
-    return d;
+    const st=statusOf(r);
+    if(st==='extracting'&&entry.nextArrival){
+      /* refinery is active — card shows when it next needs extracting */
+      let d=new Date(entry.nextArrival);
+      if(cycleDays){while(d<today)d=addDays(d,cycleDays);}
+      return d;
+    }
+    if(entry.arrivalDate){
+      /* idle — show the scheduled arrival date advanced past today */
+      let d=new Date(entry.arrivalDate);
+      if(cycleDays){while(d<today)d=addDays(d,cycleDays);}
+      return d;
+    }
   }
   /* Fall back to live calculation when no saved schedule exists. */
   const {units,gap}=buildScheduleUnits();
@@ -567,6 +573,8 @@ function render(errs){
   });
   $('calPanel').style.display='';$('optGrid').style.display='';
   refreshOptFilters();renderCalendar();renderPlanList();
+  /* auto-generate schedule now that ESI arrivals are in memory */
+  if(typeof MOON_SCHEDULE_ORDER!=='undefined'&&MOON_SCHEDULE_ORDER.length)$('genPatternBtn').click();
   reportDashboard(lanes.extracting.length+' extracting'+(lanes.idle.length?' · '+lanes.idle.length+' idle!':''),
     lanes.idle.length?'bad':'ok');
   $('loadNote').textContent='Moons sighted '+new Date().toUTCString().slice(17,25)+' EVE · '+refineries.length+' refineries';
@@ -625,14 +633,7 @@ function renderPlanList(){
   :'<div class="empty" style="padding:12px;font-size:10.5px">No systems queued for scheduling yet.</div>';
   wrap.querySelectorAll('.char-x').forEach(b=>{b.onclick=()=>{extractionPlans=extractionPlans.filter(p=>p.id!==b.dataset.id);savePlans();};});
 }
-$('addPlanBtn').onclick=()=>{
-  const sysEl=$('planSystem'),cEl=$('planConst');
-  const system=sysEl.value.trim();if(!system){sysEl.focus();return;}
-  let constellation=cEl.value.trim();
-  if(!constellation){const match=refineries.find(r=>(r.system||'').toLowerCase()===system.toLowerCase());if(match)constellation=match.constellation||'';}
-  extractionPlans.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),system,constellation});
-  sysEl.value='';cEl.value='';savePlans();
-};
+/* addPlanBtn removed — schedule order is driven by moonSchedule.js */
 $('optConst').addEventListener('change',e=>{optFilter.constellation=e.target.value;renderCalendar();renderPlanList();});
 $('optWindow').addEventListener('input',renderCalendar);
 $('optExclude').value=excludeRaw;
@@ -650,17 +651,13 @@ $('genPatternBtn').onclick=()=>{
   if(!filteredUnits.length){out.innerHTML='<div class="empty" style="padding:20px">No systems to schedule — add one, or it may be hidden by your exclusion keywords.</div>';return;}
   const N=filteredUnits.length,cycleDays=N*gap;
 
-  /* ---- step 1: pin each unit to its next known arrival date ----
-     Priority (moonSchedule.js order is always the spine):
-       a) Live ESI chunk_arrival_time — refinery actively extracting; date is real.
-       b) Personal calendar — most recent past extraction event for this refinery;
-          advance by full cycles to get next expected arrival.
-       c) Saved schedule nextArrival — idle refinery with no calendar history yet.
-     In all cases:
-       - Advance by full cycles past today.
-       - If the resulting date is within 14 days of today it is too soon to act on —
-         skip it by advancing one more full cycle so the schedule targets the
-         next actionable window. */
+  /* ---- step 1: anchor from the 3 soonest upcoming arrivals in the calendar ----
+     These are the last 3 entries in the arrivals calendar — the 3 refineries with
+     the nearest chunk_arrival_time from ESI. They are matched to their slot index in
+     filteredUnits by refinery name, pinned with their real ESI date, and all other
+     slots are derived from those anchors in moonSchedule.js order.
+     If fewer than 3 live arrivals exist, fall back to calendar history then saved
+     nextArrival for any remaining unanchored slots. */
   const saved=loadedSchedule();
   const SKIP_DAYS=14;
   const skipHorizon=addDays(today,SKIP_DAYS);
@@ -669,19 +666,31 @@ $('genPatternBtn').onclick=()=>{
     if(d<=skipHorizon)d=addDays(d,cycleDays);
     return d;
   }
-  const liveArrivals=filteredUnits.map(u=>{
-    const ref=refineries.find(r=>r.sid&&u.sid&&r.sid===u.sid);
-    /* a) live ESI arrival */
-    if(ref&&ref.arrive){
-      const d=advancePastHorizon(startOfDay(Date.parse(ref.arrive)));
-      return {date:d,source:'esi'};
+  /* primary anchors: the 3 furthest-out entries in the arrivals calendar
+     used exactly as-is — no horizon skipping, these are the reference dates */
+  const primaryAnchors=new Map();
+  const calendarEntries=refineries
+    .filter(r=>r.arrive&&!isExcluded(r.name,r.system))
+    .sort((a,b)=>Date.parse(b.arrive)-Date.parse(a.arrive))
+    .slice(0,3);
+  calendarEntries.forEach(r=>{
+    const idx=filteredUnits.findIndex(u=>
+      (u.sid&&r.sid&&Number(u.sid)===Number(r.sid))||
+      (u.refinery&&r.name&&u.refinery.toLowerCase()===r.name.toLowerCase())
+    );
+    if(idx>=0&&!primaryAnchors.has(idx)){
+      /* use the real ESI date directly — no horizon advance */
+      primaryAnchors.set(idx,{date:startOfDay(Date.parse(r.arrive)),source:'esi'});
     }
-    /* b) personal calendar — last real extraction event for this refinery */
+  });
+  /* build full liveArrivals — primary anchors are fixed; fallbacks use horizon filter */
+  const liveArrivals=filteredUnits.map((u,i)=>{
+    if(primaryAnchors.has(i))return primaryAnchors.get(i);
+    const ref=refineries.find(r=>r.sid&&u.sid&&r.sid===u.sid);
     if(ref&&ref.calendarArrive){
       const d=advancePastHorizon(startOfDay(ref.calendarArrive));
       return {date:d,source:'calendar'};
     }
-    /* c) saved nextArrival for idle refineries with no calendar history */
     if(saved&&saved.results){
       const entry=saved.results.find(s=>(u.sid&&s.sid&&Number(s.sid)===Number(u.sid))||(u.refinery&&s.refinery&&s.refinery.toLowerCase()===u.refinery.toLowerCase()));
       if(entry&&entry.nextArrival){
@@ -709,31 +718,25 @@ $('genPatternBtn').onclick=()=>{
     out.innerHTML='<div class="empty" style="padding:20px">No arrival data available — load ESI data first so the schedule has real dates to anchor to.</div>';
     return;
   }
-  /* step backwards from first known anchor to fill earlier slots.
-     Unanchored slots get the same day-of-cycle as the anchor, offset by gap×distance,
-     advanced by full cycles if in the past — the date itself is preserved. */
+  /* forward-only pass — seed slot 0 from firstKnown anchor stepping back by gap,
+     then fill every slot forward from there. No backwards derivation.
+     Anchored slots that violate order are advanced by full cycles only. */
+  /* seed slots before firstKnown by stepping back from it */
   for(let i=firstKnown-1;i>=0;i--){
-    const dist=firstKnown-i;
-    let d=addDays(anchorDates[firstKnown],-gap*dist);
-    while(d<today)d=addDays(d,cycleDays);
-    anchorDates[i]=d;
+    anchorDates[i]=addDays(anchorDates[firstKnown],-(firstKnown-i)*gap);
   }
-  /* forward pass — fill gaps and enforce order for ALL slots.
-     Anchored slots that arrive before their predecessor are advanced by full cycles
-     only — the date within the cycle never changes. Unanchored slots are derived
-     from the nearest preceding anchor by gap×distance, advanced by full cycles. */
+  /* forward pass — fill gaps and enforce order in moonSchedule.js sequence */
   let lastAnchorIdx=firstKnown;
   for(let i=1;i<N;i++){
     const minDate=addDays(anchorDates[i-1],gap);
     if(!anchorDates[i]){
-      /* derive from the nearest preceding anchor, preserving its day-of-cycle */
+      /* step forward from last known anchor by gap×distance */
       const dist=i-lastAnchorIdx;
       let d=addDays(anchorDates[lastAnchorIdx],gap*dist);
-      while(d<today)d=addDays(d,cycleDays);
       while(d<minDate)d=addDays(d,cycleDays);
       anchorDates[i]=d;
     } else {
-      /* anchored — advance by full cycles only until it clears the previous slot */
+      /* anchored — advance by full cycles only if it violates order */
       let d=new Date(anchorDates[i]);
       while(d<minDate)d=addDays(d,cycleDays);
       anchorDates[i]=d;
@@ -772,18 +775,49 @@ function renderSchedule(results,N,cycleDays,filteredPlansLen,plansLen,savedAt){
   let notice='';
   if(conflicts)notice+='<span style="color:var(--c-warn,#e0a030);font-size:10px"> · ⚠ '+conflicts+' unresolvable conflict'+(conflicts!==1?'s':'')+'</span>';
   if(bumps)notice+='<span style="font-size:10px;opacity:.7"> · '+bumps+' slot'+(bumps!==1?'s':'')+' nudged to avoid clashes</span>';
-  out.innerHTML='<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+filteredPlansLen+' system'+(plansLen!==1?'s':'')+' · one full cycle every <b>'+cycleDays+'d</b>. Each system\'s refineries are all scheduled before the cycle returns to the first.'+notice+stamp+'</div>'+
-  '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Chunk arrival</th><th>Next arrival</th><th>Status</th></tr></thead><tbody>'+
-  results.map((r,i)=>{
-    const arr=new Date(r.arrivalDate),nxt=new Date(r.nextArrival);
+  function rowHtml(r,i,arr,nxt,cycle){
     let status='';
-    if(r.conflict)status='<span style="color:var(--c-warn,#e0a030)">⚠ conflict</span>';
-    else if(r.anchorSource==='esi')status='<span style="color:var(--c-ok,#4caf82)">⚓ live</span>';
-    else if(r.anchorSource==='calendar')status='<span style="color:var(--c-ok,#4caf82)">📅 calendar</span>';
+    if(cycle>0)status='<span style="opacity:.5">cycle '+(cycle+1)+'</span>';
+    else if(r.conflict)status='<span style="color:var(--c-warn,#e0a030)">⚠ conflict</span>';
+    else if(r.anchorSource==='esi')status='<span style="color:var(--c-ok,#4caf82)">⚓ calendar</span>';
+    else if(r.anchorSource==='calendar')status='<span style="color:var(--c-ok,#4caf82)">📅 history</span>';
     else if(r.anchorSource==='next')status='<span style="color:var(--c-ok,#4caf82)">↻ saved</span>';
     else status='<span style="opacity:.6">derived</span>';
-    return '<tr><td class="dim">'+(i+1)+'</td><td><div class="nm">'+esc(r.system)+'</div></td><td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td><td class="dim">'+esc(r.constellation||'Unspecified')+'</td><td>'+dayLabel(arr)+'</td><td class="dim">'+dayLabel(nxt)+'</td><td style="font-size:10px">'+status+'</td></tr>';
-  }).join('')+
+    return '<tr'+(cycle>0?' style="opacity:.55"':'')+'><td class="dim">'+(i+1)+'</td><td><div class="nm">'+esc(r.system)+'</div></td><td>'+(r.refinery?esc(r.refinery):'<span class="dim">— not synced —</span>')+'</td><td class="dim">'+esc(r.constellation||'Unspecified')+'</td><td>'+dayLabel(arr)+'</td><td class="dim">'+dayLabel(nxt)+'</td><td style="font-size:10px">'+status+'</td></tr>';
+  }
+  /* For each result, the date the card shows as "next extraction needed" is:
+     - extracting: nextArrival (after current chunk lands)
+     - idle:       arrivalDate advanced past today
+     The schedule table uses the same logic so dates match the cards. */
+  function cardDate(r){
+    const ref=refineries.find(rf=>rf.sid&&r.sid&&Number(rf.sid)===Number(r.sid));
+    const isExtracting=ref&&ref.arrive&&Date.parse(ref.arrive)>now();
+    const today=startOfDay(now());
+    if(isExtracting){
+      let d=new Date(r.nextArrival);
+      while(d<today)d=addDays(d,cycleDays);
+      return d;
+    }
+    let d=new Date(r.arrivalDate);
+    while(d<today)d=addDays(d,cycleDays);
+    return d;
+  }
+  /* cycle 0 rows */
+  const cycle0=results.map((r,i)=>{
+    const arr=cardDate(r);
+    const nxt=addDays(arr,cycleDays);
+    return rowHtml(r,i,arr,nxt,0);
+  }).join('');
+  /* cycle 1 rows — wrap-around continuation */
+  const sep='<tr><td colspan="7" style="padding:4px 12px;font-size:9px;opacity:.4;border-top:1px solid var(--border,#333);letter-spacing:.08em">↻ CYCLE REPEATS</td></tr>';
+  const cycle1=results.map((r,i)=>{
+    const arr=addDays(cardDate(r),cycleDays);
+    const nxt=addDays(arr,cycleDays);
+    return rowHtml(r,i,arr,nxt,1);
+  }).join('');
+  out.innerHTML='<div class="hint2">'+N+' extraction'+(N!==1?'s':'')+' across '+filteredPlansLen+' system'+(plansLen!==1?'s':'')+' · one full cycle every <b>'+cycleDays+'d</b>. Each system\'s refineries are all scheduled before the cycle returns to the first.'+notice+stamp+'</div>'+
+  '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>System</th><th>Refinery</th><th>Constellation</th><th>Next extraction</th><th>Following cycle</th><th>Status</th></tr></thead><tbody>'+
+  cycle0+sep+cycle1+
   '</tbody></table></div>';
 }
 $('loadBtn').onclick=loadAll;
