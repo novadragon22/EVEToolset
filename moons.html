@@ -752,22 +752,18 @@ $('genPatternBtn').onclick=()=>{
   for(let i=firstKnown-1;i>=0;i--){
     anchorDates[i]=addDays(anchorDates[firstKnown],-(firstKnown-i)*gap);
   }
-  /* forward pass — fill gaps and enforce order in moonSchedule.js sequence */
-  let lastAnchorIdx=firstKnown;
+  /* forward pass — each slot is always prev + gap.
+     Unanchored: step exactly gap days from previous slot.
+     Anchored: keep the fixed date but advance by full cycles if it would
+     fall before prev+gap, preserving the day-of-cycle. */
   for(let i=1;i<N;i++){
     const minDate=addDays(anchorDates[i-1],gap);
     if(!anchorDates[i]){
-      /* step forward from last known anchor by gap×distance */
-      const dist=i-lastAnchorIdx;
-      let d=addDays(anchorDates[lastAnchorIdx],gap*dist);
-      while(d<minDate)d=addDays(d,cycleDays);
-      anchorDates[i]=d;
+      anchorDates[i]=new Date(minDate);
     } else {
-      /* anchored — advance by full cycles only if it violates order */
       let d=new Date(anchorDates[i]);
       while(d<minDate)d=addDays(d,cycleDays);
       anchorDates[i]=d;
-      lastAnchorIdx=i;
     }
   }
 
