@@ -159,7 +159,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .hero-strip .sub{font-size:12.5px}
 .hero-rivets{display:flex;gap:8px}
 .hero-rivets span{width:8px;height:8px}
-.view{display:none;padding:0 40px 40px;position:relative;z-index:2}
+.view{display:none;padding:0 40px 40px;position:relative;z-index:2;overflow-y:auto;max-height:calc(100vh - 180px);scrollbar-width:thin}
+.view::-webkit-scrollbar{width:6px}
+.view::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
 .view.on{display:block;animation:viewIn .4s cubic-bezier(.2,.9,.3,1)}
 @keyframes viewIn{ from{opacity:0; transform:translateY(14px) scale(.99)} to{opacity:1; transform:translateY(0) scale(1)} }
 .panel-body{padding:30px}
@@ -181,7 +183,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none}
 .forge-info .ft .act{margin-right:12px;font-size:10px;padding:4px 10px}
 .forge-info .fm{font-size:12.5px;margin-top:8px}
 .forge-time{font-size:15px;text-align:right;min-width:120px}
-.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;max-height:70vh;overflow-y:auto;padding-right:6px;align-items:start}
+.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px;padding-right:6px;align-items:start}
 .bp-grid::-webkit-scrollbar, #researchBpList::-webkit-scrollbar{width:10px}
 .bp-card{padding:12px 14px;cursor:pointer;position:relative;overflow:hidden;transition:.3s cubic-bezier(.2,.9,.3,1.2);align-self:start}
 .bp-card::before, .bp-card::after{content:'';position:absolute;width:18px;height:18px;opacity:.8}
@@ -1349,7 +1351,7 @@ document.getElementById('importJsonFile').addEventListener('change', (e)=>{
   e.target.value='';
 });
 
-let bpTypeFilt='blueprint', bpStatusFilt='missing', bpSourceFilt='all', bpSearchTerm='';
+let bpTypeFilt='all', bpStatusFilt='missing', bpSourceFilt='all', bpSearchTerm='';
 const BP_RENDER_CHUNK=64; let bpRenderLimit=BP_RENDER_CHUNK; // 8 cols × 8 rows
 function applyBpFilters(){
   bpRenderLimit = BP_RENDER_CHUNK;
@@ -2007,31 +2009,89 @@ function bpCardHtml(name, d, m){
   '</div>';
 }
 
+function bpCardHtmlFromEsi({ tid, name, sde, isReaction, best, bpos, allCopies, hasPersonal, hasCorp, sources, status }){
+  const owned = status === 'owned';
+  const meTe = owned && best
+    ? '<div class="bp-me"><span>ME '+best.material_efficiency+'%</span>'+(isReaction?'':'<span>TE '+best.time_efficiency+'%</span>')+'</div>'
+    : '';
+  const bpoCount = bpos.length;
+  const copiesLine = owned && bpoCount > 1
+    ? '<div class="sub" style="font-size:10.5px;margin-top:4px">×'+bpoCount+' BPOs — '+
+      bpos.map(c=>'['+(c.source==='corp'?'Corp':'Personal')+'] ME '+c.material_efficiency+'%/TE '+c.time_efficiency+'%').join(', ')+'</div>'
+    : '';
+  const mins = sde && sde.buildTime ? Math.round(sde.buildTime/60) : null;
+  const buildLine = owned
+    ? '<div class="bp-build">Base '+(isReaction?'reaction':'build')+' time: <b class="ok">'+(mins!=null?mins+' min':'—')+'</b></div>'
+    : '<div class="bp-build dim">Not owned as BPO — buy or acquire the original first</div>';
+  const needsResearch = owned && !isReaction && best && (best.material_efficiency < 10 || best.time_efficiency < 20);
+  const researchBtn = needsResearch ? '<button class="bp-add research btn">Add to research ▸</button>' : '';
+  const addBtn = owned
+    ? '<button class="bp-add btn">Add to build planner ▸</button>'
+    : '<button class="bp-add find btn">Find this blueprint ▸</button>';
+  const ownerLine = owned
+    ? '<div class="bp-owner personal">'+(hasPersonal&&hasCorp?'BPO (Personal + Corp)':hasCorp?'BPO (Corp Hangar)':'BPO (Personal)')+'</div>'
+    : '';
+  const productTypeID = sde ? sde.productTypeID : null;
+  const fallbackIcon = isReaction ? '⚛' : '🚀';
+  const iconHtml = productTypeID
+    ? '<img src="https://images.evetech.net/types/'+productTypeID+'/icon?size=64" loading="lazy" alt="" onerror="this.parentNode.textContent=\''+fallbackIcon+'\';">'
+    : fallbackIcon;
+  return '<div class="bp-card" data-type="'+(isReaction?'reaction':'blueprint')+'" data-status="'+status+'" data-source="'+sources.join(',')+'" data-bptypeid="'+(tid||'')+'">'+
+    '<div class="bp-icon">'+iconHtml+'</div>'+
+    '<div class="bp-name">'+name+'</div>'+
+    meTe + copiesLine + buildLine + ownerLine + addBtn + researchBtn +
+  '</div>';
+}
+
 function renderBpLibrary(){
   const grid = document.getElementById('bpGrid');
   const entries = Object.entries(BP_SDE_DETAIL);
   if(!entries.length){ grid.innerHTML = '<div class="sub" style="padding:20px 4px">No blueprint catalog data loaded.</div>'; return; }
 
-  const counts = { all:0, blueprint:0, reaction:0, owned:0, missing:0, personal:0, corp:0 };
+  // Build a set of bpTypeIDs that have at least one ESI BPO (runs === -1).
+  const ownedBpoIds = new Set(
+    Object.entries(libraryAllCopiesByBpTypeId)
+      .filter(([,copies]) => copies.some(c => c.runs === -1))
+      .map(([tid]) => Number(tid))
+  );
+
+  const counts = { blueprint:0, reaction:0, owned:0, missing:0, personal:0, corp:0 };
   const filtered = [];
+
   for(const [name, d] of entries){
-    if(!isLibraryBP(name, d)) continue;
-    const m = bpEntryMeta(d);
-    counts.all++; counts[m.isReaction?'reaction':'blueprint']++; counts[m.status]++;
-    if(m.hasPersonal) counts.personal++;
-    if(m.hasCorp) counts.corp++;
-    const typeOk = bpTypeFilt==='all' || (m.isReaction?'reaction':'blueprint')===bpTypeFilt;
-    const statusOk = bpStatusFilt==='all' || m.status===bpStatusFilt;
-    const sourceOk = bpSourceFilt==='all' || m.sources.includes(bpSourceFilt);
+    const tid = d.bpTypeID;
+    const isReaction = !!d.isReaction;
+    const isBpo = tid != null && ownedBpoIds.has(tid);
+
+    // Ownership determined purely by ESI BPO presence
+    const allCopies = tid != null ? (libraryAllCopiesByBpTypeId[tid] || []) : [];
+    const bpos = allCopies.filter(c => c.runs === -1);
+    const best = bpos.length ? bpos.reduce((a,b) =>
+      b.material_efficiency > a.material_efficiency ||
+      (b.material_efficiency === a.material_efficiency && b.time_efficiency > a.time_efficiency) ? b : a, bpos[0]) : null;
+    const hasPersonal = bpos.some(c=>c.source==='personal');
+    const hasCorp = bpos.some(c=>c.source==='corp');
+    const sources = [hasPersonal?'personal':null, hasCorp?'corp':null].filter(Boolean);
+    const status = isBpo ? 'owned' : 'missing';
+
+    counts[isReaction?'reaction':'blueprint']++;
+    counts[status]++;
+    if(hasPersonal) counts.personal++;
+    if(hasCorp) counts.corp++;
+
+    const typeOk = bpTypeFilt==='all' || (isReaction?'reaction':'blueprint')===bpTypeFilt;
+    const statusOk = bpStatusFilt==='all' || status===bpStatusFilt;
+    const sourceOk = bpSourceFilt==='all' || sources.includes(bpSourceFilt);
     const searchOk = !bpSearchTerm || name.toLowerCase().includes(bpSearchTerm);
-    if(typeOk && statusOk && sourceOk && searchOk) filtered.push([name, d, m]);
+    if(typeOk && statusOk && sourceOk && searchOk)
+      filtered.push({ tid, name, sde:d, isReaction, best, bpos, allCopies, hasPersonal, hasCorp, sources, status });
   }
 
   const shown = filtered.slice(0, bpRenderLimit);
   const remaining = filtered.length - shown.length;
   grid.innerHTML =
-    (shown.map(([n,d,m])=>bpCardHtml(n,d,m)).join('') ||
-      '<div class="sub" style="padding:20px 4px">No T1 blueprints match the current filters. T2, T3, faction, and seeded blueprints are only visible in the Browse tab.</div>') +
+    (shown.map(e=>bpCardHtmlFromEsi(e)).join('') ||
+      '<div class="sub" style="padding:20px 4px">No blueprints match the current filters.</div>') +
     (remaining>0
       ? '<div class="bp-more-row" style="grid-column:1/-1;text-align:center;padding:6px 0"><button id="bpShowMore" class="btn">Show '+Math.min(BP_RENDER_CHUNK,remaining)+' more · '+remaining.toLocaleString()+' of '+filtered.length.toLocaleString()+' matches not shown</button></div>'
       : '');
