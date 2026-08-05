@@ -174,10 +174,10 @@ td .reg{font-size:9px}
 /* pilot-system assignment */
 .assign-panel{margin-top:16px}
 .assign-panel h3{font-size:10px;margin:0 0 8px}
-.assign-table{width:100%;border-collapse:collapse;font-size:10.5px}
+.assign-table{width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:10px}
 .assign-table th{font-size:8.5px;text-align:left;padding:6px 8px;white-space:nowrap;border-bottom:1px solid var(--line2)}
 .assign-table td{padding:5px 8px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.04)}
-.assign-table td:first-child{white-space:nowrap;font-size:10px;color:var(--muted2)}
+.assign-table td:first-child{white-space:nowrap;font-size:10px}
 .assign-sel{font-size:10.5px;padding:3px 6px;background:var(--bg2);border:1px solid var(--line2);color:var(--fg);width:100%;min-width:120px}
 .assign-warn{font-size:9px;color:var(--amber);display:block;margin-top:2px}
 .assign-contrib{font-size:9px;color:var(--cyan);display:block;margin-top:2px}
@@ -1183,6 +1183,160 @@ function selectSystem(id){
   });
   cap.addEventListener('input',()=>{haulCapacity=+cap.value||1;try{localStorage.setItem('pi_haul_capacity',haulCapacity);}catch(e){}renderLogistics();});
 }
+function buildChainTreeSvg(rootTid, byTier, tierNums, pickCache, acc){
+  // Build a left-to-right horizontal tree: P0 leaves on left, final product on right
+  // Each tier is a column; products within a tier are stacked vertically
+  // Bezier edges connect inputs to outputs following the actual BOM
+
+  const COL_W = 180, NODE_H = 56, NODE_W = 162, PAD_X = 12, PAD_Y = 10;
+  const GAP_X = 38; // space between columns for edges
+
+  // Build columns: each tier is a column, products are rows within it
+  const cols = tierNums.map(ti => {
+    const prods = byTier[ti] || [];
+    return prods.map(pid => {
+      const nm = ti === 0 ? (PI.names[pid]||('Type '+pid)) : (PI.recipe[pid]?PI.recipe[pid].name:('Type '+pid));
+      const pk = pickCache[pid];
+      const sysName = pk ? SYS[pk.id][0] : '—';
+      const isTarget = pk && pk.anchored;
+      const hasP4 = isP4 ? isP4(pid) : false;
+      const p4warn = hasP4 && pk && !hasP4FactoryPlanet(SYS[pk.id]);
+      const qtyPerHr = ti === 0
+        ? (acc.p0[pid]||0) * perHour(rootTid)
+        : (acc.steps[pid]||0) * perHour(rootTid);
+      return { pid, nm, ti, sysName, isTarget, hasP4, p4warn, qtyPerHr };
+    });
+  });
+
+  // Layout: compute x/y for each node
+  const colCount = cols.length;
+  const maxRows = Math.max(...cols.map(c=>c.length), 1);
+  const svgW = colCount * (NODE_W + GAP_X) + PAD_X * 2;
+  const svgH = Math.max(maxRows * (NODE_H + 10) + PAD_Y * 2, NODE_H + PAD_Y * 2);
+
+  // Node centre positions
+  const nodePos = {}; // "ti_pid" -> {cx, cy, x, y, w, h}
+  cols.forEach((nodes, ci) => {
+    const totalH = nodes.length * (NODE_H + 10) - 10;
+    const startY = (svgH - totalH) / 2;
+    nodes.forEach((n, ni) => {
+      const x = PAD_X + ci * (NODE_W + GAP_X);
+      const y = startY + ni * (NODE_H + 10);
+      nodePos[n.ti+'_'+n.pid] = { x, y, cx: x + NODE_W/2, cy: y + NODE_H/2 };
+    });
+  });
+
+  // Build edges: for each non-P0 product, connect its BOM inputs
+  const edges = [];
+  cols.forEach(nodes => {
+    nodes.forEach(n => {
+      if(n.ti === 0) return;
+      const recipe = PI.recipe[n.pid];
+      if(!recipe) return;
+      const to = nodePos[n.ti+'_'+n.pid];
+      if(!to) return;
+      recipe.in.forEach(([inp]) => {
+        // Find inp in any earlier column
+        const inpTi = PI.tier[inp] != null ? PI.tier[inp] : (PI.p0pt && PI.p0pt[inp] ? 0 : null);
+        if(inpTi == null) return;
+        const from = nodePos[inpTi+'_'+String(inp)];
+        if(!from) return;
+        edges.push({ from, to, inp });
+      });
+    });
+  });
+
+  // SVG colour vars — use inline styles matching EVE theme
+  const fmtQ = v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'k' : Math.round(v).toString();
+
+  let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'+svgW+'" height="'+svgH+'" style="display:block;overflow:visible;font-family:inherit">';
+
+  // Defs: subtle drop shadow
+  svg += '<defs><filter id="ctshadow" x="-10%" y="-10%" width="120%" height="120%">';
+  svg += '<feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(0,0,0,.4)"/></filter></defs>';
+
+  // Draw edges first (under nodes)
+  edges.forEach(({from, to}) => {
+    const x1 = from.x + NODE_W;
+    const y1 = from.cy;
+    const x2 = to.x;
+    const y2 = to.cy;
+    const mx = (x1 + x2) / 2;
+    svg += '<path d="M'+x1+','+y1+' C'+mx+','+y1+' '+mx+','+y2+' '+x2+','+y2+'" '
+      + 'fill="none" stroke="rgba(122,184,200,0.28)" stroke-width="1.5" stroke-linecap="round"/>';
+  });
+
+  // Draw nodes
+  cols.forEach(nodes => {
+    nodes.forEach(n => {
+      const pos = nodePos[n.ti+'_'+n.pid];
+      if(!pos) return;
+      const { x, y } = pos;
+      const isP0 = n.ti === 0;
+      const isRoot = n.isTarget;
+
+      // Card background
+      const fill = isRoot ? 'rgba(122,184,200,0.13)' : isP0 ? 'rgba(100,80,40,0.18)' : 'rgba(255,255,255,0.04)';
+      const stroke = isRoot ? 'rgba(122,184,200,0.55)' : isP0 ? 'rgba(201,168,104,0.4)' : 'rgba(255,255,255,0.1)';
+      const sw = isRoot ? 1.5 : 1;
+      svg += '<rect x="'+x+'" y="'+y+'" width="'+NODE_W+'" height="'+NODE_H+'" rx="5" ry="5" '
+        + 'fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'" filter="url(#ctshadow)"/>';
+
+      // Tier badge
+      const badgeColor = isP0 ? '#c9a868' : isRoot ? '#7ab8c8' : '#8aacb8';
+      svg += '<text x="'+(x+7)+'" y="'+(y+13)+'" font-size="8" fill="'+badgeColor+'" font-weight="600" letter-spacing="0.5">P'+n.ti+(isRoot?' · TARGET':'')+(n.hasP4?' · ADV':'')+'</text>';
+
+      // Role badge: pilot names covering this tier
+      {
+        const tierRole = isP0 ? 'Extractor' : 'Factory';
+        const coveringPilots = [];
+        if(typeof visibleIds === 'function'){
+          visibleIds().forEach(pid2 => {
+            const r2 = roles[pid2] || '\u2014';
+            if(r2 === 'Full chain' || r2 === tierRole) coveringPilots.push(pid2);
+          });
+        }
+        if(coveringPilots.length){
+          const initials = coveringPilots.slice(0,2).map(pid2 => {
+            const nm2 = (chars[pid2]&&chars[pid2].charName)||('Pilot '+pid2);
+            return nm2.split(' ')[0].slice(0,9);
+          }).join(', ')+(coveringPilots.length>2?' +':'');
+          const roleColor = isP0 ? 'rgba(201,168,104,0.85)' : 'rgba(122,184,200,0.85)';
+          const bw = Math.min(NODE_W-14, initials.length*5.2+10);
+          const bx = x+NODE_W-bw-4;
+          const by = y+4;
+          svg += '<rect x="'+bx+'" y="'+by+'" width="'+bw+'" height="13" rx="3" fill="rgba(0,0,0,0.4)"/>';
+          svg += '<text x="'+(bx+bw/2)+'" y="'+(by+9.5)+'" font-size="7.5" fill="'+roleColor+'" text-anchor="middle" font-weight="600">'+esc(initials)+'</text>';
+        }
+      }
+
+
+      // Product name (truncate if needed)
+      const maxNmLen = 19;
+      const nm = n.nm.length > maxNmLen ? n.nm.slice(0, maxNmLen-1)+'…' : n.nm;
+      svg += '<text x="'+(x+7)+'" y="'+(y+27)+'" font-size="11" fill="rgba(255,255,255,0.9)" font-weight="500">'+esc(nm)+'</text>';
+
+      // System name
+      const sysColor = isRoot ? '#7ab8c8' : 'rgba(255,255,255,0.38)';
+      const sysNm = n.sysName.length > 18 ? n.sysName.slice(0,17)+'…' : n.sysName;
+      svg += '<text x="'+(x+7)+'" y="'+(y+39)+'" font-size="9" fill="'+sysColor+'">'+esc(sysNm)+'</text>';
+
+      // Qty/hr
+      if(n.qtyPerHr > 0){
+        svg += '<text x="'+(x+NODE_W-6)+'" y="'+(y+NODE_H-6)+'" font-size="8.5" fill="rgba(255,255,255,0.3)" text-anchor="end">'+fmtQ(n.qtyPerHr)+'/hr</text>';
+      }
+
+      // P4 warning
+      if(n.p4warn){
+        svg += '<text x="'+(x+7)+'" y="'+(y+NODE_H-6)+'" font-size="8" fill="#e09040">⚠ no T/B planet</text>';
+      }
+    });
+  });
+
+  svg += '</svg>';
+  return '<div style="overflow-x:auto;padding:6px 2px 12px">'+svg+'</div>';
+}
+
 function _orig_renderLogistics(){
   if(!selectedSystemId||!basketIds().length)return;
   const SYS=UNIVERSE.systems;
@@ -1227,32 +1381,9 @@ function _orig_renderLogistics(){
       });
     });
 
-    /* stage flow — one column per tier, all products in that tier stacked */
-    if(targets.length>1)flowHtml+='<div class="ct-prodhead" style="margin-top:8px">'+esc(PI.recipe[t].name)+' \u00d7'+qty+'</div>';
-    flowHtml+='<div class="stageflow">';
-    tierNums.forEach((ti,col)=>{
-      const prods=byTier[ti]||[];
-      const tierPicks=prods.map(p=>pickCache[p]).filter(Boolean);
-      const repPick=tierPicks[0]||null;
-      const tierSysSet=new Map();
-      prods.forEach(pid=>{const pk=pickCache[pid];if(pk)tierSysSet.set(pk.id,SYS[pk.id][0]);});
-      const tierSysNames=[...tierSysSet.values()];
-      const hasP4here=prods.some(pid=>isP4(pid));
-      const p4ok=!hasP4here||(repPick&&hasP4FactoryPlanet(SYS[repPick.id]));
-      flowHtml+='<div class="stagecard card'+(repPick&&repPick.anchored?' anchored':'')+'">'+
-        '<div class="roman">P'+ti+(repPick&&repPick.anchored?' \u00b7 TARGET':'')+
-        (hasP4here?' \u00b7 <span style="color:var(--amber)">Adv. facility</span>':'')+'</div>'+
-        prods.map(pid=>{
-          const nm=ti===0?(PI.names[pid]||pid):(PI.recipe[pid]?PI.recipe[pid].name:pid);
-          return '<div class="st-prod">'+esc(nm)+(ti===0?' (raw)':'')+'</div>';
-        }).join('')+
-        '<div class="st-sys">'+esc(tierSysNames.join(', ')||'no system found')+'</div>'+
-        (repPick&&repPick.jumps!=null&&repPick.jumps!==Infinity?'<div class="st-meta">'+repPick.jumps+'j from home</div>':'')+
-        (hasP4here&&!p4ok?'<div class="st-meta" style="color:var(--amber)">\u26a0 no T/B planet for Advanced facility</div>':'')+
-        '</div>';
-      if(col<tierNums.length-1)flowHtml+='<div class="stagelink">\u2192</div>';
-    });
-    flowHtml+='</div>';
+    /* stage flow — SVG horizontal tree */
+    if(targets.length>1)flowHtml+='<div class="ct-prodhead" style="margin-top:8px">'+esc(PI.recipe[t].name)+' ×'+qty+'</div>';
+    flowHtml+=buildChainTreeSvg(t,byTier,tierNums,pickCache,acc);
 
     /* haul cadence — one row per tier boundary */
     let rows='';
@@ -1301,6 +1432,220 @@ function _orig_renderLogistics(){
   const stops=[...routeStops.values()].sort((x,y)=>(x.jumps??1e9)-(y.jumps??1e9));
   $('logiRoute').innerHTML=stops.map((s,i)=>'<div class="route-row"><span><span class="stop-idx">'+(i+1)+'.</span><span class="stop-name">'+esc(s.sysName)+'</span></span><span>'+(s.jumps!=null?s.jumps+' jumps from home':'jumps unknown')+'</span></div>').join('')+
     '<div class="route-summary">Nearest-first route across '+stops.length+' system'+(stops.length===1?'':'s')+' · ~'+totalTripsAll+' total trip'+(totalTripsAll===1?'':'s')+' to clear every haul stage across the whole basket at current cadence.</div>';
+  /* ---- FEATURE 1: Pilot → Stage Assignment ---- */
+  const pilotIds=visibleIds();
+  if(pilotIds.length){
+    const tierSysMap={};
+    targets.forEach(tid=>{
+      const t=+tid;
+      const acc=bomExpand(t,1);
+      const byTier={};
+      Object.keys(acc.p0).forEach(p=>{(byTier[0]=byTier[0]||[]).push(String(p));});
+      Object.keys(acc.steps).forEach(p=>{const ti=PI.tier[p]||0;(byTier[ti]=byTier[ti]||[]).push(String(p));});
+      const tierNums2=Object.keys(byTier).map(Number).sort((a,b)=>a-b);
+      const pickCache2={};
+      tierNums2.forEach(ti=>{
+        (byTier[ti]||[]).forEach(pid=>{
+          if(String(ti)===String(PI.tier[t])){
+            pickCache2[pid]={id:selectedSystemId,anchored:true};
+          } else {
+            const pick=bestSystemFor(pid,selectedSystemId,nearDist);
+            pickCache2[pid]=pick;
+          }
+          const pk=pickCache2[pid];
+          const sysId=pk?pk.id:selectedSystemId;
+          if(!tierSysMap[ti]) tierSysMap[ti]=[];
+          const existing=tierSysMap[ti].find(e=>e.sysId===sysId);
+          const nm=ti===0?(PI.names[pid]||pid):(PI.recipe[pid]?PI.recipe[pid].name:pid);
+          if(existing){if(!existing.prods.includes(nm))existing.prods.push(nm);}
+          else tierSysMap[ti].push({sysId,sysName:SYS[sysId][0],prods:[nm]});
+        });
+      });
+    });
+    const allTiers=Object.keys(tierSysMap).map(Number).sort((a,b)=>a-b);
+    const roleTierMap={'Extractor':[0],'Factory':allTiers.filter(t=>t>0),'Full chain':allTiers,'—':[]};
+
+    /* Feature 7: slot utilisation */
+    const capSt2=(typeof capacityState==='function')?capacityState():null;
+    const totalFactorySlots=capSt2?capSt2.fSlots:0;
+    const slotDemandByTier={};
+    targets.forEach(tid=>{
+      const t=+tid,share=(+basket[tid]||1);
+      const acc=bomExpand(t,1);
+      Object.keys(acc.steps).forEach(pid=>{
+        const ti=PI.tier[pid]||0;
+        const ph=perHour(+pid);
+        if(ph>0){const demand=acc.steps[pid]*perHour(t)/ph*share;slotDemandByTier[ti]=(slotDemandByTier[ti]||0)+demand;}
+      });
+    });
+    const totalDemand=Object.values(slotDemandByTier).reduce((s,v)=>s+v,0);
+    const slotPct=totalFactorySlots>0?Math.round(100*totalDemand/totalFactorySlots):null;
+    const slotColor=slotPct==null?'var(--muted2)':slotPct>100?'var(--red)':slotPct>80?'var(--amber)':'var(--ok)';
+
+    // --- Extraction assignment: split P0 resources across extractor pilots ---
+    const allP0s=basketP0(); // all P0 typeIDs needed by the basket
+    const extractorPilots=pilotIds.filter(id=>roles[id]==='Extractor'||roles[id]==='Full chain');
+    const selSysRow=SYS[selectedSystemId];
+    const selCounts=selSysRow[5]||{};
+
+    // For each P0, compute how many planets in selected system can extract it
+    // and how much P0/hr is needed (from bomExpand across basket)
+    const p0Demand={}; // p0id -> total P0/hr needed across all basket items
+    targets.forEach(tid=>{
+      const t=+tid,qty=basket[tid]||10;
+      const acc=bomExpand(t,1);
+      const ph=perHour(t)*qty;
+      Object.keys(acc.p0).forEach(p=>{p0Demand[p]=(p0Demand[p]||0)+acc.p0[p]*ph;});
+    });
+
+    // Build planet assignment: for each extractor pilot, assign P0s based on planet capacity
+    // Strategy: each extractor pilot gets a slice of the total extractor planet pool
+    const totalExtractPlanets=extractorPilots.reduce((s,id)=>s+pilotCap(id).planets,0);
+    const extractAssign={}; // pilotId -> [{p0id, p0Name, planetsNeeded, planetTypes[], available}]
+    if(extractorPilots.length && allP0s.length){
+      // Compute planets needed per P0 (proportional to demand share)
+      const totalDemand=Object.values(p0Demand).reduce((s,v)=>s+v,0)||1;
+      const p0PlanetShare={}; // p0id -> fraction of extractor planets it needs
+      allP0s.forEach(p=>{p0PlanetShare[p]=(p0Demand[p]||0)/totalDemand;});
+
+      // Assign P0s to pilots round-robin weighted by planet capacity
+      let remaining=allP0s.slice();
+      extractorPilots.forEach(id=>{ extractAssign[id]=[]; });
+      // Simple greedy: assign each P0 to the pilot with most spare planet capacity
+      const used={};extractorPilots.forEach(id=>{used[id]=0;});
+      remaining.forEach(p=>{
+        // pick pilot with lowest used/capacity ratio
+        const pick=extractorPilots.reduce((best,id)=>{
+          const cap2=pilotCap(id).planets;
+          return (used[id]/cap2)<(used[best]/pilotCap(best).planets)?id:best;
+        },extractorPilots[0]);
+        const ptypes=PI.p0pt[p]||[];
+        const available=ptypes.reduce((s,t)=>s+(selCounts[t]||0),0);
+        const planetsNeeded=Math.max(1,Math.ceil(pilotCap(pick).planets*p0PlanetShare[p]));
+        extractAssign[pick].push({p0id:p,p0Name:PI.names[p]||('Resource '+p),ptypes,available,planetsNeeded,demandPerHr:p0Demand[p]||0});
+        used[pick]+=planetsNeeded;
+      });
+    }
+
+    let assignHtml='<div class="lbl2" style="font-size:8.5px;margin:14px 0 6px">PILOT → STAGE ASSIGNMENT</div>';
+    assignHtml+='<table class="assign-table"><thead><tr><th>PILOT</th><th>ROLE</th><th>TIERS COVERED</th><th>SYSTEM(S)</th><th>CONTRIBUTION</th></tr></thead><tbody>';
+    pilotIds.forEach(id=>{
+      const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
+      const r=roles[id]||'—';
+      const covTiers=(roleTierMap[r]||[]);
+      const covSys=[];
+      covTiers.forEach(ti=>{(tierSysMap[ti]||[]).forEach(e=>{if(!covSys.includes(e.sysName))covSys.push(e.sysName);});});
+      const cap=pilotCap(id);
+      let contrib='';
+      if(r==='Extractor'||r==='Full chain') contrib=cap.planets+'p · '+fmtInt(cap.planets*extractRate())+' P0/hr';
+      if(r==='Factory') contrib=cap.planets+'×'+cap.slots+' = '+(cap.planets*cap.slots)+' slots';
+      assignHtml+='<tr>'+
+        '<td>'+esc(nm)+'</td>'+
+        '<td><span class="r r-'+ROLES.indexOf(r)+'" style="font-size:9px;padding:2px 6px">'+esc(r)+'</span></td>'+
+        '<td>'+(covTiers.length?covTiers.map(t=>'P'+t).join(', '):'none')+'</td>'+
+        '<td>'+(covSys.length?esc(covSys.join(', ')):'none')+'</td>'+
+        '<td style="font-size:9px;color:var(--cyan)">'+esc(contrib)+'</td>'+
+      '</tr>';
+    });
+    const unassigned=pilotIds.filter(id=>!roles[id]||roles[id]==='—');
+    if(unassigned.length) assignHtml+='<tr><td colspan="5" style="color:var(--amber);font-size:9px;padding:6px 8px">⚠ '+unassigned.length+' pilot'+(unassigned.length===1?'':'s')+' unassigned</td></tr>';
+    assignHtml+='</tbody></table>';
+
+    /* --- Extraction assignment table --- */
+    if(extractorPilots.length && allP0s.length){
+      assignHtml+='<div class="lbl2" style="font-size:8.5px;margin:14px 0 6px">EXTRACTION ASSIGNMENTS — '+selSysRow[0]+'</div>';
+      assignHtml+='<table class="assign-table"><thead><tr><th>PILOT</th><th>RESOURCE</th><th>PLANET TYPES</th><th>PLANETS IN SYS</th><th>PLANETS ASSIGNED</th><th>DEMAND</th></tr></thead><tbody>';
+      extractorPilots.forEach(id=>{
+        const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
+        const assignments=extractAssign[id]||[];
+        const cap=pilotCap(id);
+        const totalAssigned=assignments.reduce((s,a)=>s+a.planetsNeeded,0);
+        const spare=cap.planets-totalAssigned;
+        if(!assignments.length){
+          assignHtml+='<tr><td>'+esc(nm)+'</td><td colspan="5" style="color:var(--muted2);font-size:9px">no P0 resources assigned — no basket items drafted</td></tr>';
+          return;
+        }
+        assignments.forEach((a,i)=>{
+          const ptNames=a.ptypes.map(c=>({I:'Ice',O:'Oceanic',T:'Temperate',B:'Barren',L:'Lava',G:'Gas',S:'Storm',P:'Plasma'}[c]||c)).join(', ');
+          const avail=a.available;
+          const ok=avail>=a.planetsNeeded;
+          const short=!ok?'⚠ only '+avail+' available':'';
+          assignHtml+='<tr>'+
+            (i===0?'<td rowspan="'+assignments.length+'" style="vertical-align:middle"><b>'+esc(nm)+'</b><span class="assign-contrib">'+cap.planets+'p total'+(spare>0?' · '+spare+'p spare':'')+'</span></td>':'') +
+            '<td>'+esc(a.p0Name)+'</td>'+
+            '<td style="font-size:9px;color:var(--muted2)">'+esc(ptNames)+'</td>'+
+            '<td style="color:'+(avail>0?'var(--ok)':'var(--red)')+'">'+avail+'</td>'+
+            '<td style="color:'+(ok?'var(--fg)':'var(--amber)')+'">'+a.planetsNeeded+(short?'<span class="assign-warn">'+short+'</span>':'')+'</td>'+
+            '<td style="font-size:9px">'+fmtInt(Math.round(a.demandPerHr))+'/hr</td>'+
+          '</tr>';
+        });
+      });
+      // Check for uncovered P0s (no extractor pilots have the right planet types)
+      const uncovered=allP0s.filter(p=>{
+        const ptypes=PI.p0pt[p]||[];
+        return ptypes.every(t=>(selCounts[t]||0)===0);
+      });
+      if(uncovered.length){
+        assignHtml+='<tr><td colspan="6" style="color:var(--red);font-size:9px;padding:6px 8px">⚠ '+
+          uncovered.map(p=>PI.names[p]||p).join(', ')+
+          ' — no matching planet types in '+esc(selSysRow[0])+'. Hunt for a nearby system that covers these.</td></tr>';
+      }
+      assignHtml+='</tbody></table>';
+    }
+
+    /* Feature 7 table */
+    if(totalFactorySlots>0){
+      const demandTiers=Object.keys(slotDemandByTier).map(Number).sort((a,b)=>a-b);
+      assignHtml+='<div class="lbl2" style="font-size:8.5px;margin:14px 0 6px">FACTORY SLOT UTILISATION</div>';
+      assignHtml+='<table class="assign-table"><thead><tr><th>STAGE</th><th>SLOTS NEEDED</th><th>AVAILABLE</th><th>UTILISATION</th></tr></thead><tbody>';
+      demandTiers.forEach(ti=>{
+        const d=slotDemandByTier[ti]||0;
+        const pct=Math.round(100*d/totalFactorySlots);
+        const col=pct>100?'var(--red)':pct>80?'var(--amber)':'var(--ok)';
+        assignHtml+='<tr><td>P'+ti+' factory</td><td>'+Math.ceil(d)+'</td><td>'+totalFactorySlots+'</td><td style="color:'+col+'">'+pct+'%'+(pct>100?' ⚠ over':'')+'</td></tr>';
+      });
+      assignHtml+='<tr style="border-top:1px solid var(--line2)"><td><b>TOTAL</b></td><td><b>'+Math.ceil(totalDemand)+'</b></td><td><b>'+totalFactorySlots+'</b></td><td style="color:'+slotColor+'"><b>'+(slotPct!=null?slotPct+'%':'?')+'</b>'+(slotPct!=null&&slotPct>100?' — add Factory pilots':'')+'</td></tr>';
+      assignHtml+='</tbody></table>';
+    } else {
+      assignHtml+='<div class="assign-warn" style="margin-top:8px">⚠ No Factory pilots chalked — slot utilisation unavailable</div>';
+    }
+
+    /* Feature 6: Multi-system split */
+    const uniqueSys=new Map();
+    allTiers.forEach(ti=>{(tierSysMap[ti]||[]).forEach(e=>{
+      if(!uniqueSys.has(e.sysId)) uniqueSys.set(e.sysId,{name:e.sysName,tiers:[],prods:[]});
+      const ue=uniqueSys.get(e.sysId);
+      if(!ue.tiers.includes(ti)) ue.tiers.push(ti);
+      e.prods.forEach(p=>{if(!ue.prods.includes(p)) ue.prods.push(p);});
+    });});
+    if(uniqueSys.size>1){
+      assignHtml+='<div class="lbl2" style="font-size:8.5px;margin:14px 0 6px">MULTI-SYSTEM SPLIT — '+uniqueSys.size+' systems</div>';
+      assignHtml+='<table class="assign-table"><thead><tr><th>SYSTEM</th><th>STAGES</th><th>PRODUCTS</th><th>HAUL OUT</th></tr></thead><tbody>';
+      const sysArr=[...uniqueSys.entries()].sort((a,b)=>(routeStops.get(a[0])?.jumps??999)-(routeStops.get(b[0])?.jumps??999));
+      sysArr.forEach(([sysId,info])=>{
+        info.tiers.sort((a,b)=>a-b);
+        const maxTier=Math.max(...info.tiers);
+        let haulDir='—';
+        if(tierSysMap[maxTier+1]){
+          const ns=tierSysMap[maxTier+1][0];
+          haulDir=ns&&ns.sysId!==sysId?'→ '+ns.sysName:'in-system';
+        } else if(sysId===selectedSystemId) haulDir='→ export';
+        const jl=routeStops.get(sysId);
+        assignHtml+='<tr>'+
+          '<td><b>'+esc(info.name)+'</b>'+(jl&&jl.jumps!=null?'<span class="assign-contrib">'+jl.jumps+'j from home</span>':'')+'</td>'+
+          '<td>'+info.tiers.map(t=>'P'+t).join(', ')+'</td>'+
+          '<td style="font-size:9px">'+esc(info.prods.join(', '))+'</td>'+
+          '<td>'+esc(haulDir)+'</td>'+
+        '</tr>';
+      });
+      assignHtml+='</tbody></table>';
+    }
+    $('assignBody').innerHTML=assignHtml;
+    $('assignPanel').style.display='block';
+  } else {
+    $('assignPanel').style.display='none';
+  }
+
   reportDashboard(targets.map(i=>PI.recipe[i].name).join(' + ')+' \u2192 '+selSys[0]+' · '+stops.length+' stops','ok');
 }
 
