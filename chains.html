@@ -1183,7 +1183,7 @@ function selectSystem(id){
   });
   cap.addEventListener('input',()=>{haulCapacity=+cap.value||1;try{localStorage.setItem('pi_haul_capacity',haulCapacity);}catch(e){}renderLogistics();});
 }
-function buildChainTreeSvg(rootTid, byTier, tierNums, pickCache, acc){
+function buildChainTreeSvg(rootTid, byTier, tierNums, pickCache, acc, SYS){
   // Build a left-to-right horizontal tree: P0 leaves on left, final product on right
   // Each tier is a column; products within a tier are stacked vertically
   // Bezier edges connect inputs to outputs following the actual BOM
@@ -1383,7 +1383,7 @@ function _orig_renderLogistics(){
 
     /* stage flow — SVG horizontal tree */
     if(targets.length>1)flowHtml+='<div class="ct-prodhead" style="margin-top:8px">'+esc(PI.recipe[t].name)+' ×'+qty+'</div>';
-    flowHtml+=buildChainTreeSvg(t,byTier,tierNums,pickCache,acc);
+    flowHtml+=buildChainTreeSvg(t,byTier,tierNums,pickCache,acc,SYS);
 
     /* haul cadence — one row per tier boundary */
     let rows='';
