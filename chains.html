@@ -2351,17 +2351,19 @@ async function fetchColonyClocks(){
     try{
       const planets=await esiGet('/characters/'+id+'/planets/',tok.access);
       let earliest=null;
+      const allExpiries=[];
       for(const pl of planets){
         try{
           const det=await esiGet('/characters/'+id+'/planets/'+pl.planet_id+'/',tok.access);
           const heads=(det.pins||[]).filter(p=>(p.expiry_time&&p.extractor_details));
           for(const h of heads){
             const exp=new Date(h.expiry_time).getTime();
+            allExpiries.push(exp);
             if(!earliest||exp<earliest)earliest=exp;
           }
         }catch(e){}
       }
-      colonyClocks[id]={earliest,ts:now()};saveColonyClocks();
+      colonyClocks[id]={earliest,allExpiries,ts:now()};saveColonyClocks();
     }catch(e){}
   })));
 }
@@ -3088,34 +3090,6 @@ function renderCmpPanel(){
    all per-pilot expiry timestamps, not just the earliest.
    ============================================================ */
 
-/* Extend the existing fetch to also store allExpiries array */
-const _origFetchColonyClocks=_rcc_base;
-async function fetchColonyClocks(){
-  const lim=pLimit(3);
-  await Promise.all(visibleIds().map(id=>lim(async()=>{
-    const r=roles[id];if(r!=='Extractor'&&r!=='Full chain')return;
-    const cached=colonyClocks[id];
-    if(cached&&now()-cached.ts<600000)return;
-    const tok=await getTok(id);if(!tok)return;
-    try{
-      const planets=await esiGet('/characters/'+id+'/planets/',tok.access);
-      let earliest=null;
-      const allExpiries=[];
-      for(const pl of planets){
-        try{
-          const det=await esiGet('/characters/'+id+'/planets/'+pl.planet_id+'/',tok.access);
-          const heads=(det.pins||[]).filter(p=>(p.expiry_time&&p.extractor_details));
-          for(const h of heads){
-            const exp=new Date(h.expiry_time).getTime();
-            allExpiries.push(exp);
-            if(!earliest||exp<earliest)earliest=exp;
-          }
-        }catch(e){}
-      }
-      colonyClocks[id]={earliest,allExpiries,ts:now()};saveColonyClocks();
-    }catch(e){}
-  })));
-}
 
 function renderExpiryTimeline(){
   const tl=$('expiryTimeline');if(!tl)return;
