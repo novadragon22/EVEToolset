@@ -1,322 +1,962 @@
 <!DOCTYPE html>
-<html data-app="colonies">
+<html>
 <head>
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('eve_suite_theme')||'default';}catch(e){}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EVE Colony Orbit</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Comfortaa:wght@400;600&display=swap" rel="stylesheet">
-<style>
-/* ---- structural wireframe only; colour/font identity lives in themes.css ---- */
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-size:14px}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50}
-.diamond{width:7px;height:7px;display:inline-block;vertical-align:middle}
-.backlink{font-size:10px;padding:7px 12px;display:none;align-items:center;white-space:nowrap}
-.eveclock{font-size:12px;white-space:nowrap;padding:5px 10px}
-.pilots{display:flex;flex-wrap:wrap;gap:6px}
-.ptag{font-size:10px;padding:4px 10px;cursor:pointer}
-.nochars{font-size:10px}
-.empty{padding:44px 20px;text-align:center;font-size:12.5px;line-height:1.8}
-.charerr{padding:8px 12px;font-size:10.5px}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11.5px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
-#toast.show{opacity:1}
-.spin{width:15px;height:15px;display:inline-block;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:7px}
-@keyframes sp{to{transform:rotate(360deg)}}
-
-.orbit{max-width:1460px;margin:0 auto;padding:26px 30px 70px;position:relative;z-index:1}
-.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap;padding-bottom:16px}
-.tb-left{display:flex;align-items:flex-start;gap:16px}
-.kicker{font-size:10px;margin-bottom:7px}
-h1{font-size:25px;margin:0}
-h1 .diamond{margin:0 10px;transform:translateY(-2px)}
-.subline{font-size:12px;margin-top:6px;max-width:640px}
-.tb-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
-.ctl{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
-.ctl .btn{font-size:10.5px;padding:8px 16px;cursor:pointer}
-.ctl .hint{font-size:10.5px}
-/* planet tiles with an SVG ring meter for the extractor clock */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;align-items:start}
-.tile{padding:15px 15px 13px;position:relative;text-align:center}
-.ringwrap{width:110px;height:110px;margin:0 auto 10px;position:relative}
-.ringwrap svg{position:absolute;inset:0}
-.ringwrap .ptype{position:absolute;inset:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
-.tile .pn{font-size:12.5px}
-.tile .own{font-size:9.5px;margin-top:3px}
-.tile .clock{font-size:11px;margin-top:8px}
-.tile .pins{display:flex;justify-content:center;gap:10px;margin-top:8px;font-size:9.5px}
-.tile .lvl{position:absolute;top:10px;right:12px;font-size:9px;padding:2px 7px}
-.tile.alarm .clock{animation:blink 1.1s ease-in-out infinite}
-.watchchk{font-size:10.5px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin-left:14px}
-.rolebadge{font-size:8px;padding:1px 6px;margin-left:6px;vertical-align:1px}
-@keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
-
-</style>
+<title>Colony Monitor — EVE Suite</title>
 <link rel="stylesheet" href="themes.css">
 <script src="themes.js" defer></script>
+<script src="pi.js"></script>
+<style>
+/* ---- layout ---- */
+html,body{margin:0;height:100%;overflow:hidden}
+.app{height:100vh;display:flex;flex-direction:column;position:relative}
+.topbar{position:relative;z-index:6;display:flex;align-items:center;gap:18px;padding:16px 28px;flex:none}
+.topbar h1{margin:0;font-size:18px;font-weight:700;letter-spacing:1px}
+.topbar .sub{font-size:11px;color:var(--muted2)}
+.btn{cursor:pointer;padding:5px 12px;border:1px solid var(--line2);border-radius:4px;background:transparent;color:var(--fg);font-size:11px;font-family:inherit}
+.btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn.ok{border-color:var(--ok);color:var(--ok)}
+.btn.warn{border-color:var(--amber);color:var(--amber)}
+.spacer{flex:1}
+/* ---- tabs ---- */
+.tabs{display:flex;gap:0;padding:0 28px;border-bottom:1px solid var(--line2);flex:none}
+.tab{padding:8px 18px;font-size:11px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase}
+.tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tab:hover:not(.on){color:var(--fg)}
+/* ---- main scroll area ---- */
+.views{flex:1;overflow-y:auto;padding:20px 28px 40px;scrollbar-width:thin}
+.view{display:none}.view.on{display:block}
+/* ---- pilot bar ---- */
+.pilot-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.pilot-chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line2);border-radius:20px;font-size:11px;cursor:pointer;transition:border-color .15s,background .15s}
+.pilot-chip.on{border-color:var(--cyan);background:rgba(122,184,200,.1)}
+.pilot-chip img{width:22px;height:22px;border-radius:50%;object-fit:cover}
+/* ---- section label ---- */
+.lbl{font-size:8px;color:var(--muted2);letter-spacing:1.5px;text-transform:uppercase;margin:20px 0 8px}
+.lbl:first-child{margin-top:0}
+/* ---- cards ---- */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.planet-card{background:var(--bg2);border:1px solid var(--line2);border-radius:6px;padding:12px 14px}
+.planet-card.warn{border-color:var(--amber)}
+.planet-card.danger{border-color:var(--red)}
+.planet-card .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.planet-card .ptitle{font-size:12px;font-weight:600}
+.planet-card .pmeta{font-size:9px;color:var(--muted2)}
+.planet-card .ptype{font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.06);color:var(--muted2)}
+/* ---- extractor rows ---- */
+.ext-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:10.5px}
+.ext-row:last-child{border-bottom:none}
+.ext-row .res{color:var(--amber)}
+.ext-row .expiry{font-size:9px}
+.ext-row .expiry.ok{color:var(--ok)}
+.ext-row .expiry.warn{color:var(--amber)}
+.ext-row .expiry.danger{color:var(--red)}
+/* ---- expiry bar ---- */
+.exp-bar-wrap{height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:4px;overflow:hidden}
+.exp-bar{height:100%;border-radius:2px;transition:width .3s}
+/* ---- factory rows ---- */
+.fac-row{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:10.5px}
+.fac-row:last-child{border-bottom:none}
+.fac-arrow{color:var(--muted2);font-size:11px}
+.fac-schematic{color:var(--cyan);font-size:10px}
+.fac-tier{font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(122,184,200,.12);color:var(--cyan)}
+/* ---- storage rows ---- */
+.stor-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.stor-row:last-child{border-bottom:none}
+.vol-bar-wrap{height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:3px;overflow:hidden}
+.vol-bar{height:100%;background:var(--cyan);border-radius:2px}
+.vol-bar.full{background:var(--amber)}
+/* ---- route rows ---- */
+.route-row-c{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.route-row-c:last-child{border-bottom:none}
+.route-ok{color:var(--ok)}
+.route-broken{color:var(--red)}
+/* ---- overview summary cards ---- */
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:20px}
+.sum-card{background:var(--bg2);border:1px solid var(--line2);border-radius:6px;padding:12px 14px}
+.sum-card .sv{font-size:22px;font-weight:700;color:var(--cyan)}
+.sum-card .sl{font-size:9px;color:var(--muted2);margin-top:2px;letter-spacing:.5px;text-transform:uppercase}
+.sum-card.warn .sv{color:var(--amber)}
+.sum-card.danger .sv{color:var(--red)}
+/* ---- empty / loading ---- */
+.empty{padding:40px;text-align:center;color:var(--muted2);font-size:12px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line2);border-top-color:var(--cyan);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* ---- toast ---- */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg2);border:1px solid var(--line2);border-radius:6px;padding:8px 16px;font-size:12px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:999}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.show.bad{border-color:var(--red);color:var(--red)}
+/* ---- rollup table ---- */
+.rollup-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+.rollup-table th{font-size:8px;color:var(--muted2);letter-spacing:.8px;padding:6px 8px;text-align:left;border-bottom:1px solid var(--line2)}
+.rollup-table td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.rollup-table tr:last-child td{border-bottom:none}
+</style>
 </head>
 <body>
+<div class="app">
+  <div class="topbar">
+    <h1>🌍 Colony Monitor</h1>
+    <span class="sub" id="lastUpdated">not loaded</span>
+    <div class="spacer"></div>
+    <button class="btn" id="btnRefresh">↻ Refresh ESI</button>
+    <button class="btn" id="btnRefreshAll">↻ Refresh All Pilots</button>
+  </div>
 
-<div class="orbit">
-<header class="topbar">
-  <div class="tb-left">
-    <a class="backlink" id="backlink" href="index.html">◂ Toolset</a>
-    <div>
-      <div class="kicker">Planetary Holdings · All Pilots</div>
-      <h1>Colony<span class="diamond"></span>Orbit</h1>
-      <div class="subline">Every colony as a planet tile with its extractor clock on a ring — see at a glance which heads are still cycling and which colonies have gone dark. Chalk pilots onto Extractor or Full-chain duty in Chain Works and watch just those clocks here. Rebuilt anew; chain drafting lives in Chain Works.</div>
+  <div class="tabs">
+    <div class="tab on" data-view="overview">Overview</div>
+    <div class="tab" data-view="extraction">Extraction</div>
+    <div class="tab" data-view="factories">Factories</div>
+    <div class="tab" data-view="storage">Storage</div>
+    <div class="tab" data-view="routes">Routes</div>
+    <div class="tab" data-view="compare">Compare to Plan</div>
+  </div>
+
+  <div class="views">
+    <!-- Pilot bar shared across all views -->
+    <div class="pilot-bar" id="pilotBar"></div>
+
+    <!-- OVERVIEW -->
+    <div class="view on" data-view="overview">
+      <div class="sum-grid" id="sumGrid"></div>
+      <div class="lbl">Corp-wide throughput</div>
+      <div id="rollupWrap"></div>
+      <div class="lbl">Planet overview</div>
+      <div class="card-grid" id="overviewGrid"></div>
+    </div>
+
+    <!-- EXTRACTION -->
+    <div class="view" data-view="extraction">
+      <div class="lbl">Active extractors — sorted by soonest expiry</div>
+      <div class="card-grid" id="extractionGrid"></div>
+    </div>
+
+    <!-- FACTORIES -->
+    <div class="view" data-view="factories">
+      <div class="lbl">Factory pins — schematic and throughput</div>
+      <div class="card-grid" id="factoriesGrid"></div>
+    </div>
+
+    <!-- STORAGE -->
+    <div class="view" data-view="storage">
+      <div class="lbl">Storage pins and launchpads — current contents</div>
+      <div class="card-grid" id="storageGrid"></div>
+    </div>
+
+    <!-- COMPARE TO PLAN -->
+    <div class="view" data-view="compare">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="font-size:11px;color:var(--muted2)">Load a chains.html preset to compare against live ESI colony data:</div>
+        <select id="cmpPresetSel" class="btn" style="padding:5px 10px;min-width:160px"><option value="">— select preset —</option></select>
+        <button class="btn" id="cmpLoadBtn">Load Plan</button>
+      </div>
+      <div id="cmpPlanInfo" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--bg2);border:1px solid var(--line2);border-radius:5px;font-size:11px"></div>
+      <div class="card-grid" id="compareGrid"></div>
+    </div>
+
+    <!-- ROUTES -->
+    <div class="view" data-view="routes">
+      <div class="lbl">Commodity routes per planet</div>
+      <div class="card-grid" id="routesGrid"></div>
     </div>
   </div>
-  <div class="tb-right">
-    <span class="eveclock" id="eveclock"></span>
-    <div class="pilots" id="pilots"></div>
-  </div>
-</header>
-<div class="ctl">
-  <button class="btn primary" id="loadBtn">Scan the orbits</button>
-  <label class="watchchk" title="Show only pilots chalked Extractor or Full chain on the Chain Works pilot chalkboard"><input type="checkbox" id="watchChk"> watch extractor duty only</label>
-  <span class="hint" id="loadNote"></span>
 </div>
-<div class="grid" id="out"><div class="empty" style="grid-column:1/-1">Press <b>Scan the orbits</b> to read every colony.<br>Sign-in lives in the Toolset menu.</div></div>
-</div>
-
 <div id="toast"></div>
+
 <script>
-const MY_SECTION='colonies';
+/* ============================================================
+   CONSTANTS & SHARED INFRA
+   ============================================================ */
+const MY_SECTION = 'colonies';
+const SHARED_KEY = 'eve_suite_chars';
+const SECTION_KEY = 'eve_suite_char_sections';
+const DASHBOARD_KEY = 'eve_suite_dashboard';
+const COLONY_CACHE_KEY = 'eve_suite_colonies_data';
+const ESI = 'https://esi.evetech.net/latest';
+const SSO_TOKEN = 'https://login.eveonline.com/v2/oauth/token';
 
-'use strict';
-/* ================================================================== */
-/* EVE Toolset shared runtime — consumes the SUITE-WIDE login only.   */
-/* Sign-in happens exclusively in index.html. The SSO client id is    */
-/* NOT embedded here: index.html publishes it to localStorage         */
-/* (eve_suite_client_id) and this tool reads it for token refreshes.  */
-/* No theme selector and no character portraits live in this file —   */
-/* pilots appear as text tags only; icons belong to index.html.       */
-/* ================================================================== */
-function suiteClientId(){try{return localStorage.getItem('eve_suite_client_id')||'';}catch(e){return '';}}
-const SHARED_KEY='eve_suite_chars';
-const SECTION_KEY='eve_suite_char_sections';
-const DASHBOARD_KEY='eve_suite_dashboard';
-const ESI='https://esi.evetech.net/latest';
-const SSO_TOKEN='https://login.eveonline.com/v2/oauth/token';
-const now=()=>Date.now();
-function $(id){return document.getElementById(id);}
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function loadChars(){try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}');}catch(e){return{};}}
-let chars=loadChars();
-function saveChars(){try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){}}
-function sectionOn(id){try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;}}
-function setSection(id,on){try{const a=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}');a[id]=a[id]||{};a[id][MY_SECTION]=on;localStorage.setItem(SECTION_KEY,JSON.stringify(a));}catch(e){}}
-function visibleIds(){return Object.keys(chars).filter(sectionOn);}
-function toast(msg,bad){const t=$('toast');if(!t)return;t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='';},3600);}
-function reportDashboard(text,level){try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:Date.now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){}}
-function fmtISK(n){if(n==null||isNaN(n))return '—';const a=Math.abs(n),s=n<0?'−':'';
-  if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';
-  if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+a.toFixed(a>0&&a<10?2:0);}
-function fmtFull(n){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('en-US',{maximumFractionDigits:2});}
-function fmtInt(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
-function timeago(ts){const m=(now()-ts)/60000;if(m<1)return 'just now';if(m<60)return Math.round(m)+'m ago';if(m<1440)return Math.round(m/60)+'h ago';return Math.round(m/1440)+'d ago';}
-function fmtDur(ms){if(ms==null)return '—';if(ms<=0)return 'done';const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000);
-  if(d>0)return d+'d '+h+'h';if(h>0)return h+'h '+mi+'m';return mi+'m';}
-function roman(n){return ['0','I','II','III','IV','V'][n]||String(n);}
-async function postToken(body){const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
-  if(!r.ok){let d='';try{d=' '+(await r.text()).slice(0,120);}catch(e){}throw new Error('token HTTP '+r.status+d);}return r.json();}
-async function refreshTok(id){const s=chars[id];if(!s||!s.refresh)throw new Error('no refresh token');
-  const cid=suiteClientId();
-  if(!cid)throw new Error('sign-in config not shared yet — open the Toolset menu (index.html) once');
-  const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:cid}).toString());
-  const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)};
-  chars[id]=ns;saveChars();return ns;}
-async function getTok(id){const s=chars[id];if(!s)return null;if(s.expires>now()+60000)return s;
-  try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;}}
-async function esiFetch(path,opts){const o=opts||{};const h={};if(o.token)h.Authorization='Bearer '+o.token;
-  if(o.body!==undefined)h['Content-Type']='application/json';
-  const r=await fetch(ESI+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
-  if(!r.ok){const err=new Error('ESI '+r.status+' on '+path.split('?')[0]);err.status=r.status;throw err;}
-  return {json:await r.json(),res:r};}
-async function esiGet(path,token){return (await esiFetch(path,{token})).json;}
-async function esiPost(path,body,token){return (await esiFetch(path,{method:'POST',body,token})).json;}
-async function esiGetPaged(path,token,cap){const sep=path.includes('?')?'&':'?';
-  const first=await esiFetch(path+sep+'page=1',{token});let out=first.json;
-  const pages=Math.min(parseInt(first.res.headers.get('X-Pages')||'1',10),cap||10);
-  for(let p=2;p<=pages;p++){try{out=out.concat((await esiFetch(path+sep+'page='+p,{token})).json);}catch(e){}}
-  return out;}
-function pLimit(n){let act=0;const q=[];
-  const next=()=>{if(act>=n||!q.length)return;act++;const [fn,res,rej]=q.shift();
-    Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});};
-  return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();});}
-/* ---- persistent id→name cache (shared with the rest of the suite) ---- */
-const NAME_CACHE_KEY='eve_suite_namecache_v1';
-let nameCache={};try{nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY)||'{}');}catch(e){}
-function saveNameCache(){try{const ks=Object.keys(nameCache);
-  if(ks.length>9000)ks.slice(0,ks.length-8000).forEach(k=>delete nameCache[k]);
-  localStorage.setItem(NAME_CACHE_KEY,JSON.stringify(nameCache));}catch(e){}}
-async function _resolveChunk(chunk){try{const res=await esiPost('/universe/names/',chunk);
-    res.forEach(r=>{nameCache[r.id]={n:r.name,c:r.category};});}
-  catch(e){if(e.status===404&&chunk.length>1){const m=chunk.length>>1;
-      await _resolveChunk(chunk.slice(0,m));await _resolveChunk(chunk.slice(m));}
-    else if(e.status===404){nameCache[chunk[0]]={n:'#'+chunk[0],c:'unknown'};}}}
-async function resolveNames(ids){const need=[...new Set(ids.filter(i=>i&&i<1e12&&!nameCache[i]))];
-  for(let i=0;i<need.length;i+=900)await _resolveChunk(need.slice(i,i+900).map(Number));
-  if(need.length)saveNameCache();
-  const out={};ids.forEach(i=>{out[i]=nameCache[i]?nameCache[i].n:null;});return out;}
-function nameOf(id,fb){return nameCache[id]?nameCache[id].n:(fb!==undefined?fb:('#'+id));}
-async function structureName(id,token){if(nameCache[id])return nameCache[id].n;
-  try{const s=await esiGet('/universe/structures/'+id+'/',token);
-    nameCache[id]={n:s.name,c:'structure'};saveNameCache();return s.name;}
-  catch(e){return 'Structure '+id;}}
-async function locationName(id,token){if(id==null)return '—';
-  if(id>=1e12)return structureName(id,token);
-  await resolveNames([id]);return nameOf(id,'Location '+id);}
-/* ---- persistent type-info cache (volume, group) ---- */
-const TYPE_CACHE_KEY='eve_suite_typeinfo_v1';
-let typeCache={};try{typeCache=JSON.parse(localStorage.getItem(TYPE_CACHE_KEY)||'{}');}catch(e){}
-function saveTypeCache(){try{const ks=Object.keys(typeCache);
-  if(ks.length>6000)ks.slice(0,ks.length-5000).forEach(k=>delete typeCache[k]);
-  localStorage.setItem(TYPE_CACHE_KEY,JSON.stringify(typeCache));}catch(e){}}
-const typeLimit=pLimit(6);
-async function typeInfo(id){if(typeCache[id])return typeCache[id];
-  const t=await typeLimit(()=>esiGet('/universe/types/'+id+'/'));
-  typeCache[id]={name:t.name,volume:t.volume,pv:t.packaged_volume,gid:t.group_id};
-  nameCache[id]={n:t.name,c:'inventory_type'};saveTypeCache();return typeCache[id];}
-/* ---- pilot toggles: TEXT tags only — portraits/icons live in index.html ---- */
-function renderPilots(){const el=$('pilots');if(!el)return;const ids=Object.keys(chars);
-  if(!ids.length){el.innerHTML='<span class="nochars">no pilots — sign in from the Toolset menu</span>';return;}
-  el.innerHTML=ids.map(id=>{const on=sectionOn(id);const c=chars[id];
-    const t='click to '+(on?'exclude from':'include in')+' this tool';
-    return '<button class="ptag'+(on?'':' off')+'" data-id="'+id+'" title="'+t+'">'+esc(c.charName||('Char '+id))+'</button>';}).join('');
-  el.querySelectorAll('.ptag').forEach(b=>{b.onclick=()=>{const id=b.dataset.id;setSection(id,!sectionOn(id));renderPilots();if(window.onRosterChange)window.onRosterChange();};});}
-window.addEventListener('storage',e=>{if(e.key===SHARED_KEY){chars=loadChars();renderPilots();if(window.onRosterChange)window.onRosterChange();}});
-function tickClock(){const el=$('eveclock');if(!el)return;const d=new Date();
-  el.textContent=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' EVE';}
-setInterval(tickClock,15000);tickClock();
-try{if(window.self===window.top){const bl=$('backlink');if(bl)bl.style.display='inline-flex';}}catch(e){}
-renderPilots();
-function noPilotsGuard(containerId){const ids=visibleIds();const el=$(containerId);
-  if(!Object.keys(chars).length){if(el)el.innerHTML='<div class="empty">No pilots signed in yet.<br><br>Open the EVE Toolset menu and add characters there — every tool shares that one sign-in.</div>';return true;}
-  if(!ids.length){if(el)el.innerHTML='<div class="empty">All pilots are excluded from this tool.<br>Click a pilot name above to include one.</div>';return true;}
-  return false;}
+function now(){ return Date.now(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function $(id){ return document.getElementById(id); }
+function fmtInt(n){ return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US'); }
+function fmtDur(ms){ if(ms==null)return '—'; if(ms<=0)return 'expired'; const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),mi=Math.floor(ms%3600000/60000); if(d>0)return d+'d '+h+'h'; if(h>0)return h+'h '+mi+'m'; return mi+'m'; }
+function timeago(ts){ const m=(now()-ts)/60000; if(m<1)return 'just now'; if(m<60)return Math.round(m)+'m ago'; if(m<1440)return Math.round(m/60)+'h ago'; return Math.round(m/1440)+'d ago'; }
+function toast(msg,bad){ const t=$('toast'); if(!t)return; t.textContent=msg; t.className='show'+(bad?' bad':''); clearTimeout(toast._t); toast._t=setTimeout(()=>{t.className='';},3600); }
+function suiteClientId(){ try{return localStorage.getItem('eve_suite_client_id')||'';}catch(e){return '';} }
+function loadChars(){ try{return JSON.parse(localStorage.getItem(SHARED_KEY)||'{}')||{};}catch(e){return{};} }
+let chars = loadChars();
+function saveChars(){ try{localStorage.setItem(SHARED_KEY,JSON.stringify(chars));}catch(e){} }
+function sectionOn(id){ try{const p=JSON.parse(localStorage.getItem(SECTION_KEY)||'{}')[id];return !p||p[MY_SECTION]!==false;}catch(e){return true;} }
+function visibleIds(){ return Object.keys(chars).filter(sectionOn); }
+function reportDashboard(text,level){ try{const all=JSON.parse(localStorage.getItem(DASHBOARD_KEY)||'{}');all[MY_SECTION]={text,level,ts:now()};localStorage.setItem(DASHBOARD_KEY,JSON.stringify(all));}catch(e){} }
 
+async function postToken(body){ const r=await fetch(SSO_TOKEN,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body}); if(!r.ok)throw new Error('token HTTP '+r.status); return r.json(); }
+async function refreshTok(id){ const s=chars[id]; if(!s||!s.refresh)throw new Error('no refresh'); const cid=suiteClientId(); if(!cid)throw new Error('no client_id'); const tok=await postToken(new URLSearchParams({grant_type:'refresh_token',refresh_token:s.refresh,client_id:cid}).toString()); const ns={...s,access:tok.access_token,refresh:tok.refresh_token||s.refresh,expires:now()+((tok.expires_in||1200)*1000)}; chars[id]=ns;saveChars();return ns; }
+async function getTok(id){ const s=chars[id]; if(!s)return null; if(s.expires>now()+60000)return s; try{return await refreshTok(id);}catch(e){return s.expires>now()?s:null;} }
+async function esiFetch(path,opts){ const o=opts||{}; const h={}; if(o.token)h.Authorization='Bearer '+o.token; const r=await fetch(ESI+path,{method:'GET',headers:h}); if(!r.ok){const err=new Error('ESI '+r.status+' '+path.split('?')[0]);err.status=r.status;throw err;} return {json:await r.json(),res:r}; }
+async function esiGet(path,token){ return (await esiFetch(path,{token})).json; }
+function pLimit(n){ let act=0;const q=[]; const next=()=>{if(act>=n||!q.length)return;act++;const[fn,res,rej]=q.shift(); Promise.resolve().then(fn).then(v=>{act--;res(v);next();},e=>{act--;rej(e);next();});}; return fn=>new Promise((res,rej)=>{q.push([fn,res,rej]);next();}); }
 
-/* ================= Colony Orbit ================= */
-let tiles=null,lastErrs=[];
-/* Chain Works pilot chalkboard roles (eve_suite_chains_roles) drive the
-   extractor watch: pilots chalked Extractor or Full chain are the ones whose
-   extractor clocks matter here; a Factory-role pilot's colony with no
-   extractors is expected, not an alarm. */
-const CHAINS_ROLE_KEY='eve_suite_chains_roles';
-const WATCH_KEY='eve_suite_colonies_watch';
-function chainRoles(){try{return JSON.parse(localStorage.getItem(CHAINS_ROLE_KEY)||'{}')||{};}catch(e){return{};}}
-function roleOf(id){return chainRoles()[id]||'\u2014';}
-function onExtractorDuty(id){const r=roleOf(id);return r==='Extractor'||r==='Full chain';}
-let watchOnly=false;try{watchOnly=localStorage.getItem(WATCH_KEY)==='1';}catch(e){}
-const CYCLE_RING_H=48;   // ring scale: a full ring = 48h of extractor time left
+/* ============================================================
+   PLANET TYPE NAMES
+   ============================================================ */
+const PLANET_TYPE_NAMES = {
+  'temperate':'Temperate','barren':'Barren','oceanic':'Oceanic','ice':'Ice',
+  'gas':'Gas','lava':'Lava','storm':'Storm','plasma':'Plasma'
+};
+const PIN_VOLUME = { launchpad:500000, storage:12000, command_center:500 };
+// P0 type volumes (m³ per unit)
+const P0_VOL = 0.01;
+const P_VOL = { 1:1.5, 2:6, 3:38, 4:1600 };
 
-async function loadAll(){
-  chars=loadChars();renderPilots(); // re-sync in case sign-in happened after this tool loaded
-  if(noPilotsGuard('out'))return;
-  const btn=$('loadBtn');btn.disabled=true;
-  $('out').innerHTML='<div class="empty" style="grid-column:1/-1"><span class="spin"></span>Scanning the orbits…</div>';
-  tiles=[];const errs=[];
-  for(const id of visibleIds()){
-    try{
-      const s=await getTok(id);
-      if(!s)throw new Error('token expired — re-open the Toolset menu');
-      const T=s.access;const nm=s.charName||('Char '+id);
-      const planets=await esiGet('/characters/'+id+'/planets/',T);
-      const lim=pLimit(4);
-      await Promise.all(planets.map(p=>lim(async()=>{
-        const t={charId:id,owner:nm,planet:p,pinTotal:p.num_pins,lvl:p.upgrade_level,ptype:p.planet_type,sys:p.solar_system_id};
-        try{
-          const d=await esiGet('/characters/'+id+'/planets/'+p.planet_id+'/',T);
-          const pins=d.pins||[];
-          const extr=pins.filter(x=>x.extractor_details);
-          t.extractors=extr.length;
-          t.factories=pins.filter(x=>x.schematic_id).length;
-          const exps=extr.map(x=>x.expiry_time?Date.parse(x.expiry_time):null).filter(x=>x!=null);
-          t.soonest=exps.length?Math.min(...exps):null;
-          t.latest=exps.length?Math.max(...exps):null;
-        }catch(e){t.detailErr=true;}
-        tiles.push(t);
-      })));
-    }catch(e){errs.push(((chars[id]||{}).charName||id)+': '+(e.status===403?'PI scope missing — re-add in the Toolset menu':e.message));}
+function planetTypeName(t){ return PLANET_TYPE_NAMES[t]||t||'Unknown'; }
+function pinTypeName(pt){ if(!pt)return 'Unknown'; if(pt.includes('extractor'))return 'Extractor'; if(pt.includes('launchpad'))return 'Launchpad'; if(pt.includes('storage'))return 'Storage'; if(pt.includes('command'))return 'Command Center'; if(pt.includes('processor')||pt.includes('basic_industrial'))return 'Basic Factory'; if(pt.includes('advanced'))return 'Advanced Factory'; if(pt.includes('hightech'))return 'Hi-Tech Factory'; return 'Factory'; }
+function isExtractor(pt){ return pt&&(pt.includes('extractor_control')||pt.includes('extractor')); }
+function isFactory(pt){ return pt&&(pt.includes('processor')||pt.includes('basic_industrial')||pt.includes('advanced')||pt.includes('hightech')); }
+function isStorage(pt){ return pt&&pt.includes('storage'); }
+function isLaunchpad(pt){ return pt&&pt.includes('launchpad'); }
+function isCommandCenter(pt){ return pt&&pt.includes('command_center'); }
+
+/* ============================================================
+   PI NAME LOOKUP
+   ============================================================ */
+function piName(typeId){ if(!typeId)return '—'; if(window.PI){ if(PI.names[typeId])return PI.names[typeId]; if(PI.recipe[typeId])return PI.recipe[typeId].name; } return 'Type '+typeId; }
+function piTier(typeId){ return (window.PI&&PI.tier&&PI.tier[typeId]!=null)?PI.tier[typeId]:null; }
+
+/* ============================================================
+   COLONY DATA CACHE
+   ============================================================ */
+let colonyData = {};
+try{ colonyData = JSON.parse(localStorage.getItem(COLONY_CACHE_KEY)||'{}')||{}; }catch(e){}
+function saveColonyData(){ try{localStorage.setItem(COLONY_CACHE_KEY,JSON.stringify(colonyData));}catch(e){} }
+
+/* colonyData[charId] = {
+     ts: timestamp,
+     planets: [{ planet_id, planet_type, solar_system_id, upgrade_level,
+                  pins:[{pin_id,type_id,latitude,longitude,expiry_time?,
+                          extractor_details?:{product_type_id,qty_per_cycle,cycle_time,head_radius,heads:[]},
+                          contents?:[{type_id,amount}],
+                          schematic_id?}],
+                  routes:[{route_id,source_pin_id,destination_pin_id,content_type_id,quantity}],
+                  links:[{source_pin_id,destination_pin_id,link_level}]
+               }]
+   }
+*/
+
+/* ============================================================
+   ESI FETCH
+   ============================================================ */
+async function fetchCharColonies(id){
+  const tok = await getTok(id);
+  if(!tok){ toast('No token for '+((chars[id]&&chars[id].charName)||id), true); return; }
+  try{
+    const planets = await esiGet('/characters/'+id+'/planets/?datasource=tranquility', tok.access);
+    const lim = pLimit(4);
+    const detailed = await Promise.all(planets.map(pl=>lim(async()=>{
+      try{
+        const det = await esiGet('/characters/'+id+'/planets/'+pl.planet_id+'/?datasource=tranquility', tok.access);
+        return { ...pl, ...det };
+      }catch(e){ return pl; }
+    })));
+    colonyData[id] = { ts: now(), planets: detailed };
+    saveColonyData();
+  }catch(e){
+    toast('ESI error for '+((chars[id]&&chars[id].charName)||id)+': '+e.message, true);
   }
-  try{await resolveNames(tiles.map(t=>t.planet.planet_id).concat(tiles.map(t=>t.sys)));}catch(e){}
-  render(errs);
-  btn.disabled=false;
 }
 
-function ring(fracLeft, alarm){
-  const R=46,C=2*Math.PI*R;
-  const off=C*(1-Math.max(0,Math.min(1,fracLeft)));
-  return '<svg viewBox="0 0 110 110"><circle class="ring-bg" cx="55" cy="55" r="'+R+'" fill="none" stroke-width="6"/>'+
-    '<circle class="ring-fg'+(alarm?' alarm':'')+'" cx="55" cy="55" r="'+R+'" fill="none" stroke-width="6" '+
-    'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 55 55)"/></svg>';
+async function refreshAll(){
+  const ids = visibleIds();
+  if(!ids.length){ toast('No pilots visible — sign in via index.html', true); return; }
+  $('btnRefreshAll').disabled = true;
+  $('btnRefreshAll').textContent = '⏳ loading…';
+  const lim = pLimit(3);
+  await Promise.all(ids.map(id=>lim(()=>fetchCharColonies(id))));
+  $('btnRefreshAll').disabled = false;
+  $('btnRefreshAll').textContent = '↻ Refresh All Pilots';
+  $('lastUpdated').textContent = 'updated '+timeago(now());
+  renderAll();
+  reportDashboard('Colonies refreshed — '+ids.length+' pilots', 'ok');
 }
 
-function render(errs){
-  lastErrs=errs||[];
-  const errHtml=lastErrs.map(e=>'<div class="charerr" style="grid-column:1/-1">\u26a0 '+esc(e)+'</div>').join('');
-  if(!tiles.length){$('out').innerHTML=errHtml+'<div class="empty" style="grid-column:1/-1">no colonies on the roster</div>';return;}
-  const roles=chainRoles();
-  const shown=watchOnly?tiles.filter(t=>onExtractorDuty(t.charId)):tiles;
-  if(!shown.length){
-    $('out').innerHTML=errHtml+'<div class="empty" style="grid-column:1/-1">no colonies belong to pilots chalked <b>Extractor</b> or <b>Full chain</b> — chalk duty on the Chain Works pilot chalkboard, or untick the watch</div>';
-    reportDashboard('extractor watch: nobody chalked','muted');return;
-  }
-  let dark=0;
-  shown.sort((a,b)=>(a.soonest||0)-(b.soonest||0));
-  $('out').innerHTML=errHtml+shown.map(t=>{
-    const role=roles[t.charId]||'\u2014';
-    const duty=role==='Extractor'||role==='Full chain';
-    const factoryRole=role==='Factory';
-    const left=t.soonest!=null?t.soonest-now():null;
-    const expired=left!=null&&left<=0;
-    const noExtr=t.extractors===0;
-    /* a Factory-chalked pilot's colony without extractors is by design */
-    const factoryExpected=factoryRole&&noExtr;
-    const alarm=(expired||(noExtr&&!factoryExpected))&&!t.detailErr;
-    if(alarm)dark++;
-    const frac=left==null?0:Math.max(0,left)/(CYCLE_RING_H*3600000);
-    const clock=t.detailErr?'colony detail unreadable'
-      :factoryExpected?'factory colony — no extractors expected'
-      :noExtr?'no extractors installed'
-      :expired?'EXTRACTORS EXPIRED'
-      :'heads run '+fmtDur(left)+(t.latest&&t.latest!==t.soonest?' \u2192 '+fmtDur(t.latest-now()):'');
-    const badge=role!=='\u2014'?'<span class="rolebadge rb-'+(duty?'duty':'fact')+'">'+esc(role)+'</span>':'';
-    return '<div class="tile card'+(alarm?' alarm':'')+(duty?' onduty':'')+'">'+
-      '<span class="lvl">CC '+t.lvl+'</span>'+
-      '<div class="ringwrap">'+ring(frac,expired)+'<span class="ptype pt-'+esc(t.ptype||'x')+'">'+esc(t.ptype||'?')+'</span></div>'+
-      '<div class="pn">'+esc(nameOf(t.planet.planet_id,'Planet'))+'</div>'+
-      '<div class="own">'+esc(t.owner)+badge+' \u00b7 '+esc(nameOf(t.sys,'system'))+'</div>'+
-      '<div class="clock">'+clock+'</div>'+
-      '<div class="pins"><span>'+t.pinTotal+' pins</span><span>'+(t.extractors!=null?t.extractors+' extr':'\u2014')+'</span><span>'+(t.factories!=null?t.factories+' fact':'\u2014')+'</span></div>'+
+async function refreshSelected(){
+  const on = activePilots();
+  if(!on.length){ toast('Select at least one pilot', true); return; }
+  $('btnRefresh').disabled = true;
+  $('btnRefresh').textContent = '⏳ loading…';
+  const lim = pLimit(3);
+  await Promise.all(on.map(id=>lim(()=>fetchCharColonies(id))));
+  $('btnRefresh').disabled = false;
+  $('btnRefresh').textContent = '↻ Refresh ESI';
+  $('lastUpdated').textContent = 'updated '+timeago(now());
+  renderAll();
+}
+
+/* ============================================================
+   PILOT BAR
+   ============================================================ */
+let _activePilots = new Set();
+function activePilots(){ return visibleIds().filter(id=>_activePilots.has(id)); }
+
+function renderPilotBar(){
+  const ids = visibleIds();
+  if(!ids.length){ $('pilotBar').innerHTML = '<span style="font-size:11px;color:var(--muted2)">No pilots — sign in via index.html</span>'; return; }
+  // default all on
+  ids.forEach(id=>{ if(!_activePilots.has(id)) _activePilots.add(id); });
+  $('pilotBar').innerHTML = ids.map(id=>{
+    const c = chars[id]||{};
+    const on = _activePilots.has(id);
+    return '<div class="pilot-chip'+(on?' on':'')+'" data-id="'+id+'">'+
+      '<img src="https://images.evetech.net/characters/'+id+'/portrait?size=32" onerror="this.style.display=\'none\'">'+
+      '<span>'+esc(c.charName||id)+'</span>'+
+      (colonyData[id]?'<span style="font-size:8px;color:var(--muted2)">'+timeago(colonyData[id].ts)+'</span>':'<span style="font-size:8px;color:var(--muted2)">not loaded</span>')+
       '</div>';
   }).join('');
-  const dutyCount=shown.filter(t=>onExtractorDuty(t.charId)).length;
-  reportDashboard((watchOnly?'watching ':'')+shown.length+' colonies'+(watchOnly?' on extractor duty':'')+(dark?' \u00b7 '+dark+' need attention!':' \u00b7 all cycling'),dark?'bad':'ok');
-  $('loadNote').textContent='Orbits scanned '+new Date().toUTCString().slice(17,25)+' EVE'+(dutyCount&&!watchOnly?' \u00b7 '+dutyCount+' on extractor duty':'');
-}
-$('loadBtn').onclick=loadAll;
-{const c=$('watchChk');c.checked=watchOnly;
- c.addEventListener('change',()=>{watchOnly=c.checked;
-   try{localStorage.setItem(WATCH_KEY,watchOnly?'1':'0');}catch(e){}
-   if(tiles)render(lastErrs);});}
-window.addEventListener('storage',e=>{if(e.key===CHAINS_ROLE_KEY&&tiles)render(lastErrs);});
-window.onRosterChange=()=>{ if(tiles)loadAll(); };
-
-</script>
-<script>
-(function(){
-  function applySuiteTheme(name){
-    if(!name)return;
-    try{document.documentElement.dataset.theme=name;}catch(err){}
-  }
-  window.addEventListener('storage',function(e){
-    if(e.key==='eve_suite_theme')applySuiteTheme(e.newValue);
+  $('pilotBar').querySelectorAll('.pilot-chip').forEach(chip=>{
+    chip.onclick = ()=>{
+      const id = chip.dataset.id;
+      if(_activePilots.has(id)) _activePilots.delete(id);
+      else _activePilots.add(id);
+      renderPilotBar();
+      renderAll();
+    };
   });
-})();
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function expiryClass(msLeft){ if(msLeft<=0)return 'danger'; if(msLeft<3600000)return 'danger'; if(msLeft<14400000)return 'warn'; return 'ok'; }
+function expiryBarColor(msLeft, totalMs){ if(msLeft<=0)return 'var(--red)'; const pct=msLeft/totalMs; if(pct<0.2)return 'var(--red)'; if(pct<0.4)return 'var(--amber)'; return 'var(--ok)'; }
+function pinVolume(pin){
+  const type = pin.type_id;
+  // rough: launchpad=500k, storage=12k
+  if(pin.type_id){ /* could lookup, use generic */ }
+  return 500000;
+}
+function contentsVol(contents, pinTypeStr){
+  if(!contents||!contents.length)return 0;
+  return contents.reduce((s,c)=>{
+    const tier = piTier(c.type_id);
+    const vol = tier!=null ? (tier===0?P0_VOL:(P_VOL[tier]||6)) : 6;
+    return s + c.amount*vol;
+  },0);
+}
+
+/* ============================================================
+   OVERVIEW TAB
+   ============================================================ */
+function renderOverview(){
+  const ids = activePilots();
+  const grid = $('overviewGrid');
+  const sumGrid = $('sumGrid');
+  const rollupWrap = $('rollupWrap');
+
+  if(!ids.length){ grid.innerHTML=sumGrid.innerHTML=rollupWrap.innerHTML='<div class="empty">Select pilots above or refresh ESI data.</div>'; return; }
+
+  let totalPlanets=0, totalExtractors=0, totalFactories=0, expiredHeads=0, expiringHeads=0, emptyFactories=0;
+  const p0Totals={}; // p0id -> units/hr
+  const facTotals={}; // productTypeId -> units/hr
+  const cardHtmls=[];
+
+  ids.forEach(id=>{
+    const c=chars[id]||{};
+    const data=colonyData[id];
+    if(!data){
+      cardHtmls.push('<div class="planet-card"><div class="ph"><span class="ptitle">'+esc(c.charName||id)+'</span></div><div style="font-size:10px;color:var(--muted2);padding:8px 0">Not loaded — refresh ESI</div></div>');
+      return;
+    }
+    (data.planets||[]).forEach(pl=>{
+      totalPlanets++;
+      const pins=pl.pins||[];
+      const exts=pins.filter(p=>isExtractor(p.type_id_str||pinTypeStr(p)));
+      const facs=pins.filter(p=>isFactory(p.type_id_str||pinTypeStr(p)));
+      totalExtractors+=exts.length;
+      totalFactories+=facs.length;
+
+      let planetWarn=false, planetDanger=false;
+      let extRows='', facRows='';
+
+      exts.forEach(ext=>{
+        const d=ext.extractor_details;
+        if(!d)return;
+        const p0tid=d.product_type_id;
+        const p0name=piName(p0tid);
+        const cycleTime=(d.cycle_time||1800)*1000;
+        const headCount=(d.heads||[]).length||1;
+        const qtyPerHr = d.qty_per_cycle ? Math.round(d.qty_per_cycle*headCount*3600000/cycleTime) : 0;
+        if(p0tid&&qtyPerHr) p0Totals[p0tid]=(p0Totals[p0tid]||0)+qtyPerHr;
+
+        const expTs = ext.expiry_time ? new Date(ext.expiry_time).getTime() : null;
+        const msLeft = expTs ? expTs-now() : null;
+        const cls = msLeft!=null ? expiryClass(msLeft) : 'ok';
+        if(cls==='danger'){ expiredHeads++; planetDanger=true; }
+        else if(cls==='warn'){ expiringHeads++; planetWarn=true; }
+
+        const cycleHrs = d.cycle_time ? (d.cycle_time/3600).toFixed(1) : '?';
+        extRows += '<div class="ext-row">'+
+          '<span class="res">'+esc(p0name)+'</span>'+
+          '<span>'+headCount+' heads · '+cycleHrs+'h cycle'+(qtyPerHr?' · '+fmtInt(qtyPerHr)+'/hr':'')+'</span>'+
+          (msLeft!=null?'<span class="expiry '+cls+'">'+fmtDur(msLeft)+'</span>':'<span class="expiry">—</span>')+
+          '</div>';
+      });
+
+      facs.forEach(fac=>{
+        const sid=fac.schematic_id;
+        if(!sid){emptyFactories++;facRows+='<div class="fac-row"><span style="color:var(--muted2);font-size:9px">Empty slot</span></div>';return;}
+        // Look up schematic product from PI.recipe
+        const prodTid = schematicProduct(sid);
+        const prodName = piName(prodTid);
+        const tier = piTier(prodTid);
+        const ph = prodTid&&PI&&PI.recipe[prodTid] ? perHourFromRecipe(PI.recipe[prodTid]) : null;
+        if(prodTid&&ph) facTotals[prodTid]=(facTotals[prodTid]||0)+ph;
+        facRows += '<div class="fac-row">'+
+          '<span class="fac-tier">'+(tier!=null?'P'+tier:'P?')+'</span>'+
+          '<span class="fac-schematic">'+esc(prodName)+'</span>'+
+          (ph?'<span style="font-size:9px;color:var(--muted2)">'+fmtInt(Math.round(ph))+'/hr</span>':'')+'</div>';
+      });
+
+      const cardClass = 'planet-card'+(planetDanger?' danger':planetWarn?' warn':'');
+      cardHtmls.push(
+        '<div class="'+cardClass+'">'+
+          '<div class="ph">'+
+            '<div>'+
+              '<div class="ptitle">'+esc(pl.planet_name||('Planet '+pl.planet_id))+'</div>'+
+              '<div class="pmeta">'+esc(c.charName||id)+' · '+planetTypeName(pl.planet_type)+'</div>'+
+            '</div>'+
+            '<span class="ptype">'+pl.upgrade_level+'★</span>'+
+          '</div>'+
+          (extRows?'<div style="margin-bottom:6px">'+extRows+'</div>':'')+
+          (facRows?'<div>'+facRows+'</div>':'<div style="font-size:9px;color:var(--muted2)">No factories</div>')+
+        '</div>'
+      );
+    });
+  });
+
+  // Summary cards
+  sumGrid.innerHTML =
+    '<div class="sum-card'+(expiredHeads>0?' danger':'')+'"><div class="sv">'+expiredHeads+'</div><div class="sl">Expired heads</div></div>'+
+    '<div class="sum-card'+(expiringHeads>0?' warn':'')+'"><div class="sv">'+expiringHeads+'</div><div class="sl">Expiring &lt;4h</div></div>'+
+    '<div class="sum-card"><div class="sv">'+totalPlanets+'</div><div class="sl">Active planets</div></div>'+
+    '<div class="sum-card"><div class="sv">'+totalExtractors+'</div><div class="sl">Extractor controls</div></div>'+
+    '<div class="sum-card"><div class="sv">'+totalFactories+'</div><div class="sl">Factory pins</div></div>'+
+    (emptyFactories?'<div class="sum-card warn"><div class="sv">'+emptyFactories+'</div><div class="sl">Empty factories</div></div>':'');
+
+  // Rollup throughput table
+  const p0Rows = Object.entries(p0Totals).sort((a,b)=>b[1]-a[1]).map(([tid,hr])=>
+    '<tr><td>P0</td><td>'+esc(piName(tid))+'</td><td>'+fmtInt(Math.round(hr))+'/hr</td></tr>'
+  ).join('');
+  const facRows2 = Object.entries(facTotals).sort((a,b)=>b[1]-a[1]).map(([tid,hr])=>
+    '<tr><td>P'+(piTier(tid)||'?')+'</td><td>'+esc(piName(tid))+'</td><td>'+fmtInt(Math.round(hr))+'/hr</td></tr>'
+  ).join('');
+  rollupWrap.innerHTML = (p0Rows||facRows2)
+    ? '<table class="rollup-table"><thead><tr><th>TIER</th><th>PRODUCT</th><th>THROUGHPUT</th></tr></thead><tbody>'+p0Rows+facRows2+'</tbody></table>'
+    : '<div style="font-size:11px;color:var(--muted2)">No throughput data — load ESI data first.</div>';
+
+  grid.innerHTML = cardHtmls.join('') || '<div class="empty">No colony data for selected pilots.</div>';
+}
+
+/* ============================================================
+   EXTRACTION TAB
+   ============================================================ */
+function renderExtraction(){
+  const ids = activePilots();
+  const grid = $('extractionGrid');
+
+  // Collect all extractor pins, sorted by soonest expiry
+  const allExts = [];
+  ids.forEach(id=>{
+    const c=chars[id]||{};
+    const data=colonyData[id];
+    if(!data)return;
+    (data.planets||[]).forEach(pl=>{
+      (pl.pins||[]).filter(p=>isExtractor(pinTypeStr(p))).forEach(ext=>{
+        const d=ext.extractor_details;
+        if(!d)return;
+        const expTs = ext.expiry_time ? new Date(ext.expiry_time).getTime() : null;
+        allExts.push({ id, charName:c.charName||id, pl, ext, d, expTs });
+      });
+    });
+  });
+
+  allExts.sort((a,b)=>(a.expTs||Infinity)-(b.expTs||Infinity));
+
+  if(!allExts.length){ grid.innerHTML='<div class="empty">No active extractors found — load ESI data first.</div>'; return; }
+
+  const CYCLE_MS = 72*3600*1000; // 72h reference cycle
+  grid.innerHTML = allExts.map(({id,charName,pl,ext,d,expTs})=>{
+    const p0tid = d.product_type_id;
+    const p0name = piName(p0tid);
+    const heads = (d.heads||[]).length||1;
+    const cycleTime = (d.cycle_time||1800)*1000;
+    const qtyPerHr = d.qty_per_cycle ? Math.round(d.qty_per_cycle*heads*3600000/cycleTime) : 0;
+    const msLeft = expTs ? expTs-now() : null;
+    const cls = msLeft!=null ? expiryClass(msLeft) : 'ok';
+    const barPct = msLeft!=null ? Math.max(0,Math.min(100,msLeft/CYCLE_MS*100)) : 100;
+    const barColor = msLeft!=null ? expiryBarColor(msLeft,CYCLE_MS) : 'var(--ok)';
+    const ptypes = (window.PI&&PI.p0pt&&PI.p0pt[p0tid])?PI.p0pt[p0tid].map(c=>({I:'Ice',O:'Oceanic',T:'Temperate',B:'Barren',L:'Lava',G:'Gas',S:'Storm',P:'Plasma'}[c]||c)).join(', '):'';
+
+    return '<div class="planet-card'+(cls==='danger'?' danger':cls==='warn'?' warn':'')+'">'+
+      '<div class="ph">'+
+        '<div>'+
+          '<div class="ptitle" style="color:var(--amber)">'+esc(p0name)+'</div>'+
+          '<div class="pmeta">'+esc(charName)+' · '+esc(pl.planet_name||('Planet '+pl.planet_id))+'</div>'+
+        '</div>'+
+        '<span class="ptype">'+planetTypeName(pl.planet_type)+'</span>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:6px">'+
+        '<span>'+heads+' heads · '+(d.cycle_time?(d.cycle_time/3600).toFixed(1)+'h':'?')+'h cycle</span>'+
+        (qtyPerHr?'<span style="color:var(--cyan)">'+fmtInt(qtyPerHr)+'/hr</span>':'<span style="color:var(--muted2)">—/hr</span>')+
+      '</div>'+
+      (ptypes?'<div style="font-size:9px;color:var(--muted2);margin-bottom:6px">\u25cb '+esc(ptypes)+'</div>':'')+
+      '<div class="exp-bar-wrap"><div class="exp-bar" style="width:'+barPct+'%;background:'+barColor+'"></div></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:4px">'+
+        '<span style="font-size:9px;color:var(--muted2)">Expiry</span>'+
+        '<span class="expiry '+cls+'" style="font-size:9px">'+
+          (msLeft!=null?(msLeft<=0?'⚠ EXPIRED':fmtDur(msLeft)+' remaining'):'—')+
+        '</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ============================================================
+   FACTORIES TAB
+   ============================================================ */
+function renderFactories(){
+  const ids = activePilots();
+  const grid = $('factoriesGrid');
+  const cards = [];
+
+  ids.forEach(id=>{
+    const c=chars[id]||{};
+    const data=colonyData[id];
+    if(!data)return;
+    (data.planets||[]).forEach(pl=>{
+      const facs=(pl.pins||[]).filter(p=>isFactory(pinTypeStr(p)));
+      if(!facs.length)return;
+      let rows='';
+      let emptySlots=0;
+      facs.forEach(fac=>{
+        const sid=fac.schematic_id;
+        if(!sid){emptySlots++;return;}
+        const prodTid=schematicProduct(sid);
+        const tier=piTier(prodTid);
+        const rec=window.PI&&PI.recipe[prodTid];
+        const ph=rec?perHourFromRecipe(rec):null;
+        const inputs=rec?rec.in.map(([tid])=>piName(tid)).join(', '):'';
+        rows+='<div class="fac-row">'+
+          '<span class="fac-tier">'+(tier!=null?'P'+tier:'P?')+'</span>'+
+          '<span style="font-size:9px;color:var(--muted2)">'+esc(inputs)+'</span>'+
+          '<span class="fac-arrow">\u2192</span>'+
+          '<span class="fac-schematic">'+esc(piName(prodTid))+'</span>'+
+          (ph?'<span style="font-size:9px;color:var(--muted2);margin-left:auto">'+fmtInt(Math.round(ph))+'/hr</span>':'')+
+        '</div>';
+      });
+      if(emptySlots) rows+='<div style="font-size:9px;color:var(--amber);padding:4px 0">'+emptySlots+' empty slot'+(emptySlots>1?'s':'')+'</div>';
+      cards.push(
+        '<div class="planet-card'+(emptySlots?' warn':'')+'">'+
+          '<div class="ph"><div><div class="ptitle">'+esc(pl.planet_name||('Planet '+pl.planet_id))+'</div>'+
+          '<div class="pmeta">'+esc(c.charName||id)+' · '+planetTypeName(pl.planet_type)+'</div></div>'+
+          '<span class="ptype">'+facs.length+' factories</span></div>'+
+          rows+
+        '</div>'
+      );
+    });
+  });
+
+  grid.innerHTML = cards.join('') || '<div class="empty">No factory planets found — load ESI data first.</div>';
+}
+
+/* ============================================================
+   STORAGE TAB
+   ============================================================ */
+function renderStorage(){
+  const ids = activePilots();
+  const grid = $('storageGrid');
+  const cards = [];
+  const MAX_LP = 500000;
+
+  ids.forEach(id=>{
+    const c=chars[id]||{};
+    const data=colonyData[id];
+    if(!data)return;
+    (data.planets||[]).forEach(pl=>{
+      const storagePins=(pl.pins||[]).filter(p=>isStorage(pinTypeStr(p))||isLaunchpad(pinTypeStr(p)));
+      if(!storagePins.length)return;
+      let rows='';
+      let anyFull=false;
+      storagePins.forEach(pin=>{
+        const contents=pin.contents||[];
+        const isLP=isLaunchpad(pinTypeStr(pin));
+        const maxVol=isLP?MAX_LP:12000;
+        const usedVol=Math.round(contentsVol(contents));
+        const pct=Math.min(100,usedVol/maxVol*100);
+        if(pct>=90)anyFull=true;
+        rows+='<div class="stor-row">'+
+          '<div style="flex:1">'+
+            '<div style="display:flex;justify-content:space-between;margin-bottom:2px">'+
+              '<span>'+(isLP?'🚀 Launchpad':'📦 Storage')+'</span>'+
+              '<span style="color:'+(pct>=90?'var(--amber)':'var(--muted2)')+'">'+fmtInt(usedVol)+' / '+fmtInt(maxVol)+' m³</span>'+
+            '</div>'+
+            '<div class="vol-bar-wrap"><div class="vol-bar'+(pct>=90?' full':'')+'" style="width:'+pct.toFixed(1)+'%"></div></div>'+
+            (contents.length?'<div style="font-size:8.5px;color:var(--muted2);margin-top:4px">'+
+              contents.slice(0,5).map(ci=>'<span style="margin-right:6px">'+esc(piName(ci.type_id))+' ×'+fmtInt(ci.amount)+'</span>').join('')+
+              (contents.length>5?'<span style="color:var(--muted2)">+'+( contents.length-5)+' more</span>':'')+
+            '</div>':'<div style="font-size:8.5px;color:var(--muted2);margin-top:4px">Empty</div>')+
+          '</div>'+
+        '</div>';
+      });
+      cards.push(
+        '<div class="planet-card'+(anyFull?' warn':'')+'">'+
+          '<div class="ph"><div><div class="ptitle">'+esc(pl.planet_name||('Planet '+pl.planet_id))+'</div>'+
+          '<div class="pmeta">'+esc(c.charName||id)+' · '+planetTypeName(pl.planet_type)+'</div></div></div>'+
+          rows+
+        '</div>'
+      );
+    });
+  });
+
+  grid.innerHTML = cards.join('') || '<div class="empty">No storage/launchpad data — load ESI data first.</div>';
+}
+
+/* ============================================================
+   ROUTES TAB
+   ============================================================ */
+function renderRoutes(){
+  const ids = activePilots();
+  const grid = $('routesGrid');
+  const cards = [];
+
+  ids.forEach(id=>{
+    const c=chars[id]||{};
+    const data=colonyData[id];
+    if(!data)return;
+    (data.planets||[]).forEach(pl=>{
+      const routes=pl.routes||[];
+      const pins=pl.pins||[];
+      if(!routes.length)return;
+
+      // Build pin id -> type label map
+      const pinMap={};
+      pins.forEach(p=>{ pinMap[p.pin_id]=pinTypeStr(p); });
+
+      let rows='', brokenCount=0;
+      routes.forEach(r=>{
+        const srcType=pinMap[r.source_pin_id]||'?';
+        const dstType=pinMap[r.destination_pin_id]||'?';
+        const product=piName(r.content_type_id);
+        const tier=piTier(r.content_type_id);
+        const broken=srcType==='?'||dstType==='?';
+        if(broken)brokenCount++;
+        rows+='<div class="route-row-c">'+
+          '<span class="'+(broken?'route-broken':'route-ok')+'">'+(broken?'⚠':'✓')+'</span>'+
+          '<span style="font-size:9px;color:var(--muted2)">'+pinTypeName(srcType)+'</span>'+
+          '<span style="font-size:10px;color:var(--muted2)">\u2192</span>'+
+          '<span style="font-size:9px;color:var(--muted2)">'+pinTypeName(dstType)+'</span>'+
+          '<span style="flex:1;text-align:right;font-size:9px">'+(tier!=null?'<span style="color:var(--cyan)">P'+tier+'</span> ':'')+esc(product)+'</span>'+
+          '<span style="font-size:9px;color:var(--muted2);margin-left:4px">×'+fmtInt(r.quantity)+'</span>'+
+        '</div>';
+      });
+      cards.push(
+        '<div class="planet-card'+(brokenCount?' warn':'')+'">'+
+          '<div class="ph"><div><div class="ptitle">'+esc(pl.planet_name||('Planet '+pl.planet_id))+'</div>'+
+          '<div class="pmeta">'+esc(c.charName||id)+' · '+planetTypeName(pl.planet_type)+' · '+routes.length+' routes</div></div>'+
+          (brokenCount?'<span class="ptype" style="color:var(--amber)">⚠ '+brokenCount+' broken</span>':'<span class="ptype" style="color:var(--ok)">✓ ok</span>')+
+          '</div>'+rows+
+        '</div>'
+      );
+    });
+  });
+
+  grid.innerHTML = cards.join('') || '<div class="empty">No route data — load ESI data first.</div>';
+}
+
+/* ============================================================
+   PI HELPERS (schematic lookup)
+   ============================================================ */
+// ESI returns schematic_id; map it to output product via PI.recipe
+// Schematic IDs match the output typeID in PI.recipe
+function schematicProduct(sid){
+  if(!sid||!window.PI)return null;
+  // In EVE SDE, schematic_id == product typeID for P1/P2/P3; for P4 same pattern
+  // PI.recipe keys are typeIDs of outputs
+  if(PI.recipe[sid])return sid;
+  // Some schematics have different IDs — search recipe for matching schematic
+  return null;
+}
+function perHourFromRecipe(rec){
+  if(!rec||!rec.ct||!rec.out)return 0;
+  return rec.out * 3600 / rec.ct;
+}
+function pinTypeStr(pin){
+  // ESI returns type_id for pins, not a string type — map via known type ranges
+  // or use a heuristic based on extractor_details / schematic_id presence
+  if(!pin)return 'unknown';
+  if(pin.extractor_details)return 'extractor_control_unit';
+  if(pin.schematic_id!=null)return 'basic_industrial_facility';
+  // contents without schematic = storage or launchpad
+  // command center has no contents and no schematic typically
+  if(pin.contents&&pin.contents.length>0)return 'storage_facility';
+  return 'command_center';
+}
+
+/* ============================================================
+   COMPARE TO PLAN
+   ============================================================ */
+const PRESET_KEY = 'eve_suite_chains_presets';
+function loadPresets(){ try{return JSON.parse(localStorage.getItem(PRESET_KEY)||'{}')||{};}catch(e){return{};} }
+
+// BOM expand — simplified version mirroring chains.html bomExpand
+function bomExpandSimple(rootTid){
+  const p0={}, steps={};
+  function walk(tid, mult){
+    const rec = window.PI && PI.recipe[tid];
+    if(!rec){ p0[tid]=(p0[tid]||0)+mult; return; }
+    const ph = rec.out*3600/rec.ct;
+    steps[tid]=(steps[tid]||0)+mult;
+    rec.in.forEach(([inp,qty])=>walk(inp, mult*qty/rec.out));
+  }
+  walk(rootTid, 1);
+  return {p0, steps};
+}
+
+let _cmpPlan = null; // { name, basket:[[tid,qty]], p0Needed:{tid->qty/hr}, facNeeded:{tid->qty/hr} }
+
+function renderComparePresets(){
+  const sel = $('cmpPresetSel');
+  if(!sel) return;
+  const presets = loadPresets();
+  const names = Object.keys(presets);
+  sel.innerHTML = '<option value="">— select preset —</option>' +
+    names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
+}
+
+function loadComparePlan(){
+  const sel = $('cmpPresetSel');
+  if(!sel) return;
+  const name = sel.value;
+  if(!name){ toast('Select a preset first', true); return; }
+  const presets = loadPresets();
+  const p = presets[name];
+  if(!p){ toast('Preset not found', true); return; }
+
+  // Compute what P0s and factory products the plan needs
+  const p0Needed={}, facNeeded={};
+  (p.basket||[]).forEach(([tid,qty])=>{
+    const acc = bomExpandSimple(+tid);
+    const ph = window.PI && PI.recipe[tid] ? PI.recipe[tid].out*3600/PI.recipe[tid].ct : 1;
+    Object.entries(acc.p0).forEach(([p0id,mult])=>{ p0Needed[p0id]=(p0Needed[p0id]||0)+mult*ph*qty; });
+    Object.entries(acc.steps).forEach(([fid,mult])=>{ facNeeded[fid]=(facNeeded[fid]||0)+mult*ph*qty; });
+  });
+
+  _cmpPlan = { name, basket: p.basket||[], p0Needed, facNeeded };
+
+  const info = $('cmpPlanInfo');
+  info.style.display = 'block';
+  info.innerHTML = '<b>Plan: '+esc(name)+'</b> · '+
+    (p.basket||[]).map(([tid])=>esc(piName(tid))).join(', ')+
+    '<br><span style="color:var(--muted2)">P0 inputs needed: '+
+    Object.entries(p0Needed).map(([tid,hr])=>esc(piName(tid))+' '+Math.round(hr)+'/hr').join(', ')+'</span>';
+
+  renderCompare();
+}
+
+function renderCompare(){
+  const grid = $('compareGrid');
+  if(!_cmpPlan){ grid.innerHTML='<div class="empty">Load a plan above to compare against live colony data.</div>'; return; }
+  const ids = activePilots();
+  if(!ids.length){ grid.innerHTML='<div class="empty">Select pilots above first.</div>'; return; }
+
+  // Collect what ESI says is actually running
+  const esiP0={}, esiFac={};
+  ids.forEach(id=>{
+    const data=colonyData[id];
+    if(!data)return;
+    (data.planets||[]).forEach(pl=>{
+      (pl.pins||[]).forEach(pin=>{
+        if(pin.extractor_details){
+          const p0tid=pin.extractor_details.product_type_id;
+          if(!p0tid)return;
+          const cycleMs=(pin.extractor_details.cycle_time||1800)*1000;
+          const heads=(pin.extractor_details.heads||[]).length||1;
+          const qph=pin.extractor_details.qty_per_cycle?pin.extractor_details.qty_per_cycle*heads*3600000/cycleMs:0;
+          esiP0[p0tid]=(esiP0[p0tid]||0)+qph;
+        }
+        if(pin.schematic_id){
+          const prodTid=schematicProduct(pin.schematic_id)||pin.schematic_id;
+          const rec=window.PI&&PI.recipe[prodTid];
+          const ph=rec?rec.out*3600/rec.ct:0;
+          if(ph) esiFac[prodTid]=(esiFac[prodTid]||0)+ph;
+        }
+      });
+    });
+  });
+
+  const cards=[];
+
+  // P0 extraction comparison
+  const allP0ids = new Set([...Object.keys(_cmpPlan.p0Needed), ...Object.keys(esiP0)]);
+  let p0Html='';
+  allP0ids.forEach(tid=>{
+    const needed=_cmpPlan.p0Needed[tid]||0;
+    const actual=esiP0[tid]||0;
+    const pct=needed>0?Math.round(actual/needed*100):null;
+    const ok=pct!=null&&pct>=90;
+    const warn=pct!=null&&pct>=50&&pct<90;
+    const bad=pct==null||pct<50;
+    p0Html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:10.5px">'+
+      '<span style="color:var(--amber)">'+esc(piName(tid))+'</span>'+
+      '<span style="display:flex;gap:12px;align-items:center">'+
+        '<span style="font-size:9px;color:var(--muted2)">need '+fmtInt(Math.round(needed))+'/hr</span>'+
+        '<span style="font-size:9px;color:var(--muted2)">ESI '+fmtInt(Math.round(actual))+'/hr</span>'+
+        '<span style="min-width:38px;text-align:right;font-weight:600;color:'+(ok?'var(--ok)':warn?'var(--amber)':'var(--red)')+'">'+
+          (pct!=null?pct+'%':'—')+
+        '</span>'+
+      '</span>'+
+    '</div>';
+  });
+  if(p0Html) cards.push(
+    '<div class="planet-card">'+
+      '<div class="ph"><div class="ptitle">P0 Extraction Coverage</div>'+
+      '<div class="pmeta">plan needs vs ESI actual</div></div>'+
+      p0Html+
+    '</div>'
+  );
+
+  // Factory schematic comparison
+  const allFacids = new Set([...Object.keys(_cmpPlan.facNeeded), ...Object.keys(esiFac)]);
+  let facHtml='';
+  allFacids.forEach(tid=>{
+    const needed=_cmpPlan.facNeeded[tid]||0;
+    const actual=esiFac[tid]||0;
+    const tier=piTier(tid);
+    const pct=needed>0?Math.round(actual/needed*100):null;
+    const ok=pct!=null&&pct>=90;
+    const warn=pct!=null&&pct>=50&&pct<90;
+    facHtml+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:10.5px">'+
+      '<span style="display:flex;gap:6px;align-items:center">'+
+        (tier!=null?'<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(122,184,200,.12);color:var(--cyan)">P'+tier+'</span>':'')+
+        '<span>'+esc(piName(tid))+'</span>'+
+      '</span>'+
+      '<span style="display:flex;gap:12px;align-items:center">'+
+        '<span style="font-size:9px;color:var(--muted2)">need '+fmtInt(Math.round(needed))+'/hr</span>'+
+        '<span style="font-size:9px;color:var(--muted2)">ESI '+fmtInt(Math.round(actual))+'/hr</span>'+
+        '<span style="min-width:38px;text-align:right;font-weight:600;color:'+(ok?'var(--ok)':warn?'var(--amber)':'var(--red)')+'">'+
+          (pct!=null?pct+'%':'—')+
+        '</span>'+
+      '</span>'+
+    '</div>';
+  });
+  if(facHtml) cards.push(
+    '<div class="planet-card">'+
+      '<div class="ph"><div class="ptitle">Factory Coverage</div>'+
+      '<div class="pmeta">plan needs vs ESI actual</div></div>'+
+      facHtml+
+    '</div>'
+  );
+
+  // Per-pilot summary: what they're contributing vs plan
+  ids.forEach(id=>{
+    const c=chars[id]||{};
+    const data=colonyData[id];
+    if(!data){ cards.push('<div class="planet-card"><div class="ph"><div class="ptitle">'+esc(c.charName||id)+'</div><div class="pmeta" style="color:var(--amber)">No ESI data loaded</div></div></div>'); return; }
+    let pilotRows='';
+    (data.planets||[]).forEach(pl=>{
+      const pins=pl.pins||[];
+      const exts=pins.filter(p=>p.extractor_details);
+      const facs=pins.filter(p=>p.schematic_id!=null);
+      exts.forEach(pin=>{
+        const p0tid=pin.extractor_details.product_type_id;
+        const inPlan=p0tid&&(_cmpPlan.p0Needed[p0tid]>0);
+        pilotRows+='<div style="display:flex;gap:6px;align-items:center;padding:3px 0;font-size:10px">'+
+          '<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(201,168,104,.12);color:var(--amber)">P0</span>'+
+          '<span>'+esc(piName(p0tid))+'</span>'+
+          '<span style="margin-left:auto;font-size:9px;color:'+(inPlan?'var(--ok)':'var(--muted2)')+'">'+
+            (inPlan?'✓ in plan':'not in plan')+
+          '</span>'+
+        '</div>';
+      });
+      facs.forEach(pin=>{
+        const prodTid=schematicProduct(pin.schematic_id)||pin.schematic_id;
+        const inPlan=prodTid&&(_cmpPlan.facNeeded[prodTid]>0);
+        const tier=piTier(prodTid);
+        pilotRows+='<div style="display:flex;gap:6px;align-items:center;padding:3px 0;font-size:10px">'+
+          (tier!=null?'<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(122,184,200,.12);color:var(--cyan)">P'+tier+'</span>':'')+
+          '<span>'+esc(piName(prodTid))+'</span>'+
+          '<span style="margin-left:auto;font-size:9px;color:'+(inPlan?'var(--ok)':'var(--muted2)')+'">'+
+            (inPlan?'✓ in plan':'not in plan')+
+          '</span>'+
+        '</div>';
+      });
+    });
+    cards.push(
+      '<div class="planet-card">'+
+        '<div class="ph"><div>'+
+          '<div class="ptitle">'+esc(c.charName||id)+'</div>'+
+          '<div class="pmeta">'+((data.planets||[]).length)+' planets</div>'+
+        '</div></div>'+
+        (pilotRows||'<div style="font-size:10px;color:var(--muted2)">No active pins</div>')+
+      '</div>'
+    );
+  });
+
+  grid.innerHTML = cards.join('') || '<div class="empty">No comparison data available.</div>';
+}
+
+/* ============================================================
+   RENDER ALL
+   ============================================================ */
+function renderAll(){
+  renderPilotBar();
+  const activeView = document.querySelector('.view.on');
+  if(!activeView)return;
+  const v = activeView.dataset.view;
+  if(v==='overview') renderOverview();
+  else if(v==='extraction') renderExtraction();
+  else if(v==='factories') renderFactories();
+  else if(v==='storage') renderStorage();
+  else if(v==='routes') renderRoutes();
+  else if(v==='compare') renderCompare();
+}
+
+/* ============================================================
+   TAB WIRING
+   ============================================================ */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+    tab.classList.add('on');
+    const v = document.querySelector('.view[data-view="'+tab.dataset.view+'"]');
+    if(v) v.classList.add('on');
+    renderAll();
+  };
+});
+
+$('btnRefresh').onclick = refreshSelected;
+$('btnRefreshAll').onclick = refreshAll;
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderPilotBar();
+renderComparePresets();
+const cmpLoadBtn=$('cmpLoadBtn');
+if(cmpLoadBtn) cmpLoadBtn.onclick=loadComparePlan;
+const cmpSel=$('cmpPresetSel');
+if(cmpSel) cmpSel.onchange=()=>{ if(cmpSel.value) loadComparePlan(); };
+// Update lastUpdated from cache
+const latestTs = Object.values(colonyData).map(d=>d.ts||0).reduce((a,b)=>Math.max(a,b),0);
+if(latestTs) $('lastUpdated').textContent = 'cached '+timeago(latestTs);
+renderAll();
+
+// Live countdown refresh every 60s
+setInterval(()=>{
+  renderPilotBar();
+  renderAll();
+}, 60000);
 </script>
 </body>
 </html>

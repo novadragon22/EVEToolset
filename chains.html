@@ -295,7 +295,7 @@ td .reg{font-size:9px}
     <div>
       <div class="kicker">P0 → P4 · Planetary Production Draft</div>
       <h1>Chain<span class="diamond"></span>Works</h1>
-      <div class="subline">Draft a planetary production chain: pick the product, read the full P0→P4 tree with hourly quantities, see which planet types feed it, hunt candidate systems across the gate network, and chalk pilots onto extractor and factory duty. Built on the PI Planner's schematic and universe data.</div>
+      <div class="subline">Draft a planetary production chain: pick the product, read the full P0→P4 tree with hourly quantities, see which planet types feed it, hunt candidate systems across the gate network, and model extraction and factory capacity. Built on the PI Planner's schematic and universe data.</div>
     </div>
   </div>
   <div class="tb-right">
@@ -364,10 +364,10 @@ td .reg{font-size:9px}
   <span id="makeToggle" class="navbtn" style="cursor:pointer;padding:4px 12px;border:1px solid var(--line2);color:var(--muted);font-size:10.5px;font-family:var(--mono)">What to make</span>
   <span class="hint" style="font-size:10px">profit ranking · P1–P4 products</span>
   <span id="bfrToggle" class="navbtn" style="cursor:pointer;padding:4px 12px;border:1px solid var(--line2);color:var(--muted);font-size:10.5px;font-family:var(--mono);margin-left:8px">Best for my roster</span>
-  <span class="hint" style="font-size:10px">output × price · based on chalked pilots</span>
+  <span class="hint" style="font-size:10px">output × price · based on capacity model</span>
 </div>
 <div class="bfr-panel panel" id="bfrPanel">
-  <h2>Best for my roster <span class="hint" style="font-weight:400">· output volume × market value, ranked by ISK/day your chalked pilots can produce</span></h2>
+  <h2>Best for my capacity model <span class="hint" style="font-weight:400">· output volume × market value, ranked by ISK/day your modelled pilots can produce</span></h2>
   <div id="bfrControls" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;margin-bottom:8px"></div>
   <div id="bfrBody"></div>
 </div>
@@ -382,14 +382,14 @@ td .reg{font-size:9px}
 </div>
 <div class="capband panel" id="capBand" style="display:none"></div>
 
-<div class="roleboard panel">
-  <h2>Pilot chalkboard</h2>
-  <span class="c">Chalk each pilot onto colony duty for this draft — extractors pull P0, factories cook it up the chain. Roles are remembered per pilot and shared with Colony Orbit, which watches the extractor clocks of pilots chalked Extractor or Full chain. Toggle pilots in the Toolset menu.</span>
+<div class="roleboard panel" id="capacityModel">
+  <h2>Capacity Model</h2>
+  <span class="c">Model how many extraction and factory pilots this chain needs. Assign roles to estimate throughput lines and export volume — this is design capacity, not live operations. For live monitoring, see Colony Monitor.</span>
   <div class="rolerow" id="roleRow"></div>
   <div class="rolesum" id="roleSum"></div>
   <div class="autochalk-bar">
     <button class="btn" id="autochalkBtn">⚙ Auto-assign roles</button>
-    <span class="hint" style="font-size:10px">finds the role split that maximises throughput lines for this draft</span>
+    <span class="hint" style="font-size:10px">finds the role split that maximises throughput lines for this capacity model</span>
   </div>
   <div id="autochalkDiff" style="display:none"></div>
   <div id="staleBanner" style="display:none"></div>
@@ -417,10 +417,6 @@ td .reg{font-size:9px}
     <div><label>M³ INFRA HOLD — reference value, adjust to match your fit</label><input type="number" id="haulCapacityInput" min="1"></div>
   </div>
   <div id="stageFlow"></div>
-  <div class="assign-panel" id="assignPanel" style="display:none">
-    <h3>PILOT → STAGE ASSIGNMENT</h3>
-    <div id="assignBody"></div>
-  </div>
   <div class="logigrid">
     <div><div class="lbl2" style="font-size:8.5px;margin-bottom:6px" id="haulLbl">HAUL CADENCE &amp; TRIPS</div><div class="haulrows" id="haulRows"></div></div>
     <div class="routebox card"><div class="lbl2" id="haulShipLbl">ROUTE OPTIMISER</div><div id="logiRoute"></div></div>
@@ -1316,10 +1312,18 @@ function buildChainTreeSvg(rootTid, byTier, tierNums, pickCache, acc, SYS){
       const nm = n.nm.length > maxNmLen ? n.nm.slice(0, maxNmLen-1)+'…' : n.nm;
       svg += '<text x="'+(x+7)+'" y="'+(y+27)+'" font-size="11" fill="rgba(255,255,255,0.9)" font-weight="500">'+esc(nm)+'</text>';
 
-      // System name
-      const sysColor = isRoot ? '#7ab8c8' : 'rgba(255,255,255,0.38)';
-      const sysNm = n.sysName.length > 18 ? n.sysName.slice(0,17)+'…' : n.sysName;
-      svg += '<text x="'+(x+7)+'" y="'+(y+39)+'" font-size="9" fill="'+sysColor+'">'+esc(sysNm)+'</text>';
+      // System name / planet types for P0
+      if(isP0){
+        const ptCodes=(PI.p0pt&&PI.p0pt[String(n.pid)])||[];
+        const PT_NAMES={I:'Ice',O:'Oceanic',T:'Temperate',B:'Barren',L:'Lava',G:'Gas',S:'Storm',P:'Plasma'};
+        const ptStr=ptCodes.map(c=>PT_NAMES[c]||c).join(', ');
+        const ptTrunc=ptStr.length>26?ptStr.slice(0,25)+'…':ptStr;
+        svg += '<text x="'+(x+7)+'" y="'+(y+39)+'" font-size="8.5" fill="rgba(201,168,104,0.65)">○ '+esc(ptTrunc)+'</text>';
+      } else {
+        const sysColor=isRoot?'#7ab8c8':'rgba(255,255,255,0.38)';
+        const sysNm=n.sysName.length>18?n.sysName.slice(0,17)+'…':n.sysName;
+        svg += '<text x="'+(x+7)+'" y="'+(y+39)+'" font-size="9" fill="'+sysColor+'">'+esc(sysNm)+'</text>';
+      }
 
       // Qty/hr
       if(n.qtyPerHr > 0){
@@ -1385,7 +1389,7 @@ function _orig_renderLogistics(){
     if(targets.length>1)flowHtml+='<div class="ct-prodhead" style="margin-top:8px">'+esc(PI.recipe[t].name)+' ×'+qty+'</div>';
     flowHtml+=buildChainTreeSvg(t,byTier,tierNums,pickCache,acc,SYS);
 
-    /* haul cadence — one row per tier boundary */
+    /* haul cadence — volume and trips per tier boundary */
     let rows='';
     for(let ci=0;ci<tierNums.length-1;ci++){
       const tiA=tierNums[ci],tiB=tierNums[ci+1];
@@ -1405,12 +1409,10 @@ function _orig_renderLogistics(){
       const fromNames=prodsA.map(p=>tiA===0?(PI.names[p]||p):(PI.recipe[p]?PI.recipe[p].name:p)).join(', ');
       const toNames=prodsB.map(p=>PI.recipe[p]?PI.recipe[p].name:p).join(', ');
       rows+='<div class="buf-row card">'+
-        '<span>P'+tiA+' \u2192 P'+tiB+'</span>'+
-        '<span><b>'+fmtHrs(cadence)+'</b> haul cadence \u00b7 '+esc(fromNames)+' \u2192 '+esc(toNames)+
-        ' \u00b7 ~'+Math.round(totalM3).toLocaleString()+' m\u00b3 \u2248 <b>'+trips+'</b> trip'+(trips===1?'':'s')+'</span></div>';
+        '<span>P'+tiA+' → P'+tiB+'</span>'+
+        '<span><b>'+fmtHrs(cadence)+'</b> cadence · '+esc(fromNames)+' → '+esc(toNames)+
+        ' · ~'+Math.round(totalM3).toLocaleString()+' m³ ≈ <b>'+trips+'</b> trip'+(trips===1?'':'s')+'</span></div>';
     }
-    haulHtml+=(targets.length>1?'<div class="ct-prodhead" style="margin:8px 0 2px">'+esc(PI.recipe[t].name)+'</div>':'')+
-      (rows||'<div class="buf-row card"><span>Single-stage chain \u2014 no hauls needed.</span></div>');
   });
   $('stageFlow').innerHTML=flowHtml;
   /* export volume — computed from the chalked roster's supported lines */
@@ -1432,220 +1434,6 @@ function _orig_renderLogistics(){
   const stops=[...routeStops.values()].sort((x,y)=>(x.jumps??1e9)-(y.jumps??1e9));
   $('logiRoute').innerHTML=stops.map((s,i)=>'<div class="route-row"><span><span class="stop-idx">'+(i+1)+'.</span><span class="stop-name">'+esc(s.sysName)+'</span></span><span>'+(s.jumps!=null?s.jumps+' jumps from home':'jumps unknown')+'</span></div>').join('')+
     '<div class="route-summary">Nearest-first route across '+stops.length+' system'+(stops.length===1?'':'s')+' · ~'+totalTripsAll+' total trip'+(totalTripsAll===1?'':'s')+' to clear every haul stage across the whole basket at current cadence.</div>';
-  /* ---- FEATURE 1: Pilot → Stage Assignment ---- */
-  const pilotIds=visibleIds();
-  if(pilotIds.length){
-    const tierSysMap={};
-    targets.forEach(tid=>{
-      const t=+tid;
-      const acc=bomExpand(t,1);
-      const byTier={};
-      Object.keys(acc.p0).forEach(p=>{(byTier[0]=byTier[0]||[]).push(String(p));});
-      Object.keys(acc.steps).forEach(p=>{const ti=PI.tier[p]||0;(byTier[ti]=byTier[ti]||[]).push(String(p));});
-      const tierNums2=Object.keys(byTier).map(Number).sort((a,b)=>a-b);
-      const pickCache2={};
-      tierNums2.forEach(ti=>{
-        (byTier[ti]||[]).forEach(pid=>{
-          if(String(ti)===String(PI.tier[t])){
-            pickCache2[pid]={id:selectedSystemId,anchored:true};
-          } else {
-            const pick=bestSystemFor(pid,selectedSystemId,nearDist);
-            pickCache2[pid]=pick;
-          }
-          const pk=pickCache2[pid];
-          const sysId=pk?pk.id:selectedSystemId;
-          if(!tierSysMap[ti]) tierSysMap[ti]=[];
-          const existing=tierSysMap[ti].find(e=>e.sysId===sysId);
-          const nm=ti===0?(PI.names[pid]||pid):(PI.recipe[pid]?PI.recipe[pid].name:pid);
-          if(existing){if(!existing.prods.includes(nm))existing.prods.push(nm);}
-          else tierSysMap[ti].push({sysId,sysName:SYS[sysId][0],prods:[nm]});
-        });
-      });
-    });
-    const allTiers=Object.keys(tierSysMap).map(Number).sort((a,b)=>a-b);
-    const roleTierMap={'Extractor':[0],'Factory':allTiers.filter(t=>t>0),'Full chain':allTiers,'—':[]};
-
-    /* Feature 7: slot utilisation */
-    const capSt2=(typeof capacityState==='function')?capacityState():null;
-    const totalFactorySlots=capSt2?capSt2.fSlots:0;
-    const slotDemandByTier={};
-    targets.forEach(tid=>{
-      const t=+tid,share=(+basket[tid]||1);
-      const acc=bomExpand(t,1);
-      Object.keys(acc.steps).forEach(pid=>{
-        const ti=PI.tier[pid]||0;
-        const ph=perHour(+pid);
-        if(ph>0){const demand=acc.steps[pid]*perHour(t)/ph*share;slotDemandByTier[ti]=(slotDemandByTier[ti]||0)+demand;}
-      });
-    });
-    const totalDemand=Object.values(slotDemandByTier).reduce((s,v)=>s+v,0);
-    const slotPct=totalFactorySlots>0?Math.round(100*totalDemand/totalFactorySlots):null;
-    const slotColor=slotPct==null?'var(--muted2)':slotPct>100?'var(--red)':slotPct>80?'var(--amber)':'var(--ok)';
-
-    // --- Extraction assignment: split P0 resources across extractor pilots ---
-    const allP0s=basketP0(); // all P0 typeIDs needed by the basket
-    const extractorPilots=pilotIds.filter(id=>roles[id]==='Extractor'||roles[id]==='Full chain');
-    const selSysRow=SYS[selectedSystemId];
-    const selCounts=selSysRow[5]||{};
-
-    // For each P0, compute how many planets in selected system can extract it
-    // and how much P0/hr is needed (from bomExpand across basket)
-    const p0Demand={}; // p0id -> total P0/hr needed across all basket items
-    targets.forEach(tid=>{
-      const t=+tid,qty=basket[tid]||10;
-      const acc=bomExpand(t,1);
-      const ph=perHour(t)*qty;
-      Object.keys(acc.p0).forEach(p=>{p0Demand[p]=(p0Demand[p]||0)+acc.p0[p]*ph;});
-    });
-
-    // Build planet assignment: for each extractor pilot, assign P0s based on planet capacity
-    // Strategy: each extractor pilot gets a slice of the total extractor planet pool
-    const totalExtractPlanets=extractorPilots.reduce((s,id)=>s+pilotCap(id).planets,0);
-    const extractAssign={}; // pilotId -> [{p0id, p0Name, planetsNeeded, planetTypes[], available}]
-    if(extractorPilots.length && allP0s.length){
-      // Compute planets needed per P0 (proportional to demand share)
-      const totalDemand=Object.values(p0Demand).reduce((s,v)=>s+v,0)||1;
-      const p0PlanetShare={}; // p0id -> fraction of extractor planets it needs
-      allP0s.forEach(p=>{p0PlanetShare[p]=(p0Demand[p]||0)/totalDemand;});
-
-      // Assign P0s to pilots round-robin weighted by planet capacity
-      let remaining=allP0s.slice();
-      extractorPilots.forEach(id=>{ extractAssign[id]=[]; });
-      // Simple greedy: assign each P0 to the pilot with most spare planet capacity
-      const used={};extractorPilots.forEach(id=>{used[id]=0;});
-      remaining.forEach(p=>{
-        // pick pilot with lowest used/capacity ratio
-        const pick=extractorPilots.reduce((best,id)=>{
-          const cap2=pilotCap(id).planets;
-          return (used[id]/cap2)<(used[best]/pilotCap(best).planets)?id:best;
-        },extractorPilots[0]);
-        const ptypes=PI.p0pt[p]||[];
-        const available=ptypes.reduce((s,t)=>s+(selCounts[t]||0),0);
-        const planetsNeeded=Math.max(1,Math.ceil(pilotCap(pick).planets*p0PlanetShare[p]));
-        extractAssign[pick].push({p0id:p,p0Name:PI.names[p]||('Resource '+p),ptypes,available,planetsNeeded,demandPerHr:p0Demand[p]||0});
-        used[pick]+=planetsNeeded;
-      });
-    }
-
-    let assignHtml='<div class="lbl2" style="font-size:8.5px;margin:14px 0 6px">PILOT → STAGE ASSIGNMENT</div>';
-    assignHtml+='<table class="assign-table"><thead><tr><th>PILOT</th><th>ROLE</th><th>TIERS COVERED</th><th>SYSTEM(S)</th><th>CONTRIBUTION</th></tr></thead><tbody>';
-    pilotIds.forEach(id=>{
-      const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
-      const r=roles[id]||'—';
-      const covTiers=(roleTierMap[r]||[]);
-      const covSys=[];
-      covTiers.forEach(ti=>{(tierSysMap[ti]||[]).forEach(e=>{if(!covSys.includes(e.sysName))covSys.push(e.sysName);});});
-      const cap=pilotCap(id);
-      let contrib='';
-      if(r==='Extractor'||r==='Full chain') contrib=cap.planets+'p · '+fmtInt(cap.planets*extractRate())+' P0/hr';
-      if(r==='Factory') contrib=cap.planets+'×'+cap.slots+' = '+(cap.planets*cap.slots)+' slots';
-      assignHtml+='<tr>'+
-        '<td>'+esc(nm)+'</td>'+
-        '<td><span class="r r-'+ROLES.indexOf(r)+'" style="font-size:9px;padding:2px 6px">'+esc(r)+'</span></td>'+
-        '<td>'+(covTiers.length?covTiers.map(t=>'P'+t).join(', '):'none')+'</td>'+
-        '<td>'+(covSys.length?esc(covSys.join(', ')):'none')+'</td>'+
-        '<td style="font-size:9px;color:var(--cyan)">'+esc(contrib)+'</td>'+
-      '</tr>';
-    });
-    const unassigned=pilotIds.filter(id=>!roles[id]||roles[id]==='—');
-    if(unassigned.length) assignHtml+='<tr><td colspan="5" style="color:var(--amber);font-size:9px;padding:6px 8px">⚠ '+unassigned.length+' pilot'+(unassigned.length===1?'':'s')+' unassigned</td></tr>';
-    assignHtml+='</tbody></table>';
-
-    /* --- Extraction assignment table --- */
-    if(extractorPilots.length && allP0s.length){
-      assignHtml+='<div class="lbl2" style="font-size:8.5px;margin:14px 0 6px">EXTRACTION ASSIGNMENTS — '+selSysRow[0]+'</div>';
-      assignHtml+='<table class="assign-table"><thead><tr><th>PILOT</th><th>RESOURCE</th><th>PLANET TYPES</th><th>PLANETS IN SYS</th><th>PLANETS ASSIGNED</th><th>DEMAND</th></tr></thead><tbody>';
-      extractorPilots.forEach(id=>{
-        const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
-        const assignments=extractAssign[id]||[];
-        const cap=pilotCap(id);
-        const totalAssigned=assignments.reduce((s,a)=>s+a.planetsNeeded,0);
-        const spare=cap.planets-totalAssigned;
-        if(!assignments.length){
-          assignHtml+='<tr><td>'+esc(nm)+'</td><td colspan="5" style="color:var(--muted2);font-size:9px">no P0 resources assigned — no basket items drafted</td></tr>';
-          return;
-        }
-        assignments.forEach((a,i)=>{
-          const ptNames=a.ptypes.map(c=>({I:'Ice',O:'Oceanic',T:'Temperate',B:'Barren',L:'Lava',G:'Gas',S:'Storm',P:'Plasma'}[c]||c)).join(', ');
-          const avail=a.available;
-          const ok=avail>=a.planetsNeeded;
-          const short=!ok?'⚠ only '+avail+' available':'';
-          assignHtml+='<tr>'+
-            (i===0?'<td rowspan="'+assignments.length+'" style="vertical-align:middle"><b>'+esc(nm)+'</b><span class="assign-contrib">'+cap.planets+'p total'+(spare>0?' · '+spare+'p spare':'')+'</span></td>':'') +
-            '<td>'+esc(a.p0Name)+'</td>'+
-            '<td style="font-size:9px;color:var(--muted2)">'+esc(ptNames)+'</td>'+
-            '<td style="color:'+(avail>0?'var(--ok)':'var(--red)')+'">'+avail+'</td>'+
-            '<td style="color:'+(ok?'var(--fg)':'var(--amber)')+'">'+a.planetsNeeded+(short?'<span class="assign-warn">'+short+'</span>':'')+'</td>'+
-            '<td style="font-size:9px">'+fmtInt(Math.round(a.demandPerHr))+'/hr</td>'+
-          '</tr>';
-        });
-      });
-      // Check for uncovered P0s (no extractor pilots have the right planet types)
-      const uncovered=allP0s.filter(p=>{
-        const ptypes=PI.p0pt[p]||[];
-        return ptypes.every(t=>(selCounts[t]||0)===0);
-      });
-      if(uncovered.length){
-        assignHtml+='<tr><td colspan="6" style="color:var(--red);font-size:9px;padding:6px 8px">⚠ '+
-          uncovered.map(p=>PI.names[p]||p).join(', ')+
-          ' — no matching planet types in '+esc(selSysRow[0])+'. Hunt for a nearby system that covers these.</td></tr>';
-      }
-      assignHtml+='</tbody></table>';
-    }
-
-    /* Feature 7 table */
-    if(totalFactorySlots>0){
-      const demandTiers=Object.keys(slotDemandByTier).map(Number).sort((a,b)=>a-b);
-      assignHtml+='<div class="lbl2" style="font-size:8.5px;margin:14px 0 6px">FACTORY SLOT UTILISATION</div>';
-      assignHtml+='<table class="assign-table"><thead><tr><th>STAGE</th><th>SLOTS NEEDED</th><th>AVAILABLE</th><th>UTILISATION</th></tr></thead><tbody>';
-      demandTiers.forEach(ti=>{
-        const d=slotDemandByTier[ti]||0;
-        const pct=Math.round(100*d/totalFactorySlots);
-        const col=pct>100?'var(--red)':pct>80?'var(--amber)':'var(--ok)';
-        assignHtml+='<tr><td>P'+ti+' factory</td><td>'+Math.ceil(d)+'</td><td>'+totalFactorySlots+'</td><td style="color:'+col+'">'+pct+'%'+(pct>100?' ⚠ over':'')+'</td></tr>';
-      });
-      assignHtml+='<tr style="border-top:1px solid var(--line2)"><td><b>TOTAL</b></td><td><b>'+Math.ceil(totalDemand)+'</b></td><td><b>'+totalFactorySlots+'</b></td><td style="color:'+slotColor+'"><b>'+(slotPct!=null?slotPct+'%':'?')+'</b>'+(slotPct!=null&&slotPct>100?' — add Factory pilots':'')+'</td></tr>';
-      assignHtml+='</tbody></table>';
-    } else {
-      assignHtml+='<div class="assign-warn" style="margin-top:8px">⚠ No Factory pilots chalked — slot utilisation unavailable</div>';
-    }
-
-    /* Feature 6: Multi-system split */
-    const uniqueSys=new Map();
-    allTiers.forEach(ti=>{(tierSysMap[ti]||[]).forEach(e=>{
-      if(!uniqueSys.has(e.sysId)) uniqueSys.set(e.sysId,{name:e.sysName,tiers:[],prods:[]});
-      const ue=uniqueSys.get(e.sysId);
-      if(!ue.tiers.includes(ti)) ue.tiers.push(ti);
-      e.prods.forEach(p=>{if(!ue.prods.includes(p)) ue.prods.push(p);});
-    });});
-    if(uniqueSys.size>1){
-      assignHtml+='<div class="lbl2" style="font-size:8.5px;margin:14px 0 6px">MULTI-SYSTEM SPLIT — '+uniqueSys.size+' systems</div>';
-      assignHtml+='<table class="assign-table"><thead><tr><th>SYSTEM</th><th>STAGES</th><th>PRODUCTS</th><th>HAUL OUT</th></tr></thead><tbody>';
-      const sysArr=[...uniqueSys.entries()].sort((a,b)=>(routeStops.get(a[0])?.jumps??999)-(routeStops.get(b[0])?.jumps??999));
-      sysArr.forEach(([sysId,info])=>{
-        info.tiers.sort((a,b)=>a-b);
-        const maxTier=Math.max(...info.tiers);
-        let haulDir='—';
-        if(tierSysMap[maxTier+1]){
-          const ns=tierSysMap[maxTier+1][0];
-          haulDir=ns&&ns.sysId!==sysId?'→ '+ns.sysName:'in-system';
-        } else if(sysId===selectedSystemId) haulDir='→ export';
-        const jl=routeStops.get(sysId);
-        assignHtml+='<tr>'+
-          '<td><b>'+esc(info.name)+'</b>'+(jl&&jl.jumps!=null?'<span class="assign-contrib">'+jl.jumps+'j from home</span>':'')+'</td>'+
-          '<td>'+info.tiers.map(t=>'P'+t).join(', ')+'</td>'+
-          '<td style="font-size:9px">'+esc(info.prods.join(', '))+'</td>'+
-          '<td>'+esc(haulDir)+'</td>'+
-        '</tr>';
-      });
-      assignHtml+='</tbody></table>';
-    }
-    $('assignBody').innerHTML=assignHtml;
-    $('assignPanel').style.display='block';
-  } else {
-    $('assignPanel').style.display='none';
-  }
-
   reportDashboard(targets.map(i=>PI.recipe[i].name).join(' + ')+' \u2192 '+selSys[0]+' · '+stops.length+' stops','ok');
 }
 
@@ -1660,7 +1448,7 @@ function _orig_renderRoles(){
     return '<div class="rolepill card" data-id="'+id+'"><span>'+esc(nm)+'</span><span class="r r-'+ROLES.indexOf(r)+'">'+esc(r)+'</span></div>';
   }).join('');
   const counts={};ids.forEach(id=>{const r=roles[id]||'—';counts[r]=(counts[r]||0)+1;});
-  $('roleSum').textContent='Chalked: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
+  $('roleSum').textContent='Modelled: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
 }
 /* ---- zoom-aware coordinate helper --------------------------------
    body.style.zoom scales layout pixels; clientX/Y and position:fixed
@@ -2352,6 +2140,7 @@ async function fetchColonyClocks(){
       const planets=await esiGet('/characters/'+id+'/planets/',tok.access);
       let earliest=null;
       const allExpiries=[];
+      const extractingP0s=new Set();
       for(const pl of planets){
         try{
           const det=await esiGet('/characters/'+id+'/planets/'+pl.planet_id+'/',tok.access);
@@ -2360,10 +2149,13 @@ async function fetchColonyClocks(){
             const exp=new Date(h.expiry_time).getTime();
             allExpiries.push(exp);
             if(!earliest||exp<earliest)earliest=exp;
+            // store which P0 typeID this head is extracting
+            const p0tid=h.extractor_details&&h.extractor_details.product_type_id;
+            if(p0tid) extractingP0s.add(p0tid);
           }
         }catch(e){}
       }
-      colonyClocks[id]={earliest,allExpiries,ts:now()};saveColonyClocks();
+      colonyClocks[id]={earliest,allExpiries,extractingP0s:[...extractingP0s],ts:now()};saveColonyClocks();
     }catch(e){}
   })));
 }
@@ -2445,7 +2237,7 @@ function _orig_renderRoles2(){
     badge.onclick=e=>{e.stopPropagation();showSkillupPop(badge.dataset.skillup,badge);};
   });
   const counts={};ids.forEach(id=>{const r=roles[id]||'—';counts[r]=(counts[r]||0)+1;});
-  $('roleSum').textContent='Chalked: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
+  $('roleSum').textContent='Modelled: '+ROLES.slice(1).map(r=>(counts[r]||0)+' '+r.toLowerCase()).join(' · ')+((counts['—']||0)?' · '+counts['—']+' unassigned':'');
 }
 // Fetch colony clocks when roles change or on page load (silently)
 function _rcc_base(){
@@ -2709,137 +2501,8 @@ $('autochalkBtn').addEventListener('click',autoChalkRoles);
    ============================================================ */
 
 
-function renderPilotAssign(stagesMap){
-  const panel=$('assignPanel'),body=$('assignBody');
-  if(!panel||!body)return;
-  const pilots=visibleIds().filter(id=>roles[id]&&roles[id]!=='—');
-  if(!pilots.length){panel.style.display='none';return;}
-  panel.style.display='';
-
-  /* read-only mirror of the chalkboard — pilots grouped by role,
-     with a note on which stage type each role covers */
-  const byRole={};
-  pilots.forEach(id=>{
-    const r=roles[id];
-    (byRole[r]=byRole[r]||[]).push(id);
-  });
-
-  const roleStageNote={
-    'Extractor':'P0 raw extraction stages',
-    'Factory':'P1–P4 processing stages',
-    'Full chain':'all stages'
-  };
-
-  let html='<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:4px">';
-  Object.keys(byRole).sort().forEach(role=>{
-    const ids=byRole[role];
-    const note=roleStageNote[role]||'';
-    html+='<div style="min-width:160px">'+
-      '<div style="font-size:8.5px;margin-bottom:5px;color:var(--muted2)">'+esc(role.toUpperCase())+
-      (note?' · <span style="color:var(--muted2)">'+esc(note)+'</span>':'')+'</div>'+
-      ids.map(id=>{
-        const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
-        const stale=staleMap[id];
-        return '<div class="rolepill card" style="cursor:default;margin-bottom:4px">'+
-          '<span>'+esc(nm)+(stale?'<span class="stale-badge">⚠ stale</span>':'')+colonyClock(id)+'</span>'+
-          '<span class="r r-'+ROLES.indexOf(role)+'">'+esc(role)+'</span>'+
-          '</div>';
-      }).join('')+
-      '</div>';
-  });
-  html+='</div>';
-
-  if(!stagesMap||!stagesMap.length){
-    body.innerHTML=html;return;
-  }
-
-  /* show which tier-level stages each role type covers, derived from stagesMap */
-  const tiersByRole={Extractor:new Set(),Factory:new Set(),'Full chain':new Set()};
-  stagesMap.forEach(s=>{
-    const role=s.isP0?'Extractor':'Factory';
-    tiersByRole[role].add('P'+s.tier);
-    tiersByRole['Full chain'].add('P'+s.tier);
-  });
-  const stageNote=r=>{const t=tiersByRole[r];return t&&t.size?'covers '+[...t].sort().join(', '):'';};
-
-  html='<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:4px">';
-  Object.keys(byRole).sort().forEach(role=>{
-    const ids=byRole[role];
-    const note=stageNote(role)||roleStageNote[role]||'';
-    html+='<div style="min-width:160px">'+
-      '<div style="font-size:8.5px;margin-bottom:5px;color:var(--muted2)">'+esc(role.toUpperCase())+
-      (note?' · <span style="color:var(--muted2)">'+esc(note)+'</span>':'')+'</div>'+
-      ids.map(id=>{
-        const nm=(chars[id]&&chars[id].charName)||('Pilot '+id);
-        const stale=staleMap[id];
-        return '<div class="rolepill card" style="cursor:default;margin-bottom:4px">'+
-          '<span>'+esc(nm)+(stale?'<span class="stale-badge">⚠ stale</span>':'')+colonyClock(id)+'</span>'+
-          '<span class="r r-'+ROLES.indexOf(role)+'">'+esc(role)+'</span>'+
-          '</div>';
-      }).join('')+
-      '</div>';
-  });
-  html+='</div><div style="font-size:9px;color:var(--muted2);margin-top:8px">Roles are set in the Pilot chalkboard above. Extractors cover P0 raw stages; factories cover processing stages; full chain pilots cover both.</div>';
-  body.innerHTML=html;
-}
-
-/* ============================================================
-   FEATURE 4: Skill gap report
-   Per visible pilot: IC / CCU current level → next level delta,
-   translated to extra planets / slots, translated to delta
-   throughput lines for the current draft basket.
-   ============================================================ */
-/* ============================================================
-   SKILL UPSKILL SIDEBAR — always-visible right-edge panel
-   Shows each chalked pilot's IC/CCU level, next level gain,
-   and the throughput delta for the current draft basket.
-   ============================================================ */
-
-/* Patch renderRoles to also refresh skill gap if open, and auto-chalk diff if needed */
-const _origRenderRolesForSkillGap=_orig_renderRoles2;
-function _rr_stale_base(){
-  _orig_renderRoles2();
-}
-
-/* Patch renderLogistics to also render pilot assignment table */
-const _origRenderLogisticsForAssign=_orig_renderLogistics2;
-/* ---- shared stagesMap builder ---- */
-function buildStagesMap(){
-  if(!selectedSystemId||!basketIds().length)return null;
-  const nearDist=bfsFull(selectedSystemId);
-  const homeDist=lastHunt?lastHunt.dist:null;
-  const stagesMap=[];
-  basketIds().forEach(tid=>{
-    const t=+tid;
-    const acc=bomExpand(t,1);
-    const byTier={};
-    Object.keys(acc.p0).forEach(p=>{(byTier[0]=byTier[0]||[]).push(String(p));});
-    Object.keys(acc.steps).forEach(p=>{const ti=PI.tier[p]||0;(byTier[ti]=byTier[ti]||[]).push(String(p));});
-    const tierNums=Object.keys(byTier).map(Number).sort((a,b)=>a-b);
-    const prodName=basketIds().length>1?PI.recipe[t].name:null;
-    tierNums.forEach((ti,stageIdx)=>{
-      (byTier[ti]||[]).forEach(pid=>{
-        let pick;
-        if(ti===PI.tier[t]){
-          pick={id:selectedSystemId,anchored:true};
-        }else{
-          pick=bestSystemFor(pid,selectedSystemId,nearDist);
-          if(pick&&homeDist)pick.jumps=homeDist[pick.id]??pick.jumps;
-        }
-        const isP0=ti===0;
-        const label=isP0?(PI.names[pid]||pid):(PI.recipe[pid]?PI.recipe[pid].name:pid);
-        stagesMap.push({tid,stageIdx,label,prodName,pick,isP0,tier:ti,pid});
-      });
-    });
-  });
-  return stagesMap;
-}
-
 function renderLogistics(){
   _orig_renderLogistics2();
-  const stagesMap=buildStagesMap();
-  if(!stagesMap){const p=$('assignPanel');if(p)p.style.display='none';return;}
-  renderPilotAssign(stagesMap);
 }
 
 /* ============================================================
@@ -2899,10 +2562,6 @@ function renderRoles(){
     const nameSpan=pill.querySelector('span');
     if(nameSpan)nameSpan.appendChild(badge);
   });
-  /* sync the pilot assignment panel — rebuilt from current roles[] on every chalkboard change */
-  const stagesMap=buildStagesMap();
-  if(stagesMap)renderPilotAssign(stagesMap);
-  else{const p=$('assignPanel');if(p)p.style.display='none';}
   }
 
 /* ============================================================
