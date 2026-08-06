@@ -46,8 +46,9 @@ h1 .diamond{margin:0 10px;transform:translateY(-2px)}
 .prodchip{display:inline-flex;align-items:center;gap:6px;font-size:10px;padding:4px 9px}
 .prodchip input{width:44px;font-size:10px;padding:1px 4px;text-align:right}
 .prodchip .chip-x{cursor:pointer;padding:0 2px}
-.sugg{position:absolute;left:0;right:0;top:100%;max-height:280px;overflow-y:auto;z-index:30;display:none}
-.sugg .s-row{padding:7px 11px;font-size:11px;cursor:pointer;display:flex;justify-content:space-between}
+.sugg{position:absolute;left:0;right:0;top:100%;max-height:280px;overflow-y:auto;z-index:30;display:none;background:var(--bg2,#0d1117);border:1px solid var(--line2,#2a4050);border-radius:0 0 5px 5px;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+.sugg .s-row{padding:7px 11px;font-size:11px;cursor:pointer;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.04)}
+.sugg .s-row:hover{background:rgba(122,184,200,.08)}
 .chaintree{margin-top:14px}
 .ct-tier{margin-bottom:4px}
 .ct-tlabel{font-size:8.5px;margin:10px 0 5px}
@@ -413,14 +414,8 @@ td .reg{font-size:9px}
   <span class="c">Production and transfer routing for the selected system, carried over from the original PI Planner: each stage of the chain is scored to a real system (the selected system anchors the final stage), hauls are sized against your hauler's infrastructure hold, and the route is sorted nearest-first from home.</span>
   <div class="logihead">
     <span class="selsys card" id="logiSysCard"></span>
-    <div><label>HAULER</label><select id="haulShipSel"></select></div>
-    <div><label>M³ INFRA HOLD — reference value, adjust to match your fit</label><input type="number" id="haulCapacityInput" min="1"></div>
   </div>
   <div id="stageFlow"></div>
-  <div class="logigrid">
-    <div><div class="lbl2" style="font-size:8.5px;margin-bottom:6px" id="haulLbl">HAUL CADENCE &amp; TRIPS</div><div class="haulrows" id="haulRows"></div></div>
-    <div class="routebox card"><div class="lbl2" id="haulShipLbl">ROUTE OPTIMISER</div><div id="logiRoute"></div></div>
-  </div>
 </div>
 </div>
 
@@ -797,18 +792,7 @@ $('huntBtn').onclick=_orig_hunt;
    only Avalanche's ~3,000,000 m³ figure has a citable source (player
    reporting); the others are placeholders — check in-game and adjust. */
 const REF_VOLUME_BY_TIER={0:0.4,1:6,2:8,3:340,4:6000};
-const HAUL_SHIPS=[
-  {id:'epithal', name:'Epithal (Gallente Industrial)', hold:3000},
-  {id:'primae', name:'Primae (CCP unique)', hold:10000},
-  {id:'squall', name:'Squall (Upwell T1 Hauler)', hold:5000},
-  {id:'deluge', name:'Deluge (Upwell T2 Blockade Runner)', hold:5000},
-  {id:'torrent', name:'Torrent (Upwell T2 Transport)', hold:8000},
-  {id:'avalanche', name:'Avalanche (Upwell Freighter)', hold:3000000},
-  {id:'custom', name:'Custom / other hauler…', hold:1000}
-];
-let haulShipId='epithal', haulCapacity=HAUL_SHIPS[0].hold;
-try{haulShipId=localStorage.getItem('pi_haul_ship')||haulShipId;}catch(e){}
-try{const sc=localStorage.getItem('pi_haul_capacity');if(sc)haulCapacity=+sc;}catch(e){}
+
 
 let lastHunt=null;          // {rows,p0s,homeId,dist}
 let selectedSystemId=null;
@@ -1166,19 +1150,7 @@ function selectSystem(id){
   $('logiDeck').classList.add('on');
   $('logiDeck').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-{ /* hauler controls (same localStorage keys as pi.html — settings carry over) */
-  const sel=$('haulShipSel'),cap=$('haulCapacityInput');
-  sel.innerHTML=HAUL_SHIPS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
-  sel.value=HAUL_SHIPS.some(s=>s.id===haulShipId)?haulShipId:'epithal';
-  cap.value=haulCapacity;
-  sel.addEventListener('change',()=>{
-    haulShipId=sel.value;try{localStorage.setItem('pi_haul_ship',haulShipId);}catch(e){}
-    const ship=HAUL_SHIPS.find(s=>s.id===haulShipId);
-    if(ship){haulCapacity=ship.hold;cap.value=haulCapacity;try{localStorage.setItem('pi_haul_capacity',haulCapacity);}catch(e){}}
-    renderLogistics();
-  });
-  cap.addEventListener('input',()=>{haulCapacity=+cap.value||1;try{localStorage.setItem('pi_haul_capacity',haulCapacity);}catch(e){}renderLogistics();});
-}
+
 function buildChainTreeSvg(rootTid, byTier, tierNums, pickCache, acc, SYS){
   // Build a left-to-right horizontal tree: P0 leaves on left, final product on right
   // Each tier is a column; products within a tier are stacked vertically
@@ -1352,11 +1324,10 @@ function _orig_renderLogistics(){
   $('logiSysCard').innerHTML=esc(selSys[0])+' \u00b7 '+selSys[1].toFixed(1)+' \u00b7 '+esc(UNIVERSE.regions[selSys[2]]||'')+p4sysWarn;
   const nearDist=bfsFull(selectedSystemId);
   const homeDist=lastHunt?lastHunt.dist:null;
-  const routeStops=new Map();let totalTripsAll=0;
   const unionP0=basketP0();
   const ROMAN=['I','II','III','IV','V'];
   const targets=basketIds();
-  let flowHtml='',haulHtml='';
+  let flowHtml='';
   targets.forEach(tid=>{
     const t=+tid,qty=basket[tid]||10;
     const acc=bomExpand(t,1);
@@ -1381,7 +1352,6 @@ function _orig_renderLogistics(){
           pickCache[pid]=pick;
         }
         const pk=pickCache[pid];
-        if(pk)routeStops.set(pk.id,{sysName:SYS[pk.id][0],jumps:(pk.jumps!==Infinity?pk.jumps:null)});
       });
     });
 
@@ -1389,52 +1359,9 @@ function _orig_renderLogistics(){
     if(targets.length>1)flowHtml+='<div class="ct-prodhead" style="margin-top:8px">'+esc(PI.recipe[t].name)+' ×'+qty+'</div>';
     flowHtml+=buildChainTreeSvg(t,byTier,tierNums,pickCache,acc,SYS);
 
-    /* haul cadence — volume and trips per tier boundary */
-    let rows='';
-    for(let ci=0;ci<tierNums.length-1;ci++){
-      const tiA=tierNums[ci],tiB=tierNums[ci+1];
-      const prodsA=byTier[tiA]||[],prodsB=byTier[tiB]||[];
-      const ctA=Math.max(...prodsA.map(p=>PI.recipe[p]?PI.recipe[p].ct:1800));
-      const ctB=Math.max(...prodsB.map(p=>PI.recipe[p]?PI.recipe[p].ct:3600));
-      const cadence=Math.max(ctA,ctB);
-      let totalM3=0;
-      prodsA.forEach(pid=>{
-        const r=PI.recipe[pid];
-        const out=r?r.out*Math.max(1,cadence/r.ct):1;
-        const vol=PI_VOL[pid]!=null?PI_VOL[pid]:(REF_VOLUME_BY_TIER[tiA]||0.38);
-        totalM3+=out*vol;
-      });
-      const trips=Math.max(1,Math.ceil(totalM3/haulCapacity));
-      totalTripsAll+=trips;
-      const fromNames=prodsA.map(p=>tiA===0?(PI.names[p]||p):(PI.recipe[p]?PI.recipe[p].name:p)).join(', ');
-      const toNames=prodsB.map(p=>PI.recipe[p]?PI.recipe[p].name:p).join(', ');
-      rows+='<div class="buf-row card">'+
-        '<span>P'+tiA+' → P'+tiB+'</span>'+
-        '<span><b>'+fmtHrs(cadence)+'</b> cadence · '+esc(fromNames)+' → '+esc(toNames)+
-        ' · ~'+Math.round(totalM3).toLocaleString()+' m³ ≈ <b>'+trips+'</b> trip'+(trips===1?'':'s')+'</span></div>';
-    }
   });
   $('stageFlow').innerHTML=flowHtml;
-  /* export volume — computed from the chalked roster's supported lines */
-  let expHtml='';
-  const capSt=(typeof capacityState==='function')?capacityState():null;
-  if(capSt){
-    const rowsE=capSt.prods.filter(p=>isFinite(p.lines)&&p.lines>0).map(p=>{
-      const perDay=p.rate*24;
-      const vol=PI_VOL[p.t]!=null?PI_VOL[p.t]:(REF_VOLUME_BY_TIER[PI.tier[p.t]]!=null?REF_VOLUME_BY_TIER[PI.tier[p.t]]:6);
-      const m3=perDay*vol;
-      const trips=Math.max(1,Math.ceil(m3/haulCapacity));
-      return '<div class="buf-row card"><span>EXPORT</span><span><b>'+esc(p.name)+'</b> \u00b7 '+fmtInt(Math.round(perDay))+' units/day \u2248 <b>'+fmtInt(Math.round(m3))+' m\u00b3/day</b> \u2248 <b>'+trips+'</b> export trip'+(trips===1?'':'s')+'/day to home station</span></div>';
-    }).join('');
-    if(rowsE)expHtml='<div class="ct-prodhead" style="margin:8px 0 2px">EXPORT VOLUME \u2014 from chalked roster</div>'+rowsE;
-  }
-  $('haulRows').innerHTML=haulHtml+expHtml;
-  const shipObj=HAUL_SHIPS.find(s=>s.id===haulShipId);
-  $('haulShipLbl').textContent='ROUTE OPTIMISER — '+(shipObj?shipObj.name:'custom hauler')+', '+haulCapacity.toLocaleString()+' m\u00b3';
-  const stops=[...routeStops.values()].sort((x,y)=>(x.jumps??1e9)-(y.jumps??1e9));
-  $('logiRoute').innerHTML=stops.map((s,i)=>'<div class="route-row"><span><span class="stop-idx">'+(i+1)+'.</span><span class="stop-name">'+esc(s.sysName)+'</span></span><span>'+(s.jumps!=null?s.jumps+' jumps from home':'jumps unknown')+'</span></div>').join('')+
-    '<div class="route-summary">Nearest-first route across '+stops.length+' system'+(stops.length===1?'':'s')+' · ~'+totalTripsAll+' total trip'+(totalTripsAll===1?'':'s')+' to clear every haul stage across the whole basket at current cadence.</div>';
-  reportDashboard(targets.map(i=>PI.recipe[i].name).join(' + ')+' \u2192 '+selSys[0]+' · '+stops.length+' stops','ok');
+  reportDashboard(targets.map(i=>PI.recipe[i].name).join(' + ')+' → '+selSys[0],'ok');
 }
 
 /* ---- pilot chalkboard ---- */
@@ -1994,31 +1921,6 @@ function ensureChainPriceLoader(){
 /* ============================================================
    FEATURE 4: Copy route to clipboard
    ============================================================ */
-function renderCopyRouteBtn(){
-  const box=$('logiRoute');if(!box)return;
-  // remove old button if present
-  const old=box.querySelector('.copy-route-btn');if(old)old.remove();
-  const btn=document.createElement('button');
-  btn.className='copy-route-btn btn';
-  btn.textContent='Copy route';
-  btn.onclick=()=>{
-    const summary=box.querySelector('.route-summary');
-    const rows=[...box.querySelectorAll('.route-row')];
-    const lines=['Chain Works route \u2014 '+basketIds().map(i=>PI.recipe[i].name).join(' + ')];
-    rows.forEach(r=>{
-      const idx=r.querySelector('.stop-idx')?.textContent||'';
-      const nm=r.querySelector('.stop-name')?.textContent||r.textContent;
-      const jumps=r.querySelector('span:last-child')?.textContent||'';
-      lines.push(idx+' '+nm.trim()+' \u00b7 '+jumps.trim());
-    });
-    if(summary)lines.push(summary.textContent);
-    navigator.clipboard.writeText(lines.join('\n')).then(()=>{
-      btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy route',2000);
-    }).catch(()=>{btn.textContent='Copy failed';setTimeout(()=>btn.textContent='Copy route',2000);});
-  };
-  box.appendChild(btn);
-}
-
 /* ============================================================
    FEATURE 5: Best for my roster panel
    ============================================================ */
@@ -2307,7 +2209,6 @@ function hunt(){
 const _origRenderLogistics=_orig_renderLogistics;
 function _orig_renderLogistics2(){
   _orig_renderLogistics();
-  renderCopyRouteBtn();
 }
 
 /* Patch refreshDraft to also update presets + chain price loader */
